@@ -1,1 +1,784 @@
-<!-- Pegar contenido de Public_Dashboard.html del GAS aquí -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Catholizare Pro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --navy-primary: #001A55;
+      --navy-dark: #000F33;
+      --blue-accent: #003ABA;
+      --gold-accent: #D4AF37;
+      --success-green: #28a745;
+      --warning-yellow: #ffc107;
+      --danger-red: #dc3545;
+      --gray-light: #f8f9fa;
+      --gray-medium: #6c757d;
+      --border-radius: 12px;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      background-color: #f5f7fa;
+      color: #1a202c;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* Header */
+    .header {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header h1 {
+      color: var(--navy-primary);
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .header-meta {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      font-size: 14px;
+      color: var(--gray-medium);
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .badge.in-progress {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .badge.completed {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge.warning {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    
+    /* Tabs */
+    .tabs {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 0;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 16px;
+    }
+    
+    .tab {
+      padding: 16px 24px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--gray-medium);
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .tab:hover {
+      color: var(--navy-primary);
+    }
+    
+    .tab.active {
+      color: var(--navy-primary);
+      border-bottom-color: var(--navy-primary);
+    }
+    
+    .tab-content {
+      padding: 24px 32px;
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 1024px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--navy-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* Progress Bar */
+    .progress-container {
+      margin: 20px 0;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success-green) 0%, #20c997 100%);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--gray-medium);
+    }
+    
+    .progress-percent {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--navy-primary);
+      margin-bottom: 8px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    
+    .stat-card {
+      background: var(--gray-light);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--navy-primary);
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--gray-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Action List */
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .action-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--gray-light);
+      border-radius: 8px;
+    }
+    
+    .action-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .action-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: white;
+    }
+    
+    .action-text h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy-primary);
+      margin-bottom: 2px;
+    }
+    
+    .action-text p {
+      font-size: 12px;
+      color: var(--gray-medium);
+      margin: 0;
+    }
+    
+    .action-status {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .action-status.completed {
+      color: var(--success-green);
+    }
+    
+    .action-status.pending {
+      color: var(--warning-yellow);
+    }
+    
+    /* Action Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    
+    .btn-primary {
+      background: var(--navy-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--navy-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 26, 85, 0.2);
+    }
+    
+    .btn-success {
+      background: var(--success-green);
+      color: white;
+    }
+    
+    .btn-outline {
+      background: white;
+      color: var(--navy-primary);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .btn-outline:hover {
+      background: var(--gray-light);
+    }
+    
+    /* Alert */
+    .alert {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      border-left: 4px solid;
+    }
+    
+    .alert.warning {
+      background: #fffbeb;
+      border-color: var(--warning-yellow);
+      color: #78350f;
+    }
+    
+    .alert.success {
+      background: #f0fdf4;
+      border-color: var(--success-green);
+      color: #14532d;
+    }
+    
+    .alert.info {
+      background: #eff6ff;
+      border-color: var(--blue-accent);
+      color: #1e3a8a;
+    }
+    
+    .alert-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    
+    .alert-content h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .alert-content p {
+      font-size: 13px;
+      margin: 0;
+    }
+    
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e5e7eb;
+      border-top-color: var(--navy-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Fase Progress Dots */
+    .fase-dots {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .fase-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e5e7eb;
+    }
+    
+    .fase-dot.active {
+      background: var(--blue-accent);
+    }
+    
+    .fase-dot.completed {
+      background: var(--success-green);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    
+    <!-- Header -->
+    <div class="header">
+      <h1 id="userName">Cargando...</h1>
+      <div class="header-meta">
+        <span id="faseActual"></span>
+        <span id="estadoActual"></span>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Cargando tu información...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const TOKEN = "<?= token ?>";
+    const SCRIPT_URL = "<?= scriptUrl ?>";
+
+    // Cargar datos
+    async function loadDashboard() {
+      try {
+        google.script.run
+          .withSuccessHandler(renderDashboard)
+          .withFailureHandler(showError)
+          .getProfessionalStatus(TOKEN);
+      } catch (error) {
+        console.error('Error:', error);
+        showError('Error al cargar el dashboard: ' + error.message);
+      }
+    }
+
+    function renderDashboard(status) {
+      if (!status.success) {
+        showError(status.message);
+        return;
+      }
+
+      // Actualizar header
+      document.getElementById('userName').textContent = `👋 Hola, ${status.nombre}`;
+      document.getElementById('faseActual').innerHTML = getFaseBadge(status.fase);
+      document.getElementById('estadoActual').innerHTML = getEstadoBadge(status.estado);
+
+      const diasRestantes = status.plazos?.diasRestantes || 0;
+      const progreso = status.progreso || 0;
+
+      let html = '';
+
+      // Alert si es necesario
+      if (status.fase === 'Fase 1' && diasRestantes > 0) {
+        if (diasRestantes <= 20) {
+          html += `
+            <div class="alert warning">
+              <span class="alert-icon">⏰</span>
+              <div class="alert-content">
+                <h4>Tiempo limitado</h4>
+                <p>Te quedan ${diasRestantes} días para completar la Fase 1</p>
+              </div>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="alert success">
+              <span class="alert-icon">✅</span>
+              <div class="alert-content">
+                <h4>Vas por buen camino</h4>
+                <p>Tienes ${diasRestantes} días restantes para completar</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // Tabs
+      html += `
+        <div class="tabs">
+          <div class="tabs-header">
+            <div class="tab active" data-tab="informacion">Información</div>
+            <div class="tab" data-tab="documentos">Documentos</div>
+          </div>
+
+          <!-- Tab: Información -->
+          <div class="tab-content active" data-tab-content="informacion">
+            <div class="grid">
+              
+              <!-- Progreso -->
+              <div>
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">📊 Tu Progreso</h3>
+                  </div>
+                  
+                  <div class="progress-container">
+                    <div class="progress-percent">${progreso}%</div>
+                    <div class="progress-bar">
+                      <div class="progress-fill" style="width: ${progreso}%"></div>
+                    </div>
+                    <div class="progress-label">
+                      <span>Completado</span>
+                      <span>${progreso}% de 100%</span>
+                    </div>
+                  </div>
+
+                  <div class="stats-grid">
+                    <div class="stat-card">
+                      <span class="stat-number">${diasRestantes}</span>
+                      <span class="stat-label">Días restantes</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="stat-number">${progreso}</span>
+                      <span class="stat-label">% Completo</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="stat-number">${status.fase.replace('Fase ', '')}</span>
+                      <span class="stat-label">Fase Actual</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Acciones Pendientes -->
+              <div>
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">🎯 Acciones Pendientes</h3>
+                  </div>
+                  
+                  <div class="action-list">
+                    ${renderActionItem(
+                      '📄',
+                      'Documentos Legales',
+                      'Firma código de ética y acuerdo',
+                      status.legal,
+                      `${SCRIPT_URL}?page=legal&token=${TOKEN}`
+                    )}
+                    ${renderActionItem(
+                      '👤',
+                      'Perfil Profesional',
+                      'Completa tu información',
+                      status.perfil,
+                      `${SCRIPT_URL}?page=perfil&token=${TOKEN}`
+                    )}
+                    ${renderActionItem(
+                      '📎',
+                      'Subir Documentos',
+                      'CV, cédula, foto, carta',
+                      Object.values(status.documentos).every(v => v),
+                      null,
+                      true
+                    )}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Tab: Documentos -->
+          <div class="tab-content" data-tab-content="documentos">
+            ${renderDocumentos(status.documentos, status.documentosUrls)}
+          </div>
+
+        </div>
+      `;
+
+      document.getElementById('content').innerHTML = html;
+
+      // Event listeners para tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          const targetTab = tab.dataset.tab;
+          
+          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+          document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+          
+          tab.classList.add('active');
+          document.querySelector(`[data-tab-content="${targetTab}"]`).classList.add('active');
+        });
+      });
+    }
+
+    function renderActionItem(icon, title, description, isCompleted, link, isDocuments = false) {
+      if (isCompleted) {
+        return `
+          <div class="action-item">
+            <div class="action-info">
+              <div class="action-icon">${icon}</div>
+              <div class="action-text">
+                <h4>${title}</h4>
+                <p>${description}</p>
+              </div>
+            </div>
+            <span class="action-status completed">✓ Completado</span>
+          </div>
+        `;
+      } else {
+        if (isDocuments) {
+          return `
+            <div class="action-item">
+              <div class="action-info">
+                <div class="action-icon">${icon}</div>
+                <div class="action-text">
+                  <h4>${title}</h4>
+                  <p>${description}</p>
+                </div>
+              </div>
+              <button onclick="switchToDocuments()" class="btn btn-primary">Ver Documentos</button>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="action-item">
+              <div class="action-info">
+                <div class="action-icon">${icon}</div>
+                <div class="action-text">
+                  <h4>${title}</h4>
+                  <p>${description}</p>
+                </div>
+              </div>
+              <a href="${link}" class="btn btn-primary">Completar</a>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function renderDocumentos(docs, urls) {
+      const docList = [
+        { key: 'cv', nombre: 'Curriculum Vitae', icon: '📄', max: '5MB' },
+        { key: 'cedula', nombre: 'Cédula Profesional', icon: '🎓', max: '5MB' },
+        { key: 'foto', nombre: 'Foto Profesional', icon: '📸', max: '1MB' },
+        { key: 'carta', nombre: 'Carta de Sacerdote', icon: '✉️', max: '5MB' }
+      ];
+
+      let html = '<div class="card"><div class="action-list">';
+
+      docList.forEach(doc => {
+        const isUploaded = docs[doc.key];
+        const url = urls[doc.key];
+
+        html += `
+          <div class="action-item">
+            <div class="action-info">
+              <div class="action-icon">${doc.icon}</div>
+              <div class="action-text">
+                <h4>${doc.nombre}</h4>
+                <p>Máximo ${doc.max}</p>
+              </div>
+            </div>
+            ${isUploaded ? 
+              `<div style="display: flex; gap: 8px;">
+                <span class="action-status completed">✓ Subido</span>
+                ${url ? `<a href="${url}" target="_blank" class="btn btn-outline">Ver</a>` : ''}
+              </div>` :
+              `<button onclick="uploadDocument('${doc.key}')" class="btn btn-primary">Subir</button>`
+            }
+          </div>
+        `;
+      });
+
+      html += '</div></div>';
+      return html;
+    }
+
+    function getFaseBadge(fase) {
+      const faseNum = fase.replace('Fase ', '');
+      const dots = Array.from({length: 4}, (_, i) => {
+        const dotClass = i < faseNum ? 'completed' : (i == faseNum - 1 ? 'active' : '');
+        return `<div class="fase-dot ${dotClass}"></div>`;
+      }).join('');
+
+      return `
+        <span class="badge in-progress">
+          <div class="fase-dots">${dots}</div>
+          ${fase}
+        </span>
+      `;
+    }
+
+    function getEstadoBadge(estado) {
+      const classes = {
+        'Activo': 'completed',
+        'En Progreso': 'in-progress',
+        'Incompleto': 'warning'
+      };
+
+      return `<span class="badge ${classes[estado] || 'in-progress'}">${estado}</span>`;
+    }
+
+    function switchToDocuments() {
+      document.querySelector('[data-tab="documentos"]').click();
+    }
+
+    function uploadDocument(type) {
+      const input = document.createElement('input');
+      input.type = 'file';
+      
+      const limits = {
+        foto: { maxMB: 1, accept: 'image/jpeg,image/jpg,image/png' },
+        cv: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
+        cedula: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
+        carta: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' }
+      };
+      
+      input.accept = limits[type].accept;
+
+      input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const maxSize = limits[type].maxMB * 1024 * 1024;
+        if (file.size > maxSize) {
+          alert(`El archivo no debe superar los ${limits[type].maxMB}MB`);
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          google.script.run
+            .withSuccessHandler(function(result) {
+              if (result.success) {
+                alert('¡Documento subido con éxito!');
+                loadDashboard();
+              } else {
+                alert('Error: ' + result.message);
+              }
+            })
+            .withFailureHandler(function(error) {
+              alert('Error al subir: ' + error);
+            })
+            .uploadFile(TOKEN, event.target.result, file.name, type);
+        };
+        reader.readAsDataURL(file);
+      };
+
+      input.click();
+    }
+
+    function showError(message) {
+      document.getElementById('content').innerHTML = `
+        <div class="alert warning">
+          <span class="alert-icon">⚠️</span>
+          <div class="alert-content">
+            <h4>Error</h4>
+            <p>${message}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Cargar al inicio
+    window.onload = loadDashboard;
+  </script>
+</body>
+</html>
