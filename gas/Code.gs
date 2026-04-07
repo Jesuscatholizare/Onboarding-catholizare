@@ -1,148 +1,2225 @@
 /**
- * CATHOLIZARE PRO - SISTEMA DE ONBOARDING
- * Version: 5.3
- *
- * ═══════════════════════════════════════════════════════════════
- * ARCHIVO DE REFERENCIA + doPost ROUTER
- *
- * Este archivo contiene el doPost() que DEBES agregar al GAS
- * para que el proxy Express pueda invocar funciones del backend.
- *
- * INSTRUCCIONES:
- *   1. Abre tu proyecto GAS en https://script.google.com
- *   2. Copia la funcion doPost() de abajo
- *   3. Pegala en tu Code.gs (NO reemplaces el doGet existente)
- *   4. Haz un nuevo deploy: Deploy > New deployment > Web app
- *      - Execute as: Me
- *      - Who has access: Anyone
- *   5. Copia la URL del deployment y ponla en .env como GAS_WEBAPP_URL
- * ═══════════════════════════════════════════════════════════════
- *
- * Spreadsheet ID: 1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I
- * Hoja principal: "Onboarding"
- *
- * Columnas Onboarding (0-indexed):
- *   0: ID_Token       1: Nombre         2: Email
- *   3: Especialidad   4: CV_Url         5: Docs_Profesion (cedula)
- *   6: Foto_Url       7: Carta_Sacerdote 8: Fase_Actual
- *   9: Estado        10: Categoria      11: Legal_Aceptacion
- *  12: Legal_Fecha   13: Poblaciones    14: Modalidad
- *  15: Terapias      16: Horarios       17: Fecha_Inicio
- *  18: Fecha_Rec1    19: Fecha_Rec2     20: Dias_Desde_Inicio
- *  21: Fase1_Completada 22: Fase1_Fecha 23: Trigger_Marks
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CATHOLIZARE PRO - SISTEMA DE ONBOARDING COMPLETO
+ * Versión: 5.3 - Correos actualizados + WhatsApp
+ * Fecha: Febrero 2026
+ * ═══════════════════════════════════════════════════════════════════════════
  */
 
 // ============================================================================
-// doPost - ROUTER PARA PROXY EXPRESS
-// ============================================================================
-// Copia esta funcion en tu Code.gs del proyecto GAS.
-// El proxy Express envia POST con { action: "nombreFuncion", ...params }
-// y este router despacha a la funcion correcta.
+// CONSTANTES GLOBALES
 // ============================================================================
 
-function doPost(e) {
+// ⚠️ CAMBIA ESTE NÚMERO POR EL NÚMERO REAL DE WHATSAPP DE COORDINACIÓN
+var WA_NUMBER = '5215510223883';
+var WA_LINK = 'https://wa.me/' + WA_NUMBER;
+
+// Folder de Google Drive con documentos legales para descarga
+var LEGAL_DOCS_FOLDER = '1ZoZdAj9xBXlbZQh07lJAwuNQNp9h4SUs';
+
+function getEmailFooter(nombre) {
+  return '<tr><td style="padding:20px 30px;text-align:center;">' +
+    '<a href="' + WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + nombre + ' y necesito ayuda con mi onboarding en Catholizare Pro') + '" ' +
+    'style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:50px;font-size:15px;font-weight:700;">' +
+    '💬 Atención al Profesional (WhatsApp)</a></td></tr>' +
+    '<tr><td style="background-color:#f8f9fa;padding:25px 30px;text-align:center;border-top:1px solid #e9ecef;">' +
+    '<p style="margin:0 0 8px 0;color:#666;font-size:13px;">¿Necesitas ayuda? Escríbenos por WhatsApp o al correo <strong>soporte@catholizare.com</strong></p>' +
+    '<p style="margin:0;color:#999;font-size:12px;">&copy; 2026 Catholizare Pro. Todos los derechos reservados.</p></td></tr>';
+}
+
+// ============================================================================
+// CONFIGURACIÓN INICIAL
+// ============================================================================
+
+function setupConfiguration() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperties({
+    'BREVO_API_KEY': 'PEGAR_TU_API_KEY_AQUI',
+    'BREVO_LIST_FASE1': '14',
+    'BREVO_LIST_FASE2': '15',
+    'BREVO_LIST_FASE3': '16',
+    'BREVO_LIST_FASE4': '17',
+    'PARENT_FOLDER_ID': '1v6yjl3fCbHhOXDmURItXkqJxpVOjh0nl',
+    'ZOOM_LINK': 'https://us06web.zoom.us/j/TU-LINK-ZOOM',
+    'ADMIN_EMAIL': 'sistemascatholizare@gmail.com',
+    'SELECCION_URL': ''
+  });
+  Logger.log('✅ Configuración guardada');
+}
+
+// Ejecutar esta función para actualizar SOLO los IDs de listas Brevo sin tocar la API key
+function actualizarListasBrevo() {
+  const props = PropertiesService.getScriptProperties();
+  props.setProperties({
+    'BREVO_LIST_FASE1': '14',
+    'BREVO_LIST_FASE2': '15',
+    'BREVO_LIST_FASE3': '16',
+    'BREVO_LIST_FASE4': '17'
+  });
+  Logger.log('✅ Listas Brevo actualizadas: Fase1=#14, Fase2=#15, Fase3=#16, Fase4=#17');
+}
+
+function verificarConfiguracion() {
+  const props = PropertiesService.getScriptProperties();
+  const config = {
+    'BREVO_API_KEY': props.getProperty('BREVO_API_KEY'),
+    'BREVO_LIST_FASE1': props.getProperty('BREVO_LIST_FASE1'),
+    'BREVO_LIST_FASE2': props.getProperty('BREVO_LIST_FASE2'),
+    'BREVO_LIST_FASE3': props.getProperty('BREVO_LIST_FASE3'),
+    'BREVO_LIST_FASE4': props.getProperty('BREVO_LIST_FASE4'),
+    'PARENT_FOLDER_ID': props.getProperty('PARENT_FOLDER_ID'),
+    'ZOOM_LINK': props.getProperty('ZOOM_LINK'),
+    'ADMIN_EMAIL': props.getProperty('ADMIN_EMAIL')
+  };
+  Logger.log('📋 CONFIGURACIÓN ACTUAL:');
+  for (let key in config) {
+    const value = config[key];
+    Logger.log(`${value ? '✅' : '❌'} ${key}: ${value || 'NO CONFIGURADO'}`);
+  }
+}
+
+// ============================================================================
+// CONSTANTES Y CONFIGURACIÓN DINÁMICA
+// ============================================================================
+
+// Use getter functions instead of global constants (which fail in web app context)
+function getSS() {
+  // HARDCODED ID - obtenido de setupSpreadsheetId()
+  return SpreadsheetApp.openById('1YgbnsB0_oLbSlYBUNqhe2V9QqlbEu8nGotYTWHHXW4I');
+}
+
+function getSHEET() {
+  return getSS().getSheetByName("Onboarding");
+}
+
+/**
+ * EJECUTAR UNA VEZ desde el editor para guardar el ID del spreadsheet
+ */
+function setupSpreadsheetId() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var id = ss.getId();
+  PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', id);
+  Logger.log('✅ SPREADSHEET_ID guardado: ' + id);
+}
+
+function getConfig() {
+  const props = PropertiesService.getScriptProperties();
+  return {
+    BREVO_API_KEY: props.getProperty('BREVO_API_KEY'),
+    PARENT_FOLDER_ID: props.getProperty('PARENT_FOLDER_ID'),
+    ZOOM_LINK: props.getProperty('ZOOM_LINK'),
+    ADMIN_EMAIL: props.getProperty('ADMIN_EMAIL'),
+    SELECCION_URL: props.getProperty('SELECCION_URL'),
+    LIST_IDS: {
+      "Fase 1": parseInt(props.getProperty('BREVO_LIST_FASE1')),
+      "Fase 2": parseInt(props.getProperty('BREVO_LIST_FASE2')),
+      "Fase 3": parseInt(props.getProperty('BREVO_LIST_FASE3')),
+      "Fase 4": parseInt(props.getProperty('BREVO_LIST_FASE4'))
+    }
+  };
+}
+
+const BREVO_ENDPOINT = 'https://api.brevo.com/v3/smtp/email';
+
+const FILE_SIZE_LIMITS = {
+  foto: 1 * 1024 * 1024,
+  cv: 5 * 1024 * 1024,
+  cedula: 5 * 1024 * 1024,
+  titulo: 5 * 1024 * 1024,
+  carta: 5 * 1024 * 1024
+};
+
+const ALLOWED_TYPES = {
+  foto: ['image/jpeg', 'image/jpg', 'image/png'],
+  documents: ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
+};
+
+// ============================================================================
+// HELPER: SERVIR PÁGINA ADMIN (con fallback)
+// ============================================================================
+
+function serveAdminPage(fileName, title, adminToken, user) {
   try {
-    var data = JSON.parse(e.postData.contents);
-    var action = data.action;
+    var template = HtmlService.createTemplateFromFile(fileName);
+    template.scriptUrl = ScriptApp.getService().getUrl();
+    template.adminToken = adminToken;
+    template.userRole = user.role;
+    template.userEmail = user.email;
+    template.userName = user.nombre;
+    
+    return template.evaluate()
+      .setTitle(title + ' - Catholizare')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+      
+  } catch (error) {
+    Logger.log('⚠️ Archivo no encontrado: ' + fileName + '.html');
+    var scriptUrl = ScriptApp.getService().getUrl();
+    var dashUrl = scriptUrl + '?admin=true&adminToken=' + adminToken;
+    
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + title + '</title>' +
+      '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f8f9fa;display:flex;align-items:center;justify-content:center;min-height:100vh}' +
+      '.card{text-align:center;max-width:450px;padding:40px}.icon{width:100px;height:100px;background:linear-gradient(135deg,#001A55,#003ABA);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:44px;box-shadow:0 8px 30px rgba(0,26,85,0.2)}' +
+      '.badge{display:inline-block;background:linear-gradient(135deg,#D4AF37,#e8c84a);color:#001A55;padding:5px 14px;border-radius:16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}' +
+      'h1{color:#001A55;font-size:28px;margin-bottom:10px}p{color:#6c757d;font-size:15px;line-height:1.6;margin-bottom:24px}' +
+      '.btn{display:inline-block;background:#001A55;color:white;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px}</style></head>' +
+      '<body><div class="card"><div class="icon">🚧</div><div class="badge">Próximamente</div><h1>' + title + '</h1>' +
+      '<p>Esta sección está en desarrollo y estará disponible en una próxima actualización.</p>' +
+      '<a class="btn" href="' + dashUrl + '">← Volver al Dashboard</a></div></body></html>'
+    ).setTitle(title + ' - Catholizare')
+      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+}
 
-    Logger.log('[doPost] Action: ' + action);
+// ============================================================================
+// VALIDAR TOKEN PROFESIONAL
+// ============================================================================
 
-    var result;
+function validateProfessionalToken(token) {
+  try {
+    if (!token) return null;
+    
+    var data = getSHEET().getDataRange().getValues();
+    
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        return {
+          token: data[i][0],
+          nombre: data[i][1],
+          email: data[i][2],
+          especialidad: data[i][3],
+          fase: data[i][8],
+          estado: data[i][9],
+          categoria: data[i][10],
+          row: i + 1
+        };
+      }
+    }
+    
+    return null;
+    
+  } catch (error) {
+    Logger.log('Error en validateProfessionalToken: ' + error);
+    return null;
+  }
+}
 
-    switch (action) {
-      // === Profesional: desde las paginas HTML ===
-      case 'saveLegalAcceptance':
-        result = saveLegalAcceptance(data.token, data.version, data.signerName);
+// ============================================================================
+// doGet - ROUTING PRINCIPAL
+// ============================================================================
+
+function doGet(e) {
+  var page = e.parameter.page;
+  var token = e.parameter.token;
+  var action = e.parameter.action;
+  var admin = e.parameter.admin;
+  var adminToken = e.parameter.adminToken;
+
+  // === BLOQUE 1: ENDPOINTS API (JSON) ===
+  
+  if (action === 'getTimeline') {
+    var timeline = getTimeline(token);
+    return ContentService.createTextOutput(JSON.stringify(timeline))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  
+  if (action === 'getStatus') {
+    var status = getProfessionalStatus(token);
+    return ContentService.createTextOutput(JSON.stringify(status))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  // === BLOQUE 2: ADMIN DASHBOARD ===
+  
+  // Detectar automáticamente si es token de admin (para URLs directas)
+  if (!admin && token && token.toString().indexOf('ADMIN-') === 0) {
+    admin = 'true';
+    adminToken = token;
+  }
+  
+  if (admin === 'true') {
+    adminToken = adminToken || token; // Fallback: usar token si adminToken no existe
+    var user = validateAdminToken(adminToken);
+    
+    if (!user) {
+      return HtmlService.createHtmlOutput(
+        '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f7fa}' +
+        '.error{text-align:center;padding:40px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.1);max-width:400px}</style></head>' +
+        '<body><div class="error"><h1 style="color:#dc3545;font-size:48px;margin:0 0 16px 0">🔒</h1>' +
+        '<h2 style="color:#001A55;margin:0 0 12px 0">Acceso Denegado</h2>' +
+        '<p style="color:#6c757d;font-size:16px">Token de admin inválido o inactivo</p></div></body></html>'
+      ).setTitle('Acceso Denegado');
+    }
+    
+    // ROUTING DE PÁGINAS ADMIN
+    var adminPage = e.parameter.page;
+    
+    if (adminPage === 'usuarios') {
+      return serveAdminPage('Admin_Gestion_Usuarios', 'Gestión de Usuarios', adminToken, user);
+    }
+    if (adminPage === 'profesionales') {
+      return serveAdminPage('Admin_profesionales', 'Profesionales', adminToken, user);
+    }
+    if (adminPage === 'legal') {
+      return serveAdminPage('Admin_legal', 'Gestión Legal', adminToken, user);
+    }
+    if (adminPage === 'analitica') {
+      return serveAdminPage('Admin_analitica', 'Analítica', adminToken, user);
+    }
+    if (adminPage === 'superadmin') {
+      if (user.role !== 'superadmin') {
+        return HtmlService.createHtmlOutput(
+          '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f7fa}' +
+          '.error{text-align:center;padding:40px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.1)}</style></head>' +
+          '<body><div class="error"><h1 style="font-size:48px;margin:0">⚠️</h1>' +
+          '<h2 style="color:#001A55">Acceso Restringido</h2><p style="color:#6c757d">Solo super admins pueden acceder</p></div></body></html>'
+        ).setTitle('Acceso Restringido');
+      }
+      return serveAdminPage('Admin_superadmin', 'Super Admin', adminToken, user);
+    }
+    if (adminPage === 'health') {
+      return serveAdminPage('Admin_health', 'System Health', adminToken, user);
+    }
+    
+    // DEFAULT: Dashboard
+    return serveAdminPage('Admin_Dashboard_Complete', 'Admin Dashboard', adminToken, user);
+  }
+
+  // === BLOQUE 3: VALIDACIÓN TOKEN PROFESIONAL ===
+  
+  var professional = validateProfessionalToken(token);
+  
+  if (!professional) {
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html><head><meta charset="UTF-8"><style>body{font-family:sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;background:#f5f7fa}' +
+      '.error{text-align:center;padding:40px;background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.1);max-width:400px}</style></head>' +
+      '<body><div class="error"><h1 style="color:#dc3545;font-size:48px;margin:0 0 16px 0">🔒</h1>' +
+      '<h2 style="color:#001A55;margin:0 0 12px 0">Token Inválido</h2>' +
+      '<p style="color:#6c757d;font-size:16px">El enlace ha expirado o no es válido</p></div></body></html>'
+    ).setTitle('Token Inválido');
+  }
+
+  // === BLOQUE 4: PÁGINAS PROFESIONALES ===
+  
+  // Página de aceptación de términos
+  if (page === 'aceptacion_terminos') {
+    var driveFolderUrl = 'https://drive.google.com/drive/folders/' + LEGAL_DOCS_FOLDER;
+    var LEGAL_VERSION = 'v1.0 - Febrero 2026';
+    var scriptUrl = ScriptApp.getService().getUrl();
+    var backUrl = scriptUrl + '?token=' + token;
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+      '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f7fa;min-height:100vh}' +
+      '.header{background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);padding:24px 30px;color:white;text-align:center}' +
+      '.header h1{font-size:22px;margin-bottom:4px}.header p{opacity:0.85;font-size:14px}' +
+      '.container{max-width:700px;margin:0 auto;padding:24px 20px}' +
+      '.card{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:16px;overflow:hidden}' +
+      '.card-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;border-bottom:1px solid #f1f3f5}' +
+      '.card-hdr:hover{background:#f8fafc}.card-hdr h3{font-size:15px;color:#001A55;display:flex;align-items:center;gap:10px}' +
+      '.card-hdr .arrow{font-size:18px;color:#999;transition:transform 0.2s}.card-hdr.open .arrow{transform:rotate(180deg)}' +
+      '.card-body{padding:20px;display:none;max-height:400px;overflow-y:auto;font-size:14px;line-height:1.7;color:#444;border-top:1px solid #e5e7eb}' +
+      '.card-body.open{display:block}' +
+      '.dl-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#003ABA;text-decoration:none;padding:4px 10px;border:1px solid #bfdbfe;border-radius:6px}' +
+      '.dl-link:hover{background:#eff6ff}' +
+      '.accept-box{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);padding:24px;margin-top:24px}' +
+      '.accept-box h3{font-size:16px;color:#001A55;margin-bottom:16px}' +
+      '.chk{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:14px;color:#333}' +
+      '.chk input{margin-top:3px;width:18px;height:18px;accent-color:#001A55;flex-shrink:0}' +
+      '.version{font-size:11px;color:#888;margin-top:4px}' +
+      '.input-name{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin:16px 0}' +
+      '.btn-accept{width:100%;padding:16px;background:linear-gradient(135deg,#001A55,#003ABA);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;opacity:0.4;pointer-events:none;transition:opacity 0.2s}' +
+      '.btn-accept.ready{opacity:1;pointer-events:auto}' +
+      '.btn-accept.ready:hover{opacity:0.9}' +
+      '.btn-wa{display:block;background:#25D366;color:white;text-align:center;padding:14px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;margin-top:16px}' +
+      '.success{display:none;text-align:center;padding:40px;background:#f0fdf4;border-radius:12px;margin-top:20px}' +
+      '.success h2{color:#15803d;font-size:24px;margin-bottom:8px}.success p{color:#666}' +
+      '</style></head><body>' +
+      '<div class="header"><h1>📜 Documentos Legales</h1><p>Catholizare Pro — Proceso de Onboarding</p></div>' +
+      '<div class="container">' +
+      '<p style="margin-bottom:16px;color:#666;font-size:15px;">Hola <strong>' + professional.nombre + '</strong>, para formar parte de nuestra red, necesitas leer y aceptar los siguientes documentos:</p>' +
+      '<p style="margin-bottom:20px;font-size:12px;color:#888;">Versión de documentos: <strong>' + LEGAL_VERSION + '</strong></p>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>⚖️ Código de Ética del Psicólogo Católico</h3><span class="arrow">▼</span></div>' +
+      '<div class="card-body"><p>El presente Código de Ética establece los principios y normas que rigen la práctica profesional de los psicólogos católicos adscritos a la red Catholizare Pro.</p>' +
+      '<p style="margin-top:12px;">Incluye lineamientos sobre confidencialidad, respeto a la dignidad humana, integridad profesional, competencia, y la integración de la fe católica en la práctica terapéutica.</p>' +
+      '<p style="margin-top:12px;color:#999;font-style:italic;">Documento completo disponible para descarga.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + driveFolderUrl + '" target="_blank">📥 Descargar documento completo</a></div></div></div>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>🤝 Documento de Colaboración con Catholizare</h3><span class="arrow">▼</span></div>' +
+      '<div class="card-body"><p>Este documento establece los términos de la relación profesional entre el psicólogo y Catholizare Pro, incluyendo responsabilidades, alcances del servicio, y condiciones de participación en la red.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + driveFolderUrl + '" target="_blank">📥 Descargar documento completo</a></div></div></div>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>🔒 Aviso de Privacidad</h3><span class="arrow">▼</span></div>' +
+      '<div class="card-body"><p>Describe cómo Catholizare Pro recopila, utiliza, almacena y protege los datos personales de los profesionales y sus pacientes, en cumplimiento con la legislación mexicana de protección de datos.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + driveFolderUrl + '" target="_blank">📥 Descargar documento completo</a></div></div></div>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>📄 Acuerdo de Cesión y Licencia de Contenidos</h3><span class="arrow">▼</span></div>' +
+      '<div class="card-body"><p>Establece los términos sobre el contenido que el profesional genere dentro de la plataforma, incluyendo artículos de blog, materiales formativos y participaciones en eventos.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + driveFolderUrl + '" target="_blank">📥 Descargar documento completo</a></div></div></div>' +
+
+      '<div style="text-align:center;margin:16px 0;"><a class="dl-link" href="' + driveFolderUrl + '" target="_blank" style="font-size:14px;padding:10px 20px;">📥 Descargar todos los documentos</a></div>' +
+
+      '<div class="accept-box" id="acceptBox">' +
+      '<h3>✅ Aceptación de documentos</h3>' +
+      '<div class="chk"><input type="checkbox" id="chk1" onchange="checkReady()"><label>He leído y acepto el <strong>Código de Ética del Psicólogo Católico</strong></label></div>' +
+      '<div class="chk"><input type="checkbox" id="chk2" onchange="checkReady()"><label>He leído y acepto el <strong>Documento de Colaboración con Catholizare</strong></label></div>' +
+      '<div class="chk"><input type="checkbox" id="chk3" onchange="checkReady()"><label>He leído y acepto el <strong>Aviso de Privacidad</strong></label></div>' +
+      '<div class="chk"><input type="checkbox" id="chk4" onchange="checkReady()"><label>He leído y acepto el <strong>Acuerdo de Cesión y Licencia de Contenidos</strong></label></div>' +
+      '<div class="version">Versión: ' + LEGAL_VERSION + '</div>' +
+      '<input type="text" class="input-name" id="fullName" placeholder="Escribe tu nombre completo como firma digital" oninput="checkReady()">' +
+      '<button class="btn-accept" id="btnAccept" onclick="submitAcceptance()">📜 Acepto todos los términos y condiciones</button>' +
+      '<p id="acceptError" style="color:#dc3545;font-size:13px;margin-top:8px;display:none;"></p>' +
+      '</div>' +
+
+      '<div class="success" id="successBox">' +
+      '<div style="font-size:48px;margin-bottom:12px;">✅</div>' +
+      '<h2>¡Documentos Aceptados!</h2>' +
+      '<p>Has aceptado todos los documentos legales correctamente.</p>' +
+      '<p style="margin-top:8px;font-size:13px;color:#888;">Versión aceptada: ' + LEGAL_VERSION + '</p>' +
+      '</div>' +
+
+      '<a class="btn-wa" href="' + WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + professional.nombre + ' y tengo dudas sobre los documentos legales del onboarding') + '" target="_blank">💬 Contactar a Coordinación (WhatsApp)</a>' +
+      '<a href="' + backUrl + '" target="_top" style="display:block;text-align:center;margin-top:12px;padding:12px;color:#001A55;text-decoration:none;font-size:14px;font-weight:600;">← Regresar al inicio</a>' +
+      '</div>' +
+
+      '<script>' +
+      'function toggle(el){el.classList.toggle("open");el.nextElementSibling.classList.toggle("open")}' +
+      'function checkReady(){var c=document.getElementById("chk1").checked&&document.getElementById("chk2").checked&&document.getElementById("chk3").checked&&document.getElementById("chk4").checked;var n=document.getElementById("fullName").value.trim().length>=3;document.getElementById("btnAccept").className="btn-accept"+(c&&n?" ready":"")}' +
+      'function submitAcceptance(){document.getElementById("btnAccept").textContent="Procesando...";document.getElementById("btnAccept").className="btn-accept";' +
+      'google.script.run.withSuccessHandler(function(r){if(r&&r.success){document.getElementById("acceptBox").style.display="none";document.getElementById("successBox").style.display="block"}else{document.getElementById("acceptError").textContent="Error: "+(r?r.message:"");document.getElementById("acceptError").style.display="block";document.getElementById("btnAccept").textContent="📜 Acepto todos los términos y condiciones";checkReady()}})' +
+      '.withFailureHandler(function(e){document.getElementById("acceptError").textContent="Error: "+e;document.getElementById("acceptError").style.display="block";document.getElementById("btnAccept").textContent="📜 Acepto todos los términos y condiciones";checkReady()})' +
+      '.saveLegalAcceptance("' + token + '","' + LEGAL_VERSION + '",document.getElementById("fullName").value.trim())}' +
+      '<\/script></body></html>'
+    ).setTitle('Documentos Legales - Catholizare').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  
+  // Página de información de perfil  
+  if (page === 'informacion_perfil') {
+    var scriptUrl = ScriptApp.getService().getUrl();
+    var backUrl = scriptUrl + '?token=' + token;
+    return HtmlService.createHtmlOutput(
+      '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+      '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f7fa;min-height:100vh}' +
+      '.header{background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);padding:24px 30px;color:white;text-align:center}' +
+      '.header h1{font-size:22px;margin-bottom:4px}.header p{opacity:0.85;font-size:14px}' +
+      '.container{max-width:700px;margin:0 auto;padding:24px 20px}' +
+      '.form-card{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);padding:28px;margin-bottom:20px}' +
+      '.form-card h3{font-size:16px;color:#001A55;margin-bottom:16px;display:flex;align-items:center;gap:8px}' +
+      '.field{margin-bottom:18px}.field label{display:block;font-size:13px;font-weight:600;color:#374151;margin-bottom:6px}' +
+      '.field label span{color:#dc3545}.field p{font-size:12px;color:#888;margin-top:3px}' +
+      'input[type=text],textarea,select{width:100%;padding:11px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;box-sizing:border-box;transition:border 0.2s}' +
+      'input:focus,textarea:focus,select:focus{outline:none;border-color:#003ABA;box-shadow:0 0 0 3px rgba(0,58,186,0.1)}' +
+      'textarea{resize:vertical;min-height:80px}' +
+      '.chk-group{display:flex;flex-wrap:wrap;gap:8px}.chk-group label{display:flex;align-items:center;gap:6px;padding:8px 14px;border:1px solid #d1d5db;border-radius:8px;font-size:13px;cursor:pointer;transition:all 0.2s}' +
+      '.chk-group label:has(input:checked){background:#eff6ff;border-color:#003ABA;color:#001A55;font-weight:500}.chk-group input{display:none}' +
+      '.btn-save{width:100%;padding:16px;background:linear-gradient(135deg,#001A55,#003ABA);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s}' +
+      '.btn-save:hover{opacity:0.9}.btn-save:disabled{opacity:0.4;cursor:not-allowed}' +
+      '.btn-wa{display:block;background:#25D366;color:white;text-align:center;padding:14px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;margin-top:16px}' +
+      '.success{display:none;text-align:center;padding:40px;background:#f0fdf4;border-radius:12px;margin-top:20px}' +
+      '.success h2{color:#15803d;font-size:24px;margin-bottom:8px}.success p{color:#666}' +
+      '.error-msg{color:#dc3545;font-size:13px;margin-top:8px;display:none}' +
+      '</style></head><body>' +
+      '<div class="header"><h1>📝 Información de Perfil Profesional</h1><p>Catholizare Pro — Completa tu información para la red</p></div>' +
+      '<div class="container">' +
+      '<p style="margin-bottom:20px;color:#666;font-size:15px;">Hola <strong>' + professional.nombre + '</strong>, por favor completa la siguiente información para crear tu perfil en nuestra red de profesionales.</p>' +
+      
+      '<div id="formSection">' +
+      '<div class="form-card"><h3>👥 Poblaciones y Servicios</h3>' +
+      '<div class="field"><label>Poblaciones que atiendes <span>*</span></label>' +
+      '<p>Selecciona todas las que apliquen</p>' +
+      '<div class="chk-group" style="margin-top:8px;">' +
+      '<label><input type="checkbox" name="pob" value="Niños">Niños</label>' +
+      '<label><input type="checkbox" name="pob" value="Adolescentes">Adolescentes</label>' +
+      '<label><input type="checkbox" name="pob" value="Adultos">Adultos</label>' +
+      '<label><input type="checkbox" name="pob" value="Adultos mayores">Adultos mayores</label>' +
+      '<label><input type="checkbox" name="pob" value="Parejas">Parejas</label>' +
+      '<label><input type="checkbox" name="pob" value="Familias">Familias</label>' +
+      '<label><input type="checkbox" name="pob" value="Religiosos/Sacerdotes">Religiosos/Sacerdotes</label>' +
+      '</div></div>' +
+      '<div class="field"><label>Tipo de terapia que ofreces <span>*</span></label>' +
+      '<div class="chk-group" style="margin-top:8px;">' +
+      '<label><input type="checkbox" name="terapia" value="Individual">Individual</label>' +
+      '<label><input type="checkbox" name="terapia" value="Pareja">Pareja</label>' +
+      '<label><input type="checkbox" name="terapia" value="Familiar">Familiar</label>' +
+      '<label><input type="checkbox" name="terapia" value="Grupal">Grupal</label>' +
+      '<label><input type="checkbox" name="terapia" value="Infantil/Adolescente">Infantil/Adolescente</label>' +
+      '</div></div>' +
+      '<div class="field"><label>Diagnósticos o síntomas que tratas</label>' +
+      '<textarea id="diagnosticos" placeholder="Ej: Ansiedad, Depresión, Duelo, Trastornos alimenticios, TDAH, Crisis de fe, Adicciones..."></textarea>' +
+      '</div></div>' +
+
+      '<div class="form-card"><h3>🧠 Enfoque Profesional</h3>' +
+      '<div class="field"><label>Enfoque(s) psicológico(s) <span>*</span></label>' +
+      '<div class="chk-group" style="margin-top:8px;">' +
+      '<label><input type="checkbox" name="enfoque" value="Cognitivo-Conductual (TCC)">Cognitivo-Conductual</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Humanista">Humanista</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Psicoanalítico">Psicoanalítico</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Sistémico">Sistémico</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Gestalt">Gestalt</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Logoterapia">Logoterapia</label>' +
+      '<label><input type="checkbox" name="enfoque" value="EMDR">EMDR</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Integrativo">Integrativo</label>' +
+      '<label><input type="checkbox" name="enfoque" value="Otro">Otro</label>' +
+      '</div></div>' +
+      '<div class="field"><label>Especialidades adicionales</label>' +
+      '<input type="text" id="especialidades" placeholder="Ej: Tanatología, Neuropsicología, Psicología Perinatal..."></div>' +
+      '</div>' +
+
+      '<div class="form-card"><h3>📅 Disponibilidad</h3>' +
+      '<div class="field"><label>Modalidad de atención <span>*</span></label>' +
+      '<div class="chk-group" style="margin-top:8px;">' +
+      '<label><input type="checkbox" name="modalidad" value="Online">Online</label>' +
+      '<label><input type="checkbox" name="modalidad" value="Presencial">Presencial</label>' +
+      '<label><input type="checkbox" name="modalidad" value="Mixta">Mixta</label>' +
+      '</div></div>' +
+      '<div class="field"><label>Horario de atención <span>*</span></label>' +
+      '<textarea id="horario" placeholder="Ej: Lunes a Viernes 9:00-18:00, Sábados 9:00-14:00"></textarea>' +
+      '</div>' +
+      '<div class="field"><label>Ciudad / Estado</label>' +
+      '<input type="text" id="ciudad" placeholder="Ej: Ciudad de México, CDMX"></div>' +
+      '</div>' +
+
+      '<button class="btn-save" id="btnSave" onclick="submitProfile()">💾 Guardar mi información de perfil</button>' +
+      '<p class="error-msg" id="errorMsg"></p>' +
+      '</div>' +
+
+      '<div class="success" id="successBox">' +
+      '<div style="font-size:48px;margin-bottom:12px;">✅</div>' +
+      '<h2>¡Perfil Guardado!</h2>' +
+      '<p>Tu información profesional ha sido registrada correctamente.</p>' +
+      '<p style="margin-top:12px;font-size:13px;color:#888;">Puedes cerrar esta página.</p>' +
+      '</div>' +
+
+      '<a class="btn-wa" href="' + WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + professional.nombre + ' y tengo dudas sobre el formulario de perfil del onboarding') + '" target="_blank">💬 Contactar a Coordinación (WhatsApp)</a>' +
+      '<a href="' + backUrl + '" target="_top" style="display:block;text-align:center;margin-top:12px;padding:12px;color:#001A55;text-decoration:none;font-size:14px;font-weight:600;">← Regresar al inicio</a>' +
+      '</div>' +
+
+      '<script>' +
+      'function getChecked(name){var items=[];document.querySelectorAll("input[name=\\""+name+"\\"]:checked").forEach(function(c){items.push(c.value)});return items.join(", ")}' +
+      'function submitProfile(){' +
+      'var pob=getChecked("pob");var ter=getChecked("terapia");var enf=getChecked("enfoque");var mod=getChecked("modalidad");var hor=document.getElementById("horario").value.trim();' +
+      'if(!pob||!ter||!enf||!mod||!hor){document.getElementById("errorMsg").textContent="Por favor completa todos los campos obligatorios (*)";document.getElementById("errorMsg").style.display="block";return}' +
+      'document.getElementById("btnSave").disabled=true;document.getElementById("btnSave").textContent="Guardando...";document.getElementById("errorMsg").style.display="none";' +
+      'var formData={poblaciones:pob,modalidad:mod,terapias:ter+"|Enfoques: "+enf+(document.getElementById("diagnosticos").value.trim()?"|Dx: "+document.getElementById("diagnosticos").value.trim():"")+(document.getElementById("especialidades").value.trim()?"|Esp: "+document.getElementById("especialidades").value.trim():""),horarios:hor+(document.getElementById("ciudad").value.trim()?" | "+document.getElementById("ciudad").value.trim():"")};' +
+      'google.script.run.withSuccessHandler(function(r){if(r&&r.success){document.getElementById("formSection").style.display="none";document.getElementById("successBox").style.display="block"}else{document.getElementById("errorMsg").textContent="Error: "+(r?r.message:"");document.getElementById("errorMsg").style.display="block";document.getElementById("btnSave").disabled=false;document.getElementById("btnSave").textContent="💾 Guardar mi información de perfil"}})' +
+      '.withFailureHandler(function(e){document.getElementById("errorMsg").textContent="Error: "+e;document.getElementById("errorMsg").style.display="block";document.getElementById("btnSave").disabled=false;document.getElementById("btnSave").textContent="💾 Guardar mi información de perfil"})' +
+      '.saveProfileInfo("' + token + '",formData)}' +
+      '<\/script></body></html>'
+    ).setTitle('Información de Perfil - Catholizare').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  
+  // Dashboard del profesional (página por defecto con token)
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var waSync = WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + professional.nombre + ' y quiero ponerme de acuerdo para sincronizar mi agenda en Catholizare Pro');
+  var waZoom = WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + professional.nombre + ' y quiero agendar mi reunión Zoom de bienvenida e inducción en Catholizare Pro');
+  var waSupervision = WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + professional.nombre + ' y quiero agendar mi sesión de supervisión de fe y espiritualidad en Catholizare Pro');
+  var waHelp = WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + professional.nombre + ' y necesito ayuda con mi onboarding en Catholizare Pro');
+  
+  return HtmlService.createHtmlOutput(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+    '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f7fa;min-height:100vh}' +
+    '.hdr{background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);padding:20px 24px;color:white;display:flex;justify-content:space-between;align-items:center}' +
+    '.hdr h1{font-size:18px}.hdr span{opacity:0.8;font-size:13px}' +
+    '.wrap{max-width:750px;margin:0 auto;padding:20px 16px}' +
+    '.sec{background:white;border-radius:12px;box-shadow:0 1px 6px rgba(0,0,0,0.06);margin-bottom:16px;overflow:hidden}' +
+    '.sec-hdr{padding:16px 20px;border-bottom:1px solid #f1f3f5;display:flex;align-items:center;gap:10px}' +
+    '.sec-hdr h2{font-size:16px;color:#001A55;font-weight:700}.sec-hdr .num{width:28px;height:28px;background:#001A55;color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}' +
+    '.sec-body{padding:20px}' +
+    '.step{display:flex;align-items:center;gap:12px;padding:12px 16px;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:10px;text-decoration:none;color:inherit;transition:all 0.15s}' +
+    '.step:hover{border-color:#003ABA;background:#f8faff}.step .ico{font-size:24px;flex-shrink:0}' +
+    '.step h3{font-size:14px;color:#001A55;margin-bottom:2px}.step p{font-size:12px;color:#888}' +
+    '.step .arr{margin-left:auto;color:#ccc;font-size:18px}' +
+    '.doc-box{padding:12px 14px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;margin-bottom:10px}' +
+    '.doc-box h4{font-size:13px;color:#001A55;margin-bottom:4px;display:flex;align-items:center;gap:8px}' +
+    '.doc-box p{font-size:11px;color:#666;margin-bottom:6px;line-height:1.5}' +
+    '.doc-box .imp{color:#dc3545;font-weight:600}' +
+    '.btn{display:block;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-size:15px;font-weight:700;margin-bottom:10px;border:none;width:100%;cursor:pointer}' +
+    '.btn-navy{background:linear-gradient(135deg,#001A55,#003ABA);color:white}.btn-navy:hover{opacity:0.9}' +
+    '.btn-green{background:#25D366;color:white}.btn-green:hover{background:#20bd5a}' +
+    '.btn-outline{background:white;color:#001A55;border:2px solid #001A55}.btn-outline:hover{background:#f0f4ff}' +
+    '.note{font-size:12px;color:#888;text-align:center;margin-top:6px;line-height:1.5}' +
+    '.wa-row{display:flex;gap:10px;margin-bottom:10px}.wa-row a{flex:1}' +
+    '</style></head><body>' +
+    '<div class="hdr"><div><h1>🛡️ Catholizare Pro</h1><span>Panel del Profesional</span></div><span>' + professional.nombre + '</span></div>' +
+    '<div class="wrap">' +
+
+    // SECCIÓN 1: Pasos principales
+    '<div class="sec"><div class="sec-hdr"><div class="num">1</div><h2>Completa tu onboarding</h2></div><div class="sec-body">' +
+    '<a class="step" href="' + scriptUrl + '?page=aceptacion_terminos&token=' + token + '" target="_top">' +
+    '<span class="ico">📜</span><div><h3>Aceptar Términos y Condiciones</h3><p>Revisa y firma los documentos legales</p></div><span class="arr">›</span></a>' +
+    '<a class="step" href="' + scriptUrl + '?page=informacion_perfil&token=' + token + '" target="_top">' +
+    '<span class="ico">📝</span><div><h3>Completar tu Perfil Profesional</h3><p>Poblaciones, enfoques, modalidad y horarios</p></div><span class="arr">›</span></a>' +
+    '</div></div>' +
+
+    // SECCIÓN 2: Documentos
+    '<div class="sec"><div class="sec-hdr"><div class="num">2</div><h2>Sube tus documentos</h2></div><div class="sec-body">' +
+    '<p style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.6;">Sube los documentos que tengas disponibles. <strong>No es necesario que cuentes con todos en este momento</strong> — puedes regresar cuando quieras para completar los que te falten.</p>' +
+    
+    '<div class="doc-box"><h4>📄 Curriculum Vitae</h4>' +
+    '<p>Solo PDF o Word (.docx). <span class="imp">Es muy importante que el archivo contenga texto editable</span> (no imágenes escaneadas). En la sección de estudios, por favor incluye: <em>Año de obtención / Título obtenido / Institución</em>.</p>' +
+    '<input type="file" id="fileCV" accept=".pdf,.doc,.docx" style="font-size:12px;"></div>' +
+    
+    '<div class="doc-box"><h4>🎓 Cédula Profesional</h4>' +
+    '<p>Foto o escaneo legible (PDF, JPG o PNG).</p>' +
+    '<input type="file" id="fileCedula" accept=".pdf,.jpg,.jpeg,.png" style="font-size:12px;"></div>' +
+    
+    '<div class="doc-box"><h4>📸 Foto de Perfil Profesional</h4>' +
+    '<p>Imagen de buena calidad para tu perfil en la plataforma (JPG o PNG).</p>' +
+    '<input type="file" id="fileFoto" accept=".jpg,.jpeg,.png" style="font-size:12px;"></div>' +
+    
+    '<div class="doc-box"><h4>✉️ Carta de Recomendación Sacerdotal</h4>' +
+    '<p>Carta de un sacerdote que te conozca. Si aún no la tienes, no te preocupes, puedes subirla más adelante.</p>' +
+    '<input type="file" id="fileCarta" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" style="font-size:12px;"></div>' +
+    
+    '<button onclick="uploadDocs()" id="btnUpload" class="btn btn-navy">📤 Subir Documentos</button>' +
+    '<p id="uploadStatus" style="text-align:center;margin-top:6px;font-size:13px;display:none;"></p>' +
+    '<p class="note">Solo se subirán los archivos que hayas seleccionado.</p>' +
+    '</div></div>' +
+
+    // SECCIÓN 3: Coordinación (WhatsApp)
+    '<div class="sec"><div class="sec-hdr"><div class="num">3</div><h2>Coordina con nosotros</h2></div><div class="sec-body">' +
+    '<p style="font-size:13px;color:#555;margin-bottom:14px;line-height:1.6;">Para avanzar en tu proceso, necesitarás coordinar dos reuniones con nuestro equipo. Escríbenos por WhatsApp para agendar:</p>' +
+    '<div class="wa-row">' +
+    '<a class="btn btn-outline" href="' + waSync + '" target="_blank">📅 Sincronizar Agenda</a>' +
+    '<a class="btn btn-outline" href="' + waZoom + '" target="_blank">💻 Reunión Zoom</a>' +
+    '</div>' +
+    '<a class="btn btn-outline" href="' + waSupervision + '" target="_blank" style="margin-bottom:10px;">🕊️ Agendar Supervisión de Fe y Espiritualidad</a>' +
+    '<p class="note">La sincronización de agenda, la reunión Zoom de inducción (60 min) y la supervisión se coordinan por WhatsApp con nuestro equipo.</p>' +
+    '</div></div>' +
+
+    // WhatsApp general
+    '<a class="btn btn-green" href="' + waHelp + '" target="_blank" style="margin-bottom:16px;">💬 ¿Necesitas ayuda? Escríbenos por WhatsApp</a>' +
+    
+    '</div>' +
+    '<script>' +
+    'function uploadDocs(){' +
+    'var files={cv:document.getElementById("fileCV").files[0],cedula:document.getElementById("fileCedula").files[0],foto:document.getElementById("fileFoto").files[0],carta:document.getElementById("fileCarta").files[0]};' +
+    'var hasAny=files.cv||files.cedula||files.foto||files.carta;' +
+    'if(!hasAny){alert("Selecciona al menos un archivo para subir.");return}' +
+    'document.getElementById("btnUpload").disabled=true;document.getElementById("btnUpload").textContent="Subiendo...";' +
+    'var status=document.getElementById("uploadStatus");status.style.display="block";status.style.color="#003ABA";status.textContent="Procesando archivos...";' +
+    'var pending=0;var done=0;var errors=[];' +
+    'function checkDone(){done++;status.textContent="Subido "+done+" de "+pending+"...";if(done>=pending){document.getElementById("btnUpload").disabled=false;document.getElementById("btnUpload").textContent="📤 Subir Documentos";if(errors.length)status.textContent="⚠️ Algunos archivos tuvieron error: "+errors.join(", ");else{status.style.color="#15803d";status.textContent="✅ ¡Documentos subidos exitosamente!";}}}' +
+    'function sendFile(file,type){var reader=new FileReader();reader.onload=function(e){var base64=e.target.result;google.script.run.withSuccessHandler(function(r){if(!r||!r.success)errors.push(type);checkDone()}).withFailureHandler(function(err){errors.push(type);checkDone()}).uploadFile("' + token + '",base64,file.name,type)};reader.readAsDataURL(file)}' +
+    'if(files.cv){pending++}if(files.cedula){pending++}if(files.foto){pending++}if(files.carta){pending++}' +
+    'if(files.cv)sendFile(files.cv,"cv");if(files.cedula)sendFile(files.cedula,"cedula");if(files.foto)sendFile(files.foto,"foto");if(files.carta)sendFile(files.carta,"carta")' +
+    '}' +
+    '<\/script>' +
+    '</body></html>'
+  ).setTitle('Mi Onboarding - Catholizare').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ============================================================================
+// FUNCIONES DE PERSISTENCIA
+// ============================================================================
+
+function saveLegalAcceptance(token, version, signerName) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        var acceptInfo = 'ACEPTADO | ' + (version || 'sin versión') + ' | Firmado: ' + (signerName || 'N/A') + ' | ' + new Date().toISOString();
+        getSHEET().getRange(rowNum, 12).setValue(acceptInfo);
+        getSHEET().getRange(rowNum, 13).setValue(new Date());
+        logAction(token, data[i][2], 'Legal aceptado (' + (version||'') + ') por ' + (signerName||''), 'Legal_Aceptacion', '', acceptInfo, 'Profesional');
+        checkAndAdvancePhase(rowNum, data[i]);
+        return { success: true, message: "Documentos legales aceptados" };
+      }
+    }
+    throw new Error("Token no encontrado.");
+  } catch (error) {
+    Logger.log('Error en saveLegalAcceptance: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+function saveProfileInfo(token, formData) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        getSHEET().getRange(rowNum, 14).setValue(formData.poblaciones);
+        getSHEET().getRange(rowNum, 15).setValue(formData.modalidad);
+        getSHEET().getRange(rowNum, 16).setValue(formData.terapias);
+        getSHEET().getRange(rowNum, 17).setValue(formData.horarios);
+        logAction(token, data[i][2], 'Perfil completado', 'Perfil', '', 'Datos guardados', 'Profesional');
+        checkAndAdvancePhase(rowNum, data[i]);
+        return { success: true, message: "Perfil guardado exitosamente" };
+      }
+    }
+    throw new Error("Token no encontrado.");
+  } catch (error) {
+    Logger.log('Error en saveProfileInfo: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+function checkAndAdvancePhase(rowNum, rowData) {
+  try {
+    var token = rowData[0];
+    var nombre = rowData[1];
+    var email = rowData[2];
+    
+    var required = {
+      legal: rowData[11] && rowData[11].toString().indexOf("ACEPTADO") === 0,
+      perfil: rowData[13] !== "" && rowData[13] !== null,
+      cv: rowData[4] !== "" && rowData[4] !== null,
+      cedula: rowData[5] !== "" && rowData[5] !== null,
+      foto: rowData[6] !== "" && rowData[6] !== null,
+      carta: rowData[7] !== "" && rowData[7] !== null
+    };
+    
+    var allComplete = Object.values(required).every(function(v) { return v === true; });
+    
+    if (allComplete && rowData[8] === "Fase 1") {
+      getSHEET().getRange(rowNum, 9).setValue("Fase 2");
+      getSHEET().getRange(rowNum, 22).setValue(true);
+      getSHEET().getRange(rowNum, 23).setValue(new Date());
+      
+      sendPhase2WelcomeEmail(email, nombre);
+      moveContactToBrevoPhase(email, nombre, "Fase 2", token);
+      notifyAdminForZoomScheduling(email, nombre, token);
+      
+      logAction(token, email, 'Avance a Fase 2', 'Fase_Actual', 'Fase 1', 'Fase 2', 'Sistema');
+      Logger.log('✅ ' + nombre + ' avanzó a Fase 2');
+    }
+  } catch (error) {
+    Logger.log('Error en checkAndAdvancePhase: ' + error);
+  }
+}
+
+function calcularProgreso(row) {
+  var puntos = 0;
+  if (row[11] && row[11].toString().indexOf("ACEPTADO") === 0) puntos++;
+  if (row[13] !== "" && row[13] !== null) puntos++;
+  if (row[4] !== "" && row[4] !== null) puntos++;
+  if (row[5] !== "" && row[5] !== null) puntos++;
+  if (row[6] !== "" && row[6] !== null) puntos++;
+  if (row[7] !== "" && row[7] !== null) puntos++;
+  return Math.round((puntos / 6) * 100);
+}
+
+function calcularPendientes(row) {
+  var pendientes = 0;
+  if (!row[11] || row[11].toString().indexOf("ACEPTADO") !== 0) pendientes++;
+  if (!row[13] || row[13] === "") pendientes++;
+  if (!row[4] || row[4] === "") pendientes++;
+  if (!row[5] || row[5] === "") pendientes++;
+  if (!row[6] || row[6] === "") pendientes++;
+  if (!row[7] || row[7] === "") pendientes++;
+  return pendientes;
+}
+
+// ============================================================================
+// ACCIONES DE ADMIN
+// ============================================================================
+
+// Envío manual de cualquier tipo de email desde el dashboard
+function sendManualEmailFromDashboard(token, emailType) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var email = data[i][2];
+        var nombre = data[i][1];
+        var firstName = nombre.split(' ')[0];
+        var progreso = calcularProgreso(data[i]);
+        
+        switch(emailType) {
+          case 'welcome': return sendWelcomeEmail(email, nombre, token);
+          case 'reminder1': return sendReminder1(email, nombre, progreso, token);
+          case 'reminder2': return sendReminder2(email, nombre, progreso, token);
+          case 'incomplete': return sendIncompleteNotification(email, nombre);
+          case 'phase2': return sendPhase2AndGuidesEmail(email, firstName, token);
+          case 'guides': return sendPhase2AndGuidesEmail(email, firstName, token);
+          case 'zoomReminder': return sendZoomReminderEmail(email, nombre, 'Por confirmar');
+          case 'annualUpdate': return sendAnnualUpdateEmail(email, nombre, token, 1);
+          case 'trainingMaterials': return sendPhase3WelcomeEmail(email, firstName, token);
+          case 'blogInvite': return sendBlogInviteEmail(email, firstName, token);
+          case 'monthlyMeeting': return sendMonthlyMeetingEmail(email, firstName, token);
+          case 'supervisionInvite': return { success: true, message: 'Supervisión se agenda por WhatsApp' };
+          default: return { success: false, message: 'Tipo de email no reconocido: ' + emailType };
+        }
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch(e) {
+    Logger.log('Error en sendManualEmailFromDashboard: ' + e);
+    return { success: false, message: e.toString() };
+  }
+}
+
+// ============================================================================
+// EMAIL FASE 2: Bienvenida + Guías de Uso (template real)
+// ============================================================================
+function sendPhase2AndGuidesEmail(email, firstName, token) {
+  var subject = '🎉 Bienvenido a la Fase 2 — Configuración Técnica';
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#003ABA 0%,#001A55 100%);padding:30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">Bienvenido a la Fase 2</h1>' +
+    '<p style="margin:10px 0 0 0;color:rgba(255,255,255,0.9);font-size:16px;">Configuración Técnica</p></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;font-weight:600;">¡Bienvenido, ' + firstName + '!</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Felicitaciones por completar la Fase 1. Ahora entrarás en la <strong>configuración técnica</strong> de tu perfil en la plataforma.</p>' +
+    '<h3 style="margin:0 0 20px 0;color:#001A55;font-size:20px;font-weight:600;">📚 Guías disponibles:</h3>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:15px;"><tr>' +
+    '<td style="padding:20px;background:#f8f9fa;border-radius:10px;border-left:4px solid #003ABA;">' +
+    '<p style="margin:0 0 8px 0;color:#001A55;font-size:17px;font-weight:700;">📖 Procedimiento de reserva</p>' +
+    '<p style="margin:0 0 12px 0;color:#666;font-size:14px;">Cómo es que tus pacientes reservan en la plataforma</p>' +
+    '<a href="https://drive.google.com/file/d/1GARHnR6mMwjChPH1Bw4bCrSA0EhwG8ky/view?usp=sharing" style="color:#003ABA;text-decoration:none;font-weight:600;font-size:14px;">→ Descarga el PDF</a></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:15px;"><tr>' +
+    '<td style="padding:20px;background:#f8f9fa;border-radius:10px;border-left:4px solid #28a745;">' +
+    '<p style="margin:0 0 8px 0;color:#001A55;font-size:17px;font-weight:700;">📅 Cómo gestionar tus citas</p>' +
+    '<p style="margin:0 0 12px 0;color:#666;font-size:14px;">Agenda, cancela y reprograma sesiones fácilmente</p>' +
+    '<a href="https://drive.google.com/file/d/1GARHnR6mMwjChPH1Bw4bCrSA0EhwG8ky/view?usp=sharing" style="color:#28a745;text-decoration:none;font-weight:600;font-size:14px;">→ Descarga el PDF</a></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:30px;"><tr>' +
+    '<td style="padding:20px;background:#f8f9fa;border-radius:10px;border-left:4px solid #ffc107;">' +
+    '<p style="margin:0 0 8px 0;color:#001A55;font-size:17px;font-weight:700;">📄 Contacta a tus pacientes</p>' +
+    '<p style="margin:0 0 12px 0;color:#666;font-size:14px;">Notas para contactar a tus pacientes</p>' +
+    '<a href="https://drive.google.com/file/d/1cmbn9-azJ0v1iCpdYvse6xBPNoGHeLYv/view?usp=sharing" style="color:#b8860b;text-decoration:none;font-weight:600;font-size:14px;">→ Descarga el PDF</a></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="https://drive.google.com/file/d/1tCzYAzO9EXpzquvHGcsTnFZntsyCqApn/view?usp=drive_link" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;box-shadow:0 4px 12px rgba(0,26,85,0.25);">📚 VER TODAS LAS GUÍAS</a></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#e3f2fd;border-radius:10px;margin:25px 0;"><tr><td style="padding:20px;">' +
+    '<p style="margin:0;color:#001A55;font-size:14px;line-height:1.6;">📅 <strong>Próximo paso:</strong> Recibirás un email para agendar tu reunión de bienvenida por Zoom.</p></td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'PHASE2_GUIDES', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL FASE 3: Bienvenida + Materiales de Formación (template real)
+// ============================================================================
+function sendPhase3WelcomeEmail(email, firstName, token) {
+  var subject = '🎓 Bienvenido a la Fase 3 — Integración Académica y Comunitaria';
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#28a745 0%,#20c997 100%);padding:35px;text-align:center;">' +
+    '<h1 style="margin:0 0 10px 0;color:#fff;font-size:28px;font-weight:800;">Bienvenido a la Fase 3</h1>' +
+    '<p style="margin:0;color:rgba(255,255,255,0.95);font-size:17px;font-weight:600;">Integración Académica y Comunitaria</p></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;font-weight:600;">¡Excelente progreso, ' + firstName + '!</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Ahora tendrás acceso a nuestra <strong>biblioteca de formación continua</strong> diseñada específicamente para profesionales católicos de la salud mental.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#f0fff4 0%,#d4edda 100%);border-radius:12px;border-left:5px solid #28a745;margin:25px 0;"><tr><td style="padding:25px;">' +
+    '<h3 style="margin:0 0 20px 0;color:#28a745;font-size:20px;font-weight:700;">📚 Materiales disponibles:</h3>' +
+    '<div style="margin-bottom:20px;"><p style="margin:0 0 5px 0;color:#001A55;font-size:17px;font-weight:700;">1. Integración Fe y Psicología</p>' +
+    '<p style="margin:0 0 10px 0;color:#666;font-size:14px;">Lee nuestros post, respuestas de nuestros mentores.</p>' +
+    '<a href="https://profesionales.catholizare.com/recursos-psicologicos/" style="display:inline-block;background:#28a745;color:white;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;">Acceder a recursos →</a></div>' +
+    '<div style="margin-bottom:20px;"><p style="margin:0 0 5px 0;color:#001A55;font-size:17px;font-weight:700;">2. Curso Derecho Canónico en el Matrimonio</p>' +
+    '<p style="margin:0 0 10px 0;color:#666;font-size:14px;">Cursa nuestro curso para entender cómo se funda el sacramento del matrimonio y cómo se puede determinar su no existencia.</p>' +
+    '<a href="https://academia.catholizare.com/courses/descubriendo-el-sacramento-matrimonio/lesson/01-bienvenida/" style="display:inline-block;background:#003ABA;color:white;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;">Ver webinars →</a></div>' +
+    '<div><p style="margin:0 0 5px 0;color:#001A55;font-size:17px;font-weight:700;">3. Discusión de Casos Clínicos desde la Ciencia y la Fe</p>' +
+    '<p style="margin:0 0 10px 0;color:#666;font-size:14px;">Puedes revisar aquel caso del cual tienes dudas, de manera individual o en grupo con nuestras reuniones clínicas.</p>' +
+    '<a href="https://profesionales.catholizare.com/" style="display:inline-block;background:#ffc107;color:#000;text-decoration:none;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;">Explorar casos →</a></div>' +
+    '</td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#fff3cd;border-radius:10px;border-left:4px solid #D4AF37;margin:25px 0;"><tr><td style="padding:20px;">' +
+    '<p style="margin:0;color:#666;font-size:14px;line-height:1.6;">🎓 <strong>Extra:</strong> Si tienes dudas de un caso también las puedes externar para que puedan ser contestadas en un post por uno de nuestros expertos.</p></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="https://profesionales.catholizare.com/" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">🚀 COMENZAR MI FORMACIÓN</a></td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Bendiciones,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'PHASE3_WELCOME', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL FASE 3: Invitación Blog (template real)
+// ============================================================================
+function sendBlogInviteEmail(email, firstName, token) {
+  var subject = '✍️ Comparte tu experiencia — Invitación al Blog';
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#003ABA 0%,#001A55 100%);padding:30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">✍️ Comparte tu experiencia</h1></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;font-weight:600;">Hola ' + firstName + ',</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Como miembro de Catholizare Pro, te invitamos a <strong>colaborar en nuestro blog comunitario</strong> y compartir tu conocimiento con otros profesionales y el público general.</p>' +
+    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;font-weight:600;">✍️ ¿Sobre qué puedes escribir?</h3>' +
+    '<ul style="margin:0 0 30px 0;padding-left:20px;color:#333;font-size:15px;line-height:1.8;">' +
+    '<li style="margin-bottom:10px;">Casos clínicos (debidamente anonimizados)</li>' +
+    '<li style="margin-bottom:10px;">Reflexiones sobre la integración de fe y psicología</li>' +
+    '<li style="margin-bottom:10px;">Artículos técnicos de tu especialidad</li>' +
+    '<li style="margin-bottom:10px;">Reseñas de libros o recursos</li>' +
+    '<li>Entrevistas o colaboraciones con otros profesionales</li></ul>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#fff3cd 0%,#fffaeb 100%);border-radius:12px;border-left:5px solid #D4AF37;margin:25px 0;"><tr><td style="padding:25px;">' +
+    '<p style="margin:0 0 15px 0;color:#001A55;font-size:18px;font-weight:700;">📝 Beneficios de participar:</p>' +
+    '<ul style="margin:0;padding-left:20px;color:#666;font-size:14px;line-height:1.7;">' +
+    '<li style="margin-bottom:8px;">Mayor visibilidad profesional</li>' +
+    '<li style="margin-bottom:8px;">Networking con otros profesionales católicos</li>' +
+    '<li style="margin-bottom:8px;">Contribuir al crecimiento de la comunidad</li>' +
+    '<li>Posicionamiento como experto en tu área</li></ul></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="https://wa.me/5215510223883?text=Quiero%20participar%20escribiendo%20un%20post" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">✍️ ENVIAR MI PRIMER ARTÍCULO</a></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#e3f2fd;border-radius:10px;margin:25px 0;"><tr><td style="padding:15px;">' +
+    '<p style="margin:0;color:#666;font-size:13px;line-height:1.6;">💡 <strong>Nota:</strong> No te preocupes por el formato perfecto. Nuestro equipo editorial te ayudará a pulir y dar formato a tu artículo antes de publicarlo.</p></td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'BLOG_INVITE', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL FASE 3: Reunión Mensual (template real)
+// ============================================================================
+function sendMonthlyMeetingEmail(email, firstName, token) {
+  var subject = '🤝 Te esperamos — Reunión mensual de profesionales';
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#6f42c1 0%,#5a32a3 100%);padding:30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">🤝 Te esperamos</h1>' +
+    '<p style="margin:10px 0 0 0;color:rgba(255,255,255,0.9);font-size:16px;">Reunión mensual de profesionales</p></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;font-weight:600;">Hola ' + firstName + ',</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Como parte de la comunidad de Catholizare Pro, estás invitado a nuestras <strong>reuniones mensuales de profesionales</strong> donde nos reunimos para crecer juntos.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);border-radius:12px;border-left:5px solid #003ABA;margin:25px 0;"><tr><td style="padding:25px;">' +
+    '<h3 style="margin:0 0 20px 0;color:#001A55;font-size:20px;font-weight:700;">📅 Próxima reunión:</h3>' +
+    '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Fecha:</strong> Primer viernes de cada mes</p>' +
+    '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Hora:</strong> 8:30 hrs (hora de México)</p>' +
+    '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Modalidad:</strong> Zoom</p>' +
+    '<p style="margin:0 0 8px 0;color:#001A55;font-size:15px;font-weight:700;">Link:</p>' +
+    '<p style="margin:0;font-size:13px;word-break:break-all;"><a href="https://us06web.zoom.us/j/83347662979?pwd=gQDTtfI5x3wduMYYJOXXINFCgqsWx8.1" style="color:#003ABA;text-decoration:underline;">https://us06web.zoom.us/j/83347662979?pwd=gQDTtfI5x3wduMYYJOXXINFCgqsWx8.1</a></p>' +
+    '</td></tr></table>' +
+    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;font-weight:600;">🗣️ Temas a tratar:</h3>' +
+    '<ul style="margin:0 0 30px 0;padding-left:20px;color:#333;font-size:15px;line-height:1.8;">' +
+    '<li style="margin-bottom:10px;">Casos clínicos para supervisión grupal</li>' +
+    '<li style="margin-bottom:10px;">Actualización en técnicas terapéuticas desde la fe</li>' +
+    '<li style="margin-bottom:10px;">Networking y oportunidades de colaboración</li>' +
+    '<li style="margin-bottom:10px;">Espacio de oración comunitaria</li>' +
+    '<li>Actualizaciones de la plataforma</li></ul>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="https://us06web.zoom.us/j/83347662979?pwd=gQDTtfI5x3wduMYYJOXXINFCgqsWx8.1" style="display:inline-block;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(40,167,69,0.3);">✅ CONFIRMAR ASISTENCIA</a></td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">En Cristo,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'MONTHLY_MEETING', subject, result.success);
+  return result;
+}
+
+// Marcar acciones manuales - persiste en columna X (24)
+function adminMarkAction(token, actionId) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        var actionName = actionId.replace('trigMark','');
+        
+        // Leer marcas existentes de columna 24
+        var marksRaw = data[i][23] || '{}';
+        var marks = {};
+        try { marks = JSON.parse(marksRaw); } catch(e) { marks = {}; }
+        
+        // Marcar como completado con fecha
+        marks[actionId] = new Date().toISOString();
+        
+        // Guardar
+        getSHEET().getRange(rowNum, 24).setValue(JSON.stringify(marks));
+        logAction(token, data[i][2], actionName + ' completado (manual)', 'Trigger_' + actionName, '', 'Completado', 'Admin');
+        return { success: true, message: actionName + ' marcado como completado' };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch(e) { return { success: false, message: e.toString() }; }
+}
+
+function adminAdvancePhase(token) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        var currentPhase = String(data[i][8] || 'Fase 1');
+        var nextPhase = '';
+        if (currentPhase === 'Fase 1') nextPhase = 'Fase 2';
+        else if (currentPhase === 'Fase 2') nextPhase = 'Fase 3';
+        else if (currentPhase === 'Fase 3') nextPhase = 'Fase 4';
+        else return { success: false, message: 'Ya está en la fase final' };
+        
+        getSHEET().getRange(rowNum, 9).setValue(nextPhase);
+        logAction(token, data[i][2], 'Avance manual a ' + nextPhase, 'Fase_Actual', currentPhase, nextPhase, 'Admin');
+        
+        // Mover contacto en Brevo a la nueva lista
+        try {
+          moveContactToBrevoPhase(data[i][2], data[i][1], nextPhase, token);
+        } catch(be) { Logger.log('Brevo move error: ' + be); }
+        
+        return { success: true, message: 'Avanzado a ' + nextPhase };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+function adminSetStatus(token, nuevoEstado) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        var oldStatus = String(data[i][9] || '');
+        getSHEET().getRange(rowNum, 10).setValue(nuevoEstado);
+        logAction(token, data[i][2], 'Estado cambiado a ' + nuevoEstado, 'Estado', oldStatus, nuevoEstado, 'Admin');
+        return { success: true, message: 'Estado: ' + nuevoEstado };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+function adminDeleteProfessional(token) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        logAction(token, data[i][2], 'Profesional eliminado', 'Sistema', '', 'ELIMINADO', 'Admin');
+        getSHEET().deleteRow(rowNum);
+        return { success: true, message: 'Profesional eliminado' };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+function adminResetOnboarding(token) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var rowNum = i + 1;
+        getSHEET().getRange(rowNum, 9).setValue('Fase 1');
+        getSHEET().getRange(rowNum, 10).setValue('Activo');
+        getSHEET().getRange(rowNum, 18).setValue(new Date()); // nueva fecha inicio
+        // Limpiar legal y perfil
+        getSHEET().getRange(rowNum, 12).setValue('');
+        getSHEET().getRange(rowNum, 13).setValue('');
+        getSHEET().getRange(rowNum, 14).setValue('');
+        getSHEET().getRange(rowNum, 15).setValue('');
+        getSHEET().getRange(rowNum, 16).setValue('');
+        getSHEET().getRange(rowNum, 17).setValue('');
+        getSHEET().getRange(rowNum, 22).setValue(false);
+        logAction(token, data[i][2], 'Onboarding reiniciado', 'Sistema', '', 'Reinicio completo', 'Admin');
+        return { success: true, message: 'Onboarding reiniciado' };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+// ============================================================================
+// GESTIÓN DE ARCHIVOS
+// ============================================================================
+
+function uploadFile(token, base64Data, fileName, fileType) {
+  try {
+    var config = getConfig();
+    var maxSize = FILE_SIZE_LIMITS[fileType];
+    var estimatedSize = base64Data.length * 0.75;
+    
+    if (estimatedSize > maxSize) {
+      var maxMB = (maxSize / (1024 * 1024)).toFixed(0);
+      throw new Error('El archivo excede el tamaño máximo permitido (' + maxMB + 'MB)');
+    }
+    
+    var contentType = 'application/octet-stream';
+    if (base64Data.indexOf('data:') === 0) {
+      contentType = base64Data.substring(5, base64Data.indexOf(';'));
+    }
+    
+    // Determine allowed types based on fileType
+    var allowedTypes = fileType === 'foto' ? ALLOWED_TYPES.foto : ALLOWED_TYPES.documents;
+    // For CV, also allow Word docs
+    if (fileType === 'cv') {
+      allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    }
+    
+    if (allowedTypes.indexOf(contentType) === -1) {
+      throw new Error("Tipo de archivo no permitido. Solo PDF, JPG o PNG");
+    }
+    
+    var data = getSHEET().getDataRange().getValues();
+    var userRow = -1;
+    var userName = "";
+    var userEmail = "";
+
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        userRow = i + 1;
+        userName = data[i][1];
+        userEmail = data[i][2];
         break;
-
-      case 'saveProfileInfo':
-        result = saveProfileInfo(data.token, data.formData);
-        break;
-
-      case 'uploadFile':
-        result = uploadFile(data.token, data.base64Data, data.fileName, data.fileType);
-        break;
-
-      // === Admin: gestion de profesionales ===
-      case 'getAllProfesionales':
-        result = { success: true, data: getAllProfesionales() };
-        break;
-
-      case 'getProfessionalStatus':
-        result = getProfessionalStatus(data.token);
-        break;
-
-      case 'sendManualEmailFromDashboard':
-        result = sendManualEmailFromDashboard(data.token, data.emailType);
-        break;
-
-      case 'adminAdvancePhase':
-        result = adminAdvancePhase(data.token);
-        break;
-
-      case 'adminSetStatus':
-        result = adminSetStatus(data.token, data.nuevoEstado);
-        break;
-
-      case 'adminMarkAction':
-        result = adminMarkAction(data.token, data.actionId);
-        break;
-
-      case 'adminDeleteProfessional':
-        result = adminDeleteProfessional(data.token);
-        break;
-
-      case 'adminResetOnboarding':
-        result = adminResetOnboarding(data.token);
-        break;
-
-      case 'initializeNewProfessional':
-        result = initializeNewProfessional(data.nombre, data.email, data.especialidad, data.categoria);
-        break;
-
-      // === Admin: gestion de usuarios admin ===
-      case 'validateAdminToken':
-        var user = validateAdminToken(data.token);
-        result = user ? { success: true, data: user } : { success: false, message: 'Token invalido' };
-        break;
-
-      case 'getAllAdminUsers':
-        result = { success: true, data: getAllAdminUsers() };
-        break;
-
-      case 'generateAdminToken':
-        result = generateAdminToken(data.email, data.role, data.nombre, data.currentUserToken);
-        break;
-
-      case 'deactivateAdminToken':
-        result = deactivateAdminToken(data.tokenToDeactivate, data.currentUserToken);
-        break;
-
-      case 'activateAdminToken':
-        result = activateAdminToken(data.tokenToActivate, data.currentUserToken);
-        break;
-
-      // === Timeline y estado ===
-      case 'getTimeline':
-        result = getTimeline(data.token);
-        break;
-
-      case 'getEmailHistory':
-        result = { success: true, data: getEmailHistory(data.token) };
-        break;
-
-      default:
-        result = { success: false, message: 'Accion no reconocida: ' + action };
+      }
     }
 
-    return ContentService.createTextOutput(JSON.stringify(result))
-      .setMimeType(ContentService.MimeType.JSON);
+    if (userRow === -1) throw new Error("Token no válido");
 
+    var parentFolder = DriveApp.getFolderById(config.PARENT_FOLDER_ID);
+    var userFolder;
+    var folders = parentFolder.getFoldersByName(userName);
+    
+    if (folders.hasNext()) {
+      userFolder = folders.next();
+    } else {
+      userFolder = parentFolder.createFolder(userName);
+    }
+
+    var bytes = Utilities.base64Decode(base64Data.split(',')[1]);
+    var blob = Utilities.newBlob(bytes, contentType, fileName);
+    var file = userFolder.createFile(blob);
+    
+    var columnMap = { 'cv': 5, 'cedula': 6, 'titulo': 6, 'foto': 7, 'carta': 8 };
+    var colToUpdate = columnMap[fileType];
+    getSHEET().getRange(userRow, colToUpdate).setValue(file.getUrl());
+    
+    var docNames = { 'cv': 'CV', 'cedula': 'Cédula', 'titulo': 'Título', 'foto': 'Foto de perfil', 'carta': 'Carta de sacerdote' };
+    logAction(token, userEmail, 'Subió ' + docNames[fileType], docNames[fileType] + '_Url', '', file.getUrl(), 'Profesional');
+    
+    var rowData = data[userRow - 1];
+    checkAndAdvancePhase(userRow, rowData);
+    
+    return { success: true, url: file.getUrl(), message: docNames[fileType] + ' subido correctamente' };
   } catch (error) {
-    Logger.log('[doPost ERROR] ' + error.message);
-    return ContentService.createTextOutput(JSON.stringify({
-      success: false,
-      message: 'Error del servidor: ' + error.message
-    })).setMimeType(ContentService.MimeType.JSON);
+    Logger.log('Error en uploadFile: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// SISTEMA DE EMAILS VÍA BREVO
+// ============================================================================
+
+function sendEmailViaBrevo(to, subject, htmlContent) {
+  try {
+    var config = getConfig();
+    if (!config.BREVO_API_KEY || config.BREVO_API_KEY === 'PEGAR_TU_API_KEY_AQUI') {
+      Logger.log('⚠️ BREVO_API_KEY no configurada o es placeholder. Key: ' + (config.BREVO_API_KEY ? config.BREVO_API_KEY.substring(0,10) + '...' : 'VACÍA'));
+      return { success: false, message: "API Key de Brevo no configurada. Ve a Propiedades del script." };
+    }
+    
+    var payload = {
+      sender: { name: "Catholizare Pro", email: "onboarding@catholizare.com" },
+      to: [{ email: to }],
+      subject: subject,
+      htmlContent: htmlContent
+    };
+    
+    var options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: { 'api-key': config.BREVO_API_KEY, 'accept': 'application/json' },
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true
+    };
+    
+    Logger.log('📧 Enviando vía Brevo a: ' + to + ' | Subject: ' + subject);
+    var response = UrlFetchApp.fetch(BREVO_ENDPOINT, options);
+    var responseCode = response.getResponseCode();
+    var responseText = response.getContentText();
+    Logger.log('📧 Brevo response code: ' + responseCode + ' | Body: ' + responseText);
+    
+    var result = JSON.parse(responseText);
+    
+    if (responseCode === 201) {
+      Logger.log('✅ Email enviado via Brevo a: ' + to + ' | MessageId: ' + result.messageId);
+      return { success: true, messageId: result.messageId };
+    } else {
+      Logger.log('❌ Brevo error ' + responseCode + ': ' + responseText);
+      return { success: false, message: 'Brevo error ' + responseCode + ': ' + (result.message || responseText) };
+    }
+  } catch (error) {
+    Logger.log('❌ Error en sendEmailViaBrevo: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// EMAIL #1: Bienvenida (Día 0)
+// ============================================================================
+
+function sendWelcomeEmail(email, nombre, token) {
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = scriptUrl + '?token=' + token;
+  var legalFormUrl = scriptUrl + '?page=aceptacion_terminos&token=' + token;
+  var profileFormUrl = scriptUrl + '?page=informacion_perfil&token=' + token;
+  var subject = "¡Bienvenido a Catholizare Pro! - Inicia tu Onboarding";
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,26,85,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);padding:40px 30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#ffffff;font-size:28px;font-weight:700;">¡Bienvenido a Catholizare Pro!</h1>' +
+    '<p style="margin:15px 0 0 0;color:rgba(255,255,255,0.9);font-size:16px;">Tu camino hacia la integración profesional</p></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:24px;">Hola ' + nombre + ',</h2>' +
+    '<p style="margin:0 0 20px 0;color:#333333;font-size:16px;line-height:1.6;">Es un <strong>honor y alegría</strong> darte la bienvenida a nuestra red de profesionales católicos de la salud mental.</p>' +
+    
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#fff3cd 0%,#fffaeb 100%);border-radius:12px;border-left:5px solid #D4AF37;margin-bottom:30px;">' +
+    '<tr><td style="padding:20px;"><p style="margin:0 0 10px 0;color:#001A55;font-size:18px;font-weight:700;">⏰ Tienes 3 semanas para completar la Fase 1</p>' +
+    '<p style="margin:0;color:#666666;font-size:14px;">Te enviaremos recordatorios para ayudarte en el proceso.</p></td></tr></table>' +
+    
+    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;">📋 Pasos a completar:</h3>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:20px;">' +
+    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">1.</span><span style="color:#333;font-size:15px;"><strong>Subir documentos:</strong> CV, Cédula Profesional + RFC, Foto de Perfil, Carta de Sacerdote</span></td></tr>' +
+    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">2.</span><span style="color:#333;font-size:15px;"><strong>Aceptar documentos legales:</strong> Código de Ética, Colaboración, Privacidad, Cesión de Contenidos</span></td></tr>' +
+    '<tr><td style="padding:12px;"><span style="color:#28a745;font-size:18px;margin-right:10px;">3.</span><span style="color:#333;font-size:15px;"><strong>Completar tu perfil:</strong> Servicios, modalidad, horarios, enfoque terapéutico</span></td></tr></table>' +
+    
+    '<h3 style="margin:30px 0 15px 0;color:#001A55;font-size:18px;">🔗 Tus enlaces personales:</h3>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:20px;">' +
+    '<tr><td style="text-align:center;padding:10px;">' +
+    '<a href="' + legalFormUrl + '" style="display:inline-block;background:#ffffff;border:2px solid #001A55;color:#001A55;text-decoration:none;padding:14px 30px;border-radius:50px;font-size:15px;font-weight:700;width:80%;box-sizing:border-box;">📜 Aceptar Términos y Condiciones</a></td></tr>' +
+    '<tr><td style="text-align:center;padding:10px;">' +
+    '<a href="' + profileFormUrl + '" style="display:inline-block;background:#ffffff;border:2px solid #001A55;color:#001A55;text-decoration:none;padding:14px 30px;border-radius:50px;font-size:15px;font-weight:700;width:80%;box-sizing:border-box;">📝 Completar Información de Perfil</a></td></tr>' +
+    '<tr><td style="text-align:center;padding:10px;">' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#ffffff;text-decoration:none;padding:16px 30px;border-radius:50px;font-size:16px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);width:80%;box-sizing:border-box;">🚀 IR A MI DASHBOARD</a></td></tr></table>' +
+    
+    '<p style="margin:30px 0 0 0;color:#333;font-size:16px;">Con gratitud y en Cristo,<br><strong style="color:#001A55;">Equipo de Catholizare Pro</strong></p>' +
+    '</td></tr>' +
+    getEmailFooter(nombre) +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'WELCOME', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL #2: Recordatorio Amigable (Día 20)
+// ============================================================================
+
+function sendReminder1(email, nombre, progreso, token) {
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = scriptUrl + '?token=' + token;
+  var subject = "Recordatorio amigable - Completa tu onboarding en Catholizare Pro";
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#20c997 0%,#28a745 100%);padding:30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">👋 Un recordatorio amigable</h1></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;">Hola ' + nombre + ',</h2>' +
+    '<p style="margin:0 0 15px 0;color:#333;font-size:16px;line-height:1.6;">Ha pasado <strong>1 semana</strong> desde tu registro en Catholizare Pro.</p>' +
+    '<p style="margin:0 0 30px 0;color:#333;font-size:16px;">Te quedan <strong style="color:#28a745;">2 semanas</strong> para completar la Fase 1.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f0f9ff;border-radius:12px;margin-bottom:30px;"><tr><td style="padding:25px;">' +
+    '<p style="margin:0 0 10px 0;color:#001A55;font-size:18px;font-weight:600;">Tu progreso actual:</p>' +
+    '<div style="width:100%;height:30px;background:#e0e0e0;border-radius:15px;overflow:hidden;margin:10px 0;">' +
+    '<div style="width:' + progreso + '%;height:100%;background:linear-gradient(90deg,#28a745 0%,#20c997 100%);"></div></div>' +
+    '<p style="margin:10px 0 0 0;text-align:center;color:#001A55;font-size:20px;font-weight:700;">' + progreso + '% completado</p>' +
+    '</td></tr></table>' +
+    '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 45px;border-radius:50px;font-size:17px;font-weight:700;">📊 VER MI PROGRESO</a>' +
+    '</td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr>' +
+    getEmailFooter(nombre) +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'REMINDER_1', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL #3: Recordatorio URGENTE (Día 40)
+// ============================================================================
+
+function sendReminder2(email, nombre, progreso, token) {
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = scriptUrl + '?token=' + token;
+  var subject = "⚠️ URGENTE - Solo quedan 20 días para completar tu onboarding";
+  
+  var progColor = progreso >= 50 ? '#28a745' : '#dc3545';
+  var progGrad = progreso >= 50 ? 'linear-gradient(90deg,#28a745 0%,#20c997 100%)' : 'linear-gradient(90deg,#dc3545 0%,#c82333 100%)';
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(220,53,69,0.15);border:3px solid #dc3545;">' +
+    '<tr><td style="background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);padding:35px;text-align:center;">' +
+    '<h1 style="margin:0 0 10px 0;color:#fff;font-size:32px;font-weight:800;">⚠️ ATENCIÓN URGENTE</h1>' +
+    '<p style="margin:0;color:rgba(255,255,255,0.95);font-size:17px;font-weight:600;">Tiempo crítico para completar tu onboarding</p></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#dc3545;font-size:24px;font-weight:700;">Hola ' + nombre + ',</h2>' +
+    '<p style="margin:0 0 15px 0;color:#333;font-size:17px;line-height:1.6;">Han pasado <strong style="color:#dc3545;">40 días</strong> y aún no has completado tu proceso.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#fff3cd 0%,#ffe8a1 100%);border-radius:12px;border-left:6px solid #ffc107;margin:25px 0;">' +
+    '<tr><td style="padding:25px;"><p style="margin:0 0 10px 0;color:#001A55;font-size:22px;font-weight:800;">⏰ TE QUEDAN SOLO 20 DÍAS</p>' +
+    '<p style="margin:0;color:#666;font-size:15px;">Si no completas antes del día 60, tu registro será marcado como <strong style="color:#dc3545;">"Incompleto"</strong>.</p></td></tr></table>' +
+    '<p style="margin:25px 0 10px 0;color:#001A55;font-size:18px;font-weight:700;">Progreso actual: <span style="color:' + progColor + ';">' + progreso + '%</span></p>' +
+    '<div style="width:100%;height:30px;background:#e0e0e0;border-radius:15px;overflow:hidden;margin-bottom:30px;">' +
+    '<div style="width:' + progreso + '%;height:100%;background:' + progGrad + ';"></div></div>' +
+    '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:#fff;text-decoration:none;padding:20px 55px;border-radius:50px;font-size:19px;font-weight:800;text-transform:uppercase;">⚡ COMPLETAR AHORA</a>' +
+    '</td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Estamos aquí para ayudarte,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr>' +
+    getEmailFooter(nombre) +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'REMINDER_2', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL #4: Marcado como Incompleto (Día 60+)
+// ============================================================================
+
+function sendIncompleteNotification(email, nombre) {
+  var config = getConfig();
+  var subject = "Tu registro en Catholizare Pro ha sido marcado como Incompleto";
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#6c757d 0%,#495057 100%);padding:30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#fff;font-size:24px;">Estado de tu registro</h1></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;">Hola ' + nombre + ',</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Lamentamos informarte que han pasado <strong>60 días</strong> desde tu registro y no has completado el proceso.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f8f9fa;border-radius:10px;border-left:4px solid #6c757d;margin:25px 0;">' +
+    '<tr><td style="padding:20px;"><p style="margin:0;color:#495057;font-size:16px;font-weight:600;">Tu estado ha sido cambiado a <strong>"Incompleto"</strong>.</p></td></tr></table>' +
+    '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="mailto:' + config.ADMIN_EMAIL + '?subject=Solicitud%20de%20extensión" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;">📧 CONTACTAR A SOPORTE</a>' +
+    '</td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Con aprecio,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr>' +
+    getEmailFooter(nombre) +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  
+  // Buscar token para log
+  var data = getSHEET().getDataRange().getValues();
+  var token = '';
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2] === email) { token = data[i][0]; break; }
+  }
+  logEmailSent(token, email, 'INCOMPLETE', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL #5: Fase 1 Completada → Bienvenida Fase 2 (usa template real)
+// ============================================================================
+
+function sendPhase2WelcomeEmail(email, nombre) {
+  // Buscar token para usar el template nuevo
+  var data = getSHEET().getDataRange().getValues();
+  var token = '';
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2] === email) { token = data[i][0]; break; }
+  }
+  var firstName = nombre.split(' ')[0];
+  return sendPhase2AndGuidesEmail(email, firstName, token);
+}
+
+// ============================================================================
+// EMAIL #6: Recordatorio Zoom 24hrs antes
+// ============================================================================
+
+function sendZoomReminderEmail(email, nombre, fechaReunion) {
+  var config = getConfig();
+  var fechaFormateada = Utilities.formatDate(new Date(fechaReunion), "GMT-6", "EEEE, dd 'de' MMMM 'de' yyyy 'a las' HH:mm");
+  var googleCalendarLink = createGoogleCalendarLink(new Date(fechaReunion), nombre);
+  var subject = "Recordatorio: Tu reunión de bienvenida es mañana";
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,#003ABA 0%,#001A55 100%);padding:30px;text-align:center;">' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;">📅 Recordatorio de Reunión</h1></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;">Hola ' + nombre + ',</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Te recordamos que tu <strong>reunión de bienvenida técnica</strong> es <strong style="color:#003ABA;">mañana</strong>.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#f0f9ff 0%,#e3f2fd 100%);border-radius:12px;border-left:5px solid #001A55;margin:25px 0;">' +
+    '<tr><td style="padding:25px;">' +
+    '<p style="margin:0 0 12px 0;color:#001A55;font-size:16px;"><strong>📅 Fecha:</strong> ' + fechaFormateada + '</p>' +
+    '<p style="margin:0 0 12px 0;color:#001A55;font-size:16px;"><strong>🕐 Duración:</strong> 20 minutos</p>' +
+    '<p style="margin:0 0 8px 0;color:#001A55;font-size:16px;font-weight:700;">🔗 Link de Zoom:</p>' +
+    '<p style="margin:0;font-size:14px;word-break:break-all;"><a href="' + config.ZOOM_LINK + '" style="color:#003ABA;">' + config.ZOOM_LINK + '</a></p></td></tr></table>' +
+    '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
+    '<a href="' + googleCalendarLink + '" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;">📅 AGREGAR A MI CALENDARIO</a>' +
+    '</td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
+    '</td></tr>' +
+    getEmailFooter(nombre) +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  var data = getSHEET().getDataRange().getValues();
+  var token = '';
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][2] === email) { token = data[i][0]; break; }
+  }
+  logEmailSent(token, email, 'ZOOM_REMINDER', subject, result.success);
+  return result;
+}
+
+function createGoogleCalendarLink(fecha, nombre) {
+  var config = getConfig();
+  var start = Utilities.formatDate(fecha, "GMT-6", "yyyyMMdd'T'HHmmss");
+  var fechaFin = new Date(fecha.getTime() + 20*60000);
+  var end = Utilities.formatDate(fechaFin, "GMT-6", "yyyyMMdd'T'HHmmss");
+  var title = encodeURIComponent("Reunión de Bienvenida - Catholizare Pro");
+  var details = encodeURIComponent("Reunión técnica de bienvenida");
+  var location = encodeURIComponent(config.ZOOM_LINK);
+  return 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + title + '&dates=' + start + '/' + end + '&details=' + details + '&location=' + location;
+}
+
+// ============================================================================
+// EMAIL #7: Actualización CV Anual
+// ============================================================================
+
+function sendAnnualUpdateEmail(email, nombre, token, anios) {
+  anios = anios || 1;
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = scriptUrl + '?token=' + token;
+  
+  // Mensajes personalizados por año
+  var mensajes = {
+    1: { emoji: '🎉', titulo: '¡Feliz Primer Aniversario!', color: '#D4AF37', msg: 'Ha pasado <strong>un año increíble</strong> desde que te uniste a nuestra familia de profesionales católicos. ¡Estamos muy orgullosos de tenerte!' },
+    2: { emoji: '🌟', titulo: '¡2 Años Juntos!', color: '#003ABA', msg: '<strong>Dos años</strong> caminando juntos al servicio de la salud mental con valores católicos. Tu dedicación nos inspira profundamente.' },
+    3: { emoji: '💫', titulo: '¡3 Años de Compromiso!', color: '#7e22ce', msg: '<strong>Tres años</strong> de servicio fiel. Tu permanencia y compromiso son un testimonio vivo de tu vocación profesional y espiritual.' },
+    4: { emoji: '🏆', titulo: '¡4 Años de Excelencia!', color: '#15803d', msg: '<strong>Cuatro años</strong> acompañando a quienes más lo necesitan. Tu experiencia enriquece enormemente nuestra red.' },
+    5: { emoji: '⭐', titulo: '¡Media Década Juntos!', color: '#D4AF37', msg: '¡<strong>5 años</strong> de servicio ejemplar! Medio lustro caminando juntos. Eres un pilar fundamental de Catholizare Pro.' },
+    6: { emoji: '💎', titulo: '¡6 Años de Servicio!', color: '#003ABA', msg: '<strong>Seis años</strong> de entrega y profesionalismo. Tu constancia es un ejemplo para toda nuestra comunidad.' },
+    7: { emoji: '🌿', titulo: '¡7 Años de Crecimiento!', color: '#15803d', msg: '<strong>Siete años</strong> de crecimiento continuo. Tu evolución profesional ha tocado incontables vidas.' },
+    8: { emoji: '✨', titulo: '¡8 Años de Dedicación!', color: '#7e22ce', msg: '<strong>Ocho años</strong> de dedicación inquebrantable. Tu perseverancia es verdaderamente admirable.' },
+    9: { emoji: '🕊️', titulo: '¡9 Años de Vocación!', color: '#001A55', msg: '<strong>Nueve años</strong> viviendo tu vocación con nosotros. Estás a un paso de una década completa de servicio.' },
+    10: { emoji: '👑', titulo: '¡UNA DÉCADA JUNTOS!', color: '#D4AF37', msg: '¡<strong>10 AÑOS</strong> de servicio extraordinario! Una década completa dedicada a la salud mental con valores católicos. Eres leyenda en Catholizare Pro.' }
+  };
+  
+  var m = mensajes[anios] || { emoji: '🎉', titulo: '¡' + anios + ' Años Juntos!', color: '#D4AF37', msg: '<strong>' + anios + ' años</strong> de servicio fiel. ¡Estamos muy felices y orgullosos de contar contigo!' };
+  
+  var subject = m.emoji + ' ¡Feliz Aniversario ' + anios + (anios === 1 ? 'er' : '°') + ' año en Catholizare Pro, ' + nombre + '!';
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+    '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+    '<tr><td style="background:linear-gradient(135deg,' + m.color + ' 0%,#001A55 100%);padding:40px 30px;text-align:center;">' +
+    '<div style="font-size:60px;margin-bottom:10px;">' + m.emoji + '</div>' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;">' + m.titulo + '</h1>' +
+    '<p style="margin:10px 0 0;color:rgba(255,255,255,0.9);font-size:16px;">' + anios + (anios === 1 ? ' año' : ' años') + ' en Catholizare Pro</p></td></tr>' +
+    '<tr><td style="padding:40px 30px;">' +
+    '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;">Querido(a) ' + nombre + ',</h2>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">' + m.msg + '</p>' +
+    '<div style="background:linear-gradient(135deg,#fff3cd 0%,#fffaeb 100%);padding:25px;border-radius:12px;border-left:5px solid #D4AF37;margin:25px 0;">' +
+    '<p style="margin:0 0 5px 0;color:#001A55;font-size:16px;font-weight:700;">❤️ Gracias por ' + anios + (anios === 1 ? ' año' : ' años') + ' de servicio</p>' +
+    '<p style="margin:0;color:#666;font-size:14px;">Tu labor transforma vidas y glorifica a Dios a través de la ciencia y la fe.</p></div>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f0f9ff;border-radius:12px;margin:25px 0;">' +
+    '<tr><td style="padding:25px;"><p style="margin:0 0 15px 0;color:#001A55;font-size:18px;font-weight:700;">📋 Actualización anual de datos:</p>' +
+    '<ul style="margin:0;padding-left:20px;color:#333;font-size:15px;line-height:1.8;">' +
+    '<li style="margin-bottom:8px;">Tu Curriculum Vitae</li><li style="margin-bottom:8px;">Certificaciones nuevas</li>' +
+    '<li style="margin-bottom:8px;">Especialidades o enfoques</li><li>Disponibilidad de horarios</li></ul></td></tr></table>' +
+    '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;">✏️ ACTUALIZAR MI PERFIL</a>' +
+    '</td></tr></table>' +
+    '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Con inmensa gratitud y cariño,<br><strong style="color:#001A55;">Equipo de Catholizare Pro</strong></p>' +
+    '</td></tr>' +
+    getEmailFooter(nombre) +
+    '</table></td></tr></table></body></html>';
+  
+  var result = sendEmailViaBrevo(email, subject, htmlContent);
+  logEmailSent(token, email, 'ANNUAL_UPDATE_Y' + anios, subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// EMAIL #8: Notificación a Admin (interno)
+// ============================================================================
+
+function notifyAdminForZoomScheduling(profesionalEmail, profesionalNombre, token) {
+  var config = getConfig();
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = scriptUrl + '?token=' + token;
+  var subject = '[Acción requerida] Agendar reunión Zoom para ' + profesionalNombre;
+  
+  var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+    '<body style="font-family:Arial,sans-serif;padding:20px;background:#f4f7fa;">' +
+    '<div style="max-width:600px;margin:0 auto;background:white;padding:30px;border-radius:10px;">' +
+    '<div style="background:#ffc107;color:#000;padding:15px;border-radius:8px;margin-bottom:20px;text-align:center;">' +
+    '<h2 style="margin:0;font-size:20px;">⚡ ACCIÓN REQUERIDA</h2></div>' +
+    '<h3 style="color:#001A55;">Nuevo profesional listo para Fase 2</h3>' +
+    '<table style="width:100%;border-collapse:collapse;margin:20px 0;">' +
+    '<tr style="background:#f8f9fa;"><td style="padding:12px;border:1px solid #dee2e6;font-weight:bold;">Nombre:</td>' +
+    '<td style="padding:12px;border:1px solid #dee2e6;">' + profesionalNombre + '</td></tr>' +
+    '<tr><td style="padding:12px;border:1px solid #dee2e6;font-weight:bold;">Email:</td>' +
+    '<td style="padding:12px;border:1px solid #dee2e6;"><a href="mailto:' + profesionalEmail + '">' + profesionalEmail + '</a></td></tr>' +
+    '<tr style="background:#f8f9fa;"><td style="padding:12px;border:1px solid #dee2e6;font-weight:bold;">Perfil:</td>' +
+    '<td style="padding:12px;border:1px solid #dee2e6;"><a href="' + dashboardLink + '" target="_blank">Ver dashboard</a></td></tr></table>' +
+    '<div style="background:#fff3cd;padding:20px;border-radius:8px;border-left:4px solid #ffc107;margin:20px 0;">' +
+    '<h4 style="margin:0 0 10px 0;color:#001A55;">📋 Acción requerida:</h4>' +
+    '<p style="margin:0;color:#666;">Agendar reunión de bienvenida técnica por Zoom (20 minutos)</p></div>' +
+    '<h4 style="color:#001A55;margin:20px 0 10px 0;">Link de Zoom:</h4>' +
+    '<div style="background:#e3f2fd;padding:15px;border-radius:8px;word-break:break-all;">' +
+    '<a href="' + config.ZOOM_LINK + '" style="color:#003ABA;">' + config.ZOOM_LINK + '</a></div>' +
+    '<div style="text-align:center;margin:30px 0;"><a href="' + dashboardLink + '" style="display:inline-block;background:#001A55;color:white;text-decoration:none;padding:15px 30px;border-radius:8px;font-weight:bold;">VER PERFIL DEL PROFESIONAL</a></div>' +
+    '<hr style="border:none;border-top:1px solid #dee2e6;margin:30px 0;">' +
+    '<p style="color:#999;font-size:12px;text-align:center;">© 2026 Catholizare Pro</p></div></body></html>';
+  
+  var result = sendEmailViaBrevo(config.ADMIN_EMAIL, subject, htmlContent);
+  logEmailSent(token, profesionalEmail, 'ADMIN_NOTIFICATION', subject, result.success);
+  return result;
+}
+
+// ============================================================================
+// SISTEMA DE RECORDATORIOS
+// ============================================================================
+
+function checkAndSendReminders() {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    var ahora = new Date();
+    var recordatoriosEnviados = 0;
+    var marcadosIncompletos = 0;
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      var rowNum = i + 1;
+      var token = row[0];
+      var nombre = row[1];
+      var email = row[2];
+      var estado = row[9];
+      var fechaInicio = row[17];
+      var fase1Completada = row[21];
+      
+      if (estado !== "Activo" || fase1Completada) continue;
+      if (!fechaInicio) continue;
+      
+      var diasDesdeInicio = Math.floor((ahora - new Date(fechaInicio)) / (1000 * 60 * 60 * 24));
+      getSHEET().getRange(rowNum, 21).setValue(diasDesdeInicio);
+      
+      var tareasCompletadas = 6 - calcularPendientes(row);
+      var porcentajeProgreso = Math.round((tareasCompletadas / 6) * 100);
+      
+      if (diasDesdeInicio === 7 && !row[18]) {
+        if (tareasCompletadas < 3) {
+          sendReminder1(email, nombre, porcentajeProgreso, token);
+          getSHEET().getRange(rowNum, 19).setValue(ahora);
+          logAction(token, email, 'Recordatorio 1 enviado (Día 7)', 'Fecha_Recordatorio_1', '', ahora, 'Sistema');
+          recordatoriosEnviados++;
+        }
+      }
+      
+      if (diasDesdeInicio === 14 && !row[19]) {
+        if (tareasCompletadas < 6) {
+          sendReminder2(email, nombre, porcentajeProgreso, token);
+          getSHEET().getRange(rowNum, 20).setValue(ahora);
+          logAction(token, email, 'Recordatorio 2 URGENTE (Día 14)', 'Fecha_Recordatorio_2', '', ahora, 'Sistema');
+          recordatoriosEnviados++;
+        }
+      }
+      
+      if (diasDesdeInicio >= 21 && tareasCompletadas < 6) {
+        getSHEET().getRange(rowNum, 10).setValue("Incompleto");
+        sendIncompleteNotification(email, nombre);
+        logAction(token, email, 'Marcado Incompleto (21 días)', 'Estado', 'Activo', 'Incompleto', 'Sistema');
+        marcadosIncompletos++;
+      }
+    }
+    
+    Logger.log('✅ Revisión: ' + recordatoriosEnviados + ' recordatorios, ' + marcadosIncompletos + ' incompletos');
+  } catch (error) {
+    Logger.log('❌ Error en checkAndSendReminders: ' + error);
+  }
+}
+
+function sendZoomMeetingReminders() {
+  var data = getSHEET().getDataRange().getValues();
+  var manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  var mananaDia = Utilities.formatDate(manana, "GMT-6", "yyyy-MM-dd");
+  
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[23]) continue;
+    var fechaReunionStr = Utilities.formatDate(new Date(row[23]), "GMT-6", "yyyy-MM-dd");
+    if (fechaReunionStr === mananaDia) {
+      sendZoomReminderEmail(row[2], row[1], row[23]);
+    }
+  }
+}
+
+function sendAnnualCVUpdateReminders() {
+  var data = getSHEET().getDataRange().getValues();
+  var ahora = new Date();
+  var enviados = 0;
+  
+  for (var i = 1; i < data.length; i++) {
+    var row = data[i];
+    if (!row[17] || row[9] === 'Incompleto') continue;
+    var inicio = new Date(row[17]);
+    
+    // Verificar aniversarios del año 1 al 10
+    for (var anio = 1; anio <= 10; anio++) {
+      var aniversario = new Date(inicio);
+      aniversario.setFullYear(inicio.getFullYear() + anio);
+      
+      // Si estamos en el mismo mes y año del aniversario
+      if (ahora.getMonth() === aniversario.getMonth() && ahora.getFullYear() === aniversario.getFullYear()) {
+        sendAnnualUpdateEmail(row[2], row[1], row[0], anio);
+        logAction(row[0], row[2], 'Aniversario ' + anio + ' año(s) - Email enviado', 'ANNUAL', '', anio + ' años', 'Sistema');
+        enviados++;
+        break; // Solo un correo por profesional por ejecución
+      }
+    }
+  }
+  Logger.log('✅ Aniversarios enviados: ' + enviados);
+}
+
+// ============================================================================
+// INTEGRACIÓN CON BREVO
+// ============================================================================
+
+function moveContactToBrevoPhase(email, nombre, nuevaFase, token) {
+  var config = getConfig();
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = scriptUrl + '?token=' + token;
+  var nombreParts = nombre.split(' ');
+  
+  var endpoint = 'https://api.brevo.com/v3/contacts/' + encodeURIComponent(email);
+  var payload = {
+    attributes: { FIRSTNAME: nombreParts[0], LASTNAME: nombreParts.slice(1).join(' ') || '', FASE_ACTUAL: nuevaFase, DASHBOARD_LINK: dashboardLink, TOKEN: token },
+    listIds: [config.LIST_IDS[nuevaFase]],
+    unlinkListIds: Object.values(config.LIST_IDS).filter(function(id) { return id !== config.LIST_IDS[nuevaFase]; })
+  };
+  
+  try {
+    var response = UrlFetchApp.fetch(endpoint, {
+      method: 'put', contentType: 'application/json',
+      headers: { 'api-key': config.BREVO_API_KEY },
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    var code = response.getResponseCode();
+    if (code === 204 || code === 200) {
+      Logger.log('✅ Contacto ' + email + ' movido a ' + nuevaFase);
+      return { success: true };
+    }
+    Logger.log('⚠️ Brevo: ' + response.getContentText());
+    return { success: false };
+  } catch (error) {
+    Logger.log('❌ Error Brevo: ' + error);
+    return { success: false };
+  }
+}
+
+function addContactToBrevo(email, nombre, token, fase) {
+  var config = getConfig();
+  var scriptUrl = ScriptApp.getService().getUrl();
+  var nombreParts = nombre.split(' ');
+  var listId = config.LIST_IDS[fase];
+  
+  Logger.log('📋 Brevo: Agregando ' + email + ' a lista ' + fase + ' (ID: ' + listId + ')');
+  
+  var payload = {
+    email: email,
+    attributes: { FIRSTNAME: nombreParts[0], LASTNAME: nombreParts.slice(1).join(' ') || '', DASHBOARD_LINK: scriptUrl + '?token=' + token, TOKEN: token, FASE_ACTUAL: fase, FECHA_INICIO: new Date().toISOString().split('T')[0] },
+    listIds: [listId],
+    updateEnabled: true
+  };
+  
+  try {
+    var response = UrlFetchApp.fetch('https://api.brevo.com/v3/contacts', {
+      method: 'post', contentType: 'application/json',
+      headers: { 'api-key': config.BREVO_API_KEY },
+      payload: JSON.stringify(payload), muteHttpExceptions: true
+    });
+    var code = response.getResponseCode();
+    Logger.log('📋 Brevo response: ' + code + ' | ' + response.getContentText());
+    if (code === 201 || code === 204) {
+      Logger.log('✅ Contacto ' + email + ' agregado a Brevo lista #' + listId);
+      return { success: true };
+    }
+    Logger.log('⚠️ Brevo error: ' + response.getContentText());
+    return { success: false, message: response.getContentText() };
+  } catch (error) {
+    Logger.log('❌ Error Brevo addContact: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// LOGS Y AUDITORÍA
+// ============================================================================
+
+function logAction(token, email, action, field, oldValue, newValue, actor) {
+  try {
+    var logSheet = getSS().getSheetByName("Logs");
+    if (!logSheet) {
+      logSheet = getSS().insertSheet("Logs");
+      logSheet.appendRow(["Fecha", "Hora", "Token", "Email", "Acción", "Campo", "Valor_Anterior", "Valor_Nuevo", "Actor", "Usuario"]);
+      logSheet.getRange(1, 1, 1, 10).setFontWeight("bold").setBackground("#001A55").setFontColor("#FFFFFF");
+    }
+    var now = new Date();
+    logSheet.appendRow([
+      Utilities.formatDate(now, "GMT-6", "yyyy-MM-dd"),
+      Utilities.formatDate(now, "GMT-6", "HH:mm:ss"),
+      token, email, action, field || "-", oldValue || "-", newValue || "-", actor,
+      Session.getActiveUser().getEmail() || "Sistema"
+    ]);
+  } catch (error) {
+    Logger.log('Error al registrar log: ' + error);
+  }
+}
+
+function logEmailSent(token, email, emailType, subject, success) {
+  try {
+    var emailLogSheet = getSS().getSheetByName("Email_Log");
+    if (!emailLogSheet) {
+      emailLogSheet = getSS().insertSheet("Email_Log");
+      emailLogSheet.appendRow(["Fecha", "Hora", "Token", "Email_Profesional", "Tipo_Email", "Subject", "Estado", "Timestamp"]);
+      emailLogSheet.getRange(1, 1, 1, 8).setFontWeight("bold").setBackground("#001A55").setFontColor("#FFFFFF");
+      emailLogSheet.setFrozenRows(1);
+    }
+    var now = new Date();
+    emailLogSheet.appendRow([
+      Utilities.formatDate(now, "GMT-6", "yyyy-MM-dd"),
+      Utilities.formatDate(now, "GMT-6", "HH:mm:ss"),
+      token, email, emailType, subject,
+      success ? "ENVIADO" : "ERROR",
+      now.toISOString()
+    ]);
+    var lastRow = emailLogSheet.getLastRow();
+    if (success) {
+      emailLogSheet.getRange(lastRow, 7).setBackground("#d4edda").setFontColor("#155724");
+    } else {
+      emailLogSheet.getRange(lastRow, 7).setBackground("#f8d7da").setFontColor("#721c24");
+    }
+  } catch (error) {
+    Logger.log('Error en logEmailSent: ' + error);
+  }
+}
+
+function getEmailHistory(token) {
+  try {
+    var emailLogSheet = getSS().getSheetByName("Email_Log");
+    if (!emailLogSheet) return [];
+    
+    var data = emailLogSheet.getDataRange().getValues();
+    var history = [];
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][2] === token) {
+        history.push({ 
+          fecha: data[i][0] ? String(data[i][0]) : '', 
+          hora: data[i][1] ? String(data[i][1]) : '', 
+          tipo: String(data[i][4] || ''), 
+          subject: String(data[i][5] || ''), 
+          estado: String(data[i][6] || ''), 
+          timestamp: data[i][7] ? String(data[i][7]) : '' 
+        });
+      }
+    }
+    history.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+    return history;
+  } catch (error) {
+    Logger.log('Error en getEmailHistory: ' + error);
+    return [];
+  }
+}
+
+function getEmailTypeInfo(emailType) {
+  var types = {
+    'WELCOME': { nombre: 'Email de Bienvenida', icono: '🚀', fase: 'Fase 1' },
+    'REMINDER_1': { nombre: 'Recordatorio Amigable (Día 20)', icono: '📧', fase: 'Fase 1' },
+    'REMINDER_2': { nombre: 'Recordatorio Urgente (Día 40)', icono: '⚠️', fase: 'Fase 1' },
+    'INCOMPLETE': { nombre: 'Marcado como Incompleto', icono: '❌', fase: 'Fase 1' },
+    'PHASE2_WELCOME': { nombre: 'Bienvenida Fase 2', icono: '🎉', fase: 'Fase 2' },
+    'ZOOM_REMINDER': { nombre: 'Recordatorio Zoom', icono: '📅', fase: 'Fase 2' },
+    'ANNUAL_UPDATE': { nombre: 'Actualización Anual CV', icono: '📋', fase: 'Fase 4' },
+    'ADMIN_NOTIFICATION': { nombre: 'Notificación a Admin', icono: '👤', fase: 'Interno' }
+  };
+  return types[emailType] || { nombre: emailType, icono: '📬', fase: 'Desconocido' };
+}
+
+// ============================================================================
+// ESTADO DEL PROFESIONAL Y TIMELINE
+// ============================================================================
+
+function getProfessionalStatus(token) {
+  try {
+    var data = getSHEET().getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] == token) {
+        var row = data[i];
+        var diasDesdeInicio = null;
+        var diasRestantes = null;
+        var diasEnRed = null;
+        var fechaInicioISO = null;
+        var legalFechaStr = '';
+        
+        // Plazo Fase 1: desde registro (row[17])
+        try {
+          if (row[17]) {
+            var fechaRegistro = new Date(row[17]);
+            if (!isNaN(fechaRegistro.getTime())) {
+              diasDesdeInicio = Math.floor((new Date() - fechaRegistro) / 86400000);
+              diasRestantes = Math.max(0, 21 - diasDesdeInicio);
+              fechaInicioISO = fechaRegistro.toISOString();
+            }
+          }
+        } catch(e) { Logger.log('Error fecha registro: ' + e); }
+        
+        // Tiempo en la Red: desde aceptación legal (row[12] = columna M = fecha legal)
+        try {
+          if (row[12]) {
+            var fechaLegal = new Date(row[12]);
+            if (!isNaN(fechaLegal.getTime())) {
+              diasEnRed = Math.floor((new Date() - fechaLegal) / 86400000);
+              legalFechaStr = fechaLegal.toLocaleDateString('es-MX');
+            }
+          }
+        } catch(e) { Logger.log('Error fecha legal: ' + e); }
+        
+        var emailHistory = [];
+        try { emailHistory = getEmailHistory(token); } catch(e) { Logger.log('Error emailHistory: ' + e); }
+        
+        var rec1 = null, rec2 = null;
+        try { if (row[18]) rec1 = new Date(row[18]).toISOString(); } catch(e){}
+        try { if (row[19]) rec2 = new Date(row[19]).toISOString(); } catch(e){}
+        
+        return {
+          success: true,
+          token: String(row[0] || ''),
+          nombre: String(row[1] || ''), 
+          email: String(row[2] || ''), 
+          especialidad: String(row[3] || ''),
+          fase: String(row[8] || 'Fase 1'), 
+          estado: String(row[9] || 'Activo'), 
+          categoria: String(row[10] || ''),
+          legal: !!(row[11] && row[11].toString().indexOf("ACEPTADO") === 0), 
+          legalInfo: row[11] ? row[11].toString() : '',
+          legalFecha: legalFechaStr,
+          perfil: !!(row[13] && row[13] !== ""),
+          perfilData: { 
+            poblaciones: String(row[13] || ""), 
+            modalidad: String(row[14] || ""), 
+            terapias: String(row[15] || ""), 
+            horarios: String(row[16] || "") 
+          },
+          documentos: {
+            cv: !!(row[4] && row[4] !== ""),
+            cedula: !!(row[5] && row[5] !== ""),
+            foto: !!(row[6] && row[6] !== ""),
+            carta: !!(row[7] && row[7] !== "")
+          },
+          documentosUrls: { 
+            cv: String(row[4] || ""), 
+            cedula: String(row[5] || ""), 
+            foto: String(row[6] || ""), 
+            carta: String(row[7] || "") 
+          },
+          plazos: {
+            fechaInicio: fechaInicioISO, 
+            diasDesdeInicio: diasDesdeInicio, 
+            diasRestantes: diasRestantes,
+            diasEnRed: diasEnRed,
+            recordatorio1: rec1, 
+            recordatorio2: rec2, 
+            fase1Completada: row[21] ? true : false
+          },
+          progreso: calcularProgreso(row),
+          emailHistory: emailHistory,
+          triggerMarks: (function(){ try { return JSON.parse(row[23] || '{}'); } catch(e) { return {}; } })()
+        };
+      }
+    }
+    return { success: false, message: "No se encontró el registro con token: " + token };
+  } catch (error) {
+    Logger.log('Error en getProfessionalStatus: ' + error);
+    return { success: false, message: 'Error: ' + error.toString() };
+  }
+}
+
+function getTimeline(token) {
+  try {
+    var status = getProfessionalStatus(token);
+    if (!status.success) return { success: false, message: "Token no encontrado" };
+    
+    var timeline = [];
+    
+    if (status.plazos.fechaInicio) {
+      timeline.push({ fecha: status.plazos.fechaInicio, tipo: 'REGISTRO', titulo: 'Registro Inicial', descripcion: 'Te dimos la bienvenida', icono: '🎯', completado: true });
+    }
+    
+    status.emailHistory.forEach(function(e) {
+      var info = getEmailTypeInfo(e.tipo);
+      timeline.push({ fecha: e.timestamp, tipo: 'EMAIL', titulo: info.nombre, descripcion: e.subject, icono: info.icono, completado: e.estado === 'ENVIADO', fase: info.fase });
+    });
+    
+    if (status.legal) {
+      timeline.push({ fecha: status.legalFecha, tipo: 'LEGAL', titulo: 'Documentos Legales Aceptados', descripcion: 'Código de ética firmado', icono: '📄', completado: true });
+    }
+    if (status.perfil) {
+      timeline.push({ fecha: null, tipo: 'PERFIL', titulo: 'Perfil Completado', descripcion: 'Información profesional', icono: '👤', completado: true });
+    }
+    
+    var docsCompletados = Object.values(status.documentos).filter(function(v) { return v; }).length;
+    timeline.push({ fecha: null, tipo: 'DOCUMENTOS', titulo: 'Documentos (' + docsCompletados + '/4)', descripcion: 'CV, cédula, foto, carta', icono: '📎', completado: docsCompletados === 4, progreso: Math.round((docsCompletados / 4) * 100) });
+    
+    if (status.plazos.fase1Completada) {
+      timeline.push({ fecha: status.plazos.fase1Completada, tipo: 'MILESTONE', titulo: '🎉 Fase 1 Completada', descripcion: 'Avanzó a Fase 2', icono: '✅', completado: true });
+    }
+    
+    timeline.sort(function(a, b) {
+      if (!a.fecha) return 1;
+      if (!b.fecha) return -1;
+      return new Date(b.fecha) - new Date(a.fecha);
+    });
+    
+    return { success: true, timeline: timeline, resumen: { totalEventos: timeline.length, eventosCompletados: timeline.filter(function(e) { return e.completado; }).length, emailsEnviados: status.emailHistory.length } };
+  } catch (error) {
+    Logger.log('Error en getTimeline: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// INICIALIZACIÓN DE PROFESIONAL
+// ============================================================================
+
+function initializeNewProfessional(nombre, email, especialidad, categoria) {
+  try {
+    especialidad = especialidad || "S/E";
+    categoria = categoria || "Junior";
+    var token = "ONB-" + Utilities.getUuid().substring(0, 8);
+    var ahora = new Date();
+    
+    var sheet = getSHEET();
+    // Insertar en fila 2 (después del encabezado) para que el último registrado aparezca primero
+    sheet.insertRowAfter(1);
+    var newRow = [
+      token, nombre, email, especialidad,
+      "", "", "", "",
+      "Fase 1", "Activo", categoria,
+      "", "", "", "", "", "",
+      ahora, "", "", 0,
+      false, "", "", false, false, false, ""
+    ];
+    sheet.getRange(2, 1, 1, newRow.length).setValues([newRow]);
+    
+    var emailResult = sendWelcomeEmail(email, nombre, token);
+    addContactToBrevo(email, nombre, token, "Fase 1");
+    logAction(token, email, 'Profesional creado', 'Sistema', '', 'Nuevo registro', 'Admin');
+    
+    if (emailResult.success) {
+      Logger.log('✅ Profesional ' + nombre + ' creado. Token: ' + token);
+      return { success: true, token: token };
+    } else {
+      return { success: true, token: token, warning: "Email no enviado" };
+    }
+  } catch (error) {
+    Logger.log('Error en initializeNewProfessional: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// MENÚ Y ACCIONES DE SPREADSHEET
+// ============================================================================
+
+function onOpen() {
+  var ui = SpreadsheetApp.getUi();
+  ui.createMenu('🚀 Onboarding')
+    .addItem('▶️ Iniciar Onboarding', 'iniciarOnboardingSeleccionado')
+    .addSeparator()
+    .addItem('📊 Ver Estadísticas', 'mostrarEstadisticas')
+    .addToUi();
+}
+
+function iniciarOnboardingSeleccionado() {
+  var ui = SpreadsheetApp.getUi();
+  var sheet = getSS().getSheetByName("Onboarding");
+  var activeRow = sheet.getActiveRange().getRow();
+  
+  if (activeRow === 1) {
+    ui.alert('⚠️ Error', 'Selecciona una fila de candidato (no el encabezado).', ui.ButtonSet.OK);
+    return;
+  }
+  
+  var data = sheet.getRange(activeRow, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var token = data[0];
+  var nombre = data[1];
+  var email = data[2];
+  var especialidad = data[3] || "Psicología Clínica";
+  var categoria = data[10] || "intermediate";
+  
+  if (!nombre || !email) {
+    ui.alert('❌ Error', 'Esta fila no tiene nombre o email.', ui.ButtonSet.OK);
+    return;
+  }
+  
+  if (token && token.toString().startsWith('ONB-')) {
+    ui.alert('⚠️ Ya iniciado', 'Este candidato ya tiene onboarding:\nToken: ' + token + '\nEstado: ' + data[9], ui.ButtonSet.OK);
+    return;
+  }
+  
+  var confirmacion = ui.alert('🚀 Confirmar', '¿Iniciar onboarding para:\n\nNombre: ' + nombre + '\nEmail: ' + email + '\n\nSe enviará email de bienvenida.', ui.ButtonSet.YES_NO);
+  if (confirmacion !== ui.Button.YES) return;
+  
+  var result = initializeNewProfessional(nombre, email, especialidad, categoria);
+  
+  if (result.success) {
+    sheet.getRange(activeRow, 1).setValue(result.token);
+    ui.alert('✅ Éxito', 'Onboarding iniciado\nToken: ' + result.token + '\nEmail enviado a: ' + email, ui.ButtonSet.OK);
+  } else {
+    ui.alert('❌ Error', result.message, ui.ButtonSet.OK);
+  }
+}
+
+function mostrarEstadisticas() {
+  var ui = SpreadsheetApp.getUi();
+  var data = getSHEET().getDataRange().getValues();
+  var total = data.length - 1;
+  var activos = 0, incompletos = 0, fase1 = 0, fase2 = 0, fase3 = 0, fase4 = 0;
+  
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][9] === 'Activo') activos++;
+    else if (data[i][9] === 'Incompleto') incompletos++;
+    if (data[i][8] === 'Fase 1') fase1++;
+    else if (data[i][8] === 'Fase 2') fase2++;
+    else if (data[i][8] === 'Fase 3') fase3++;
+    else if (data[i][8] === 'Fase 4') fase4++;
+  }
+  
+  ui.alert('📊 Estadísticas', 'Total: ' + total + '\n\nEstados:\n• Activos: ' + activos + '\n• Incompletos: ' + incompletos + '\n\nFases:\n• Fase 1: ' + fase1 + '\n• Fase 2: ' + fase2 + '\n• Fase 3: ' + fase3 + '\n• Fase 4: ' + fase4, ui.ButtonSet.OK);
+}
+
+// ============================================================================
+// AUTENTICACIÓN ADMIN
+// ============================================================================
+
+function validateAdminToken(token) {
+  try {
+    if (!token) return null;
+    var sheet = getSS().getSheetByName("Admin_Users");
+    if (!sheet) { Logger.log("❌ Hoja Admin_Users no existe"); return null; }
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === token && data[i][4] === true) {
+        return { token: data[i][0], email: data[i][1], role: data[i][2], nombre: data[i][3], activo: data[i][4] };
+      }
+    }
+    return null;
+  } catch (error) {
+    Logger.log("❌ Error en validateAdminToken: " + error);
+    return null;
+  }
+}
+
+function getAllAdminUsers() {
+  try {
+    var sheet = getSS().getSheetByName("Admin_Users");
+    if (!sheet) throw new Error("Hoja Admin_Users no existe");
+    var data = sheet.getDataRange().getValues();
+    var users = [];
+    for (var i = 1; i < data.length; i++) {
+      users.push({ 
+        token: String(data[i][0] || ''), 
+        email: String(data[i][1] || ''), 
+        role: String(data[i][2] || ''), 
+        nombre: String(data[i][3] || ''), 
+        activo: data[i][4] === true || data[i][4] === 'TRUE',
+        fechaCreacion: data[i][5] ? new Date(data[i][5]).toLocaleDateString('es-MX') : '-'
+      });
+    }
+    return users;
+  } catch (error) {
+    Logger.log("Error en getAllAdminUsers: " + error);
+    throw error;
+  }
+}
+
+function generateAdminToken(email, role, nombre, currentUserToken) {
+  try {
+    var currentUser = validateAdminToken(currentUserToken);
+    if (!currentUser || currentUser.role !== 'superadmin') throw new Error("Solo super admins pueden generar tokens");
+    
+    var sheet = getSS().getSheetByName("Admin_Users");
+    if (!sheet) throw new Error("Hoja Admin_Users no existe");
+    
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][1] === email) throw new Error("Este email ya tiene un token");
+    }
+    
+    var token = "ADMIN-" + Utilities.getUuid().substring(0, 8);
+    sheet.appendRow([token, email, role, nombre, true, new Date()]);
+    return { success: true, token: token, message: "Token generado exitosamente" };
+  } catch (error) {
+    Logger.log("❌ Error en generateAdminToken: " + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+function deactivateAdminToken(tokenToDeactivate, currentUserToken) {
+  try {
+    var currentUser = validateAdminToken(currentUserToken);
+    if (!currentUser || currentUser.role !== 'superadmin') throw new Error("Solo super admins pueden desactivar tokens");
+    var sheet = getSS().getSheetByName("Admin_Users");
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === tokenToDeactivate) {
+        sheet.getRange(i + 1, 5).setValue(false);
+        return { success: true, message: "Token desactivado exitosamente" };
+      }
+    }
+    throw new Error("Token no encontrado");
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+function activateAdminToken(tokenToActivate, currentUserToken) {
+  try {
+    var currentUser = validateAdminToken(currentUserToken);
+    if (!currentUser || currentUser.role !== 'superadmin') throw new Error("Solo super admins pueden activar tokens");
+    var sheet = getSS().getSheetByName("Admin_Users");
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === tokenToActivate) {
+        sheet.getRange(i + 1, 5).setValue(true);
+        return { success: true, message: "Token activado exitosamente" };
+      }
+    }
+    throw new Error("Token no encontrado");
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// DATOS PARA ADMIN DASHBOARD
+// ============================================================================
+
+function getAllProfesionales() {
+  try {
+    var sheet = getSHEET();
+    Logger.log('getAllProfesionales - sheet: ' + (sheet ? sheet.getName() : 'NULL'));
+    var data = sheet.getDataRange().getValues();
+    Logger.log('getAllProfesionales - rows: ' + data.length);
+    var profesionales = [];
+    
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (row[0]) {
+        profesionales.push({
+          token: String(row[0]),
+          nombre: String(row[1] || ""),
+          email: String(row[2] || ""),
+          especialidad: String(row[3] || ""),
+          fase: String(row[8] || "Fase 1"),
+          estado: String(row[9] || "En Progreso"),
+          categoria: String(row[10] || ""),
+          progreso: calcularProgreso(row),
+          pendientes: calcularPendientes(row),
+          fechaRegistro: row[17] ? new Date(row[17]).toISOString() : new Date().toISOString()
+        });
+      }
+    }
+    
+    Logger.log('getAllProfesionales - returning: ' + profesionales.length + ' profesionales');
+    return profesionales;
+  } catch (error) {
+    Logger.log("❌ Error en getAllProfesionales: " + error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// TESTING
+// ============================================================================
+
+function testCreateProfessional() {
+  var result = initializeNewProfessional("Dr. Juan Pérez Test", "test@catholizare.com", "Psicología Clínica", "intermediate");
+  Logger.log(result);
+}
+
+function testTimeline() {
+  var timeline = getTimeline("ONB-12345678");
+  Logger.log(JSON.stringify(timeline, null, 2));
+}
+// ============================================================================
+// TESTING
+// ============================================================================
+
+function testCreateProfessional() {
+  var result = initializeNewProfessional("Dr. Juan Pérez Test", "test@catholizare.com", "Psicología Clínica", "intermediate");
+  Logger.log(result);
+}
+
+function testTimeline() {
+  var timeline = getTimeline("ONB-12345678");
+  Logger.log(JSON.stringify(timeline, null, 2));
+}
+function diagnostico() {
+  try {
+    Logger.log("1. Verificando hoja Onboarding...");
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Onboarding");
+    if (!sheet) {
+      Logger.log("❌ HOJA 'Onboarding' NO EXISTE");
+      return;
+    }
+    Logger.log("✅ Hoja encontrada");
+    
+    Logger.log("2. Leyendo datos...");
+    var data = sheet.getDataRange().getValues();
+    Logger.log("✅ Filas: " + data.length + ", Columnas: " + data[0].length);
+    
+    Logger.log("3. Headers:");
+    Logger.log(JSON.stringify(data[0]));
+    
+    Logger.log("4. Probando getAllProfesionales()...");
+    var result = getAllProfesionales();
+    Logger.log("✅ Resultado: " + JSON.stringify(result));
+    
+    Logger.log("5. Probando calcularProgreso...");
+    if (data.length > 1) {
+      var prog = calcularProgreso(data[1]);
+      Logger.log("✅ Progreso fila 2: " + prog + "%");
+    }
+    
+    Logger.log("6. Verificando Admin_Users...");
+    var adminSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Admin_Users");
+    if (adminSheet) {
+      Logger.log("✅ Admin_Users existe con " + adminSheet.getLastRow() + " filas");
+    } else {
+      Logger.log("❌ Admin_Users NO EXISTE");
+    }
+    
+    Logger.log("\n🎉 TODO OK - Si ves esto, el GS funciona correctamente");
+    
+  } catch (error) {
+    Logger.log("❌ ERROR: " + error.toString());
+    Logger.log("Stack: " + error.stack);
   }
 }
