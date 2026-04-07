@@ -3,11 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Legal - Catholizare Admin</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Analítica - Catholizare Admin</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root { --navy: #001A55; --navy-dark: #001238; --blue: #003ABA; --gold: #D4AF37; --gray-50: #f8f9fa; --gray-100: #f1f3f5; --gray-600: #6c757d; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); min-height: 100vh; display: flex; flex-direction: column; }
+    body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); min-height: 100vh; display: flex; flex-direction: column; }
     .top-bar { height: 56px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
     .top-bar-left { display: flex; align-items: center; gap: 12px; }
     .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; }
@@ -30,28 +31,40 @@
     .btn-back { display: inline-flex; align-items: center; gap: 8px; background: var(--navy); color: white; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
     .btn-back:hover { background: var(--navy-dark); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,26,85,0.3); }
     .note { margin-top: 24px; font-size: 12px; color: #adb5bd; }
+  
+    /* LOGOUT & ROLE */
+    .top-bar-right { display: flex; align-items: center; gap: 12px; }
+    .role-tag.superadmin { background: linear-gradient(135deg, #D4AF37, #C4A030); color: #001A55; }
+    .role-tag.administrador { background: #003ABA; color: white; }
+    .role-tag.coordinador { background: #28a745; color: white; }
+    .btn-logout { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: transparent; border: 1px solid #e5e7eb; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 600; color: #6c757d; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    .btn-logout:hover { background: #fee2e2; border-color: #dc3545; color: #dc3545; }
+
   </style>
 </head>
 <body>
   <div class="top-bar">
     <div class="top-bar-left">
       <a class="logo" id="lnkD"><div class="logo-icon">✝</div>Catholizare</a>
-      <span class="breadcrumb">/ <a id="lnkD2">Dashboard</a> / Legal</span>
+      <span class="breadcrumb">/ <a id="lnkD2">Dashboard</a> / Analítica</span>
     </div>
-    <div class="user-badge">👤 <span id="uN"></span> <span class="role-tag" id="uR"></span></div>
+    <div class="top-bar-right">
+      <div class="user-badge">👤 <span id="uN"></span> <span class="role-tag" id="uR"></span></div>
+      <a class="btn-logout" id="btnLogout">🚪 Salir</a>
+    </div>
   </div>
   <div class="main">
     <div class="card">
-      <div class="icon-box">⚖️</div>
+      <div class="icon-box">📈</div>
       <div class="badge">🚧 Próximamente</div>
-      <h1>Gestión Legal</h1>
-      <p class="desc">Control de documentos legales, firmas digitales y cumplimiento normativo de todos los profesionales.</p>
+      <h1>Analítica</h1>
+      <p class="desc">Dashboard analítico con métricas clave, tendencias de onboarding y reportes exportables.</p>
       <div class="features">
         <h3>Funcionalidades planificadas</h3>
-        <div class="fi"><div class="fi-icon">📄</div>Estado de aceptación legal por profesional</div>
-        <div class="fi"><div class="fi-icon">✍️</div>Registro de firmas digitales con fecha y hora</div>
-        <div class="fi"><div class="fi-icon">🔒</div>Auditoría de cumplimiento normativo</div>
-        <div class="fi"><div class="fi-icon">📑</div>Gestión de contratos y acuerdos</div>
+        <div class="fi"><div class="fi-icon">📊</div>Gráficas de avance y conversión por fase</div>
+        <div class="fi"><div class="fi-icon">⏱️</div>Tiempos promedio de completación</div>
+        <div class="fi"><div class="fi-icon">📥</div>Exportación de reportes en Excel/PDF</div>
+        <div class="fi"><div class="fi-icon">🔍</div>Filtros avanzados y segmentación</div>
       </div>
       <a class="btn-back" id="btnB">← Volver al Dashboard</a>
       <p class="note">Disponible en próxima actualización · Catholizare Pro v5.0</p>
@@ -64,6 +77,23 @@
     document.getElementById('lnkD').href=d;
     document.getElementById('lnkD2').href=d;
     document.getElementById('btnB').href=d;
+  
+    // LOGOUT
+    var loginUrl = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding/';
+    var logoutBtn = document.getElementById('btnLogout');
+    if (logoutBtn) logoutBtn.href = loginUrl;
+    
+    // ROLE COLOR
+    function applyRoleColor() {
+      var roleEls = document.querySelectorAll('.role-tag');
+      roleEls.forEach(function(el) {
+        var role = (el.textContent || '').toLowerCase().trim();
+        if (role === 'superadmin') el.classList.add('superadmin');
+        else if (role === 'administrador') el.classList.add('administrador');
+        else if (role.indexOf('coordinador') >= 0) el.classList.add('coordinador');
+      });
+    }
+    applyRoleColor();
   </script>
 </body>
 </html>
