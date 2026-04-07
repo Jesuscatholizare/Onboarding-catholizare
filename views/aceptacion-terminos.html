@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentos Legales - Catholizare</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f7fa;min-height:100vh}
+.header{background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);padding:24px 30px;color:white;text-align:center}
+.header h1{font-size:22px;margin-bottom:4px}.header p{opacity:0.85;font-size:14px}
+.container{max-width:700px;margin:0 auto;padding:24px 20px}
+.card{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);margin-bottom:16px;overflow:hidden}
+.card-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer;border-bottom:1px solid #f1f3f5}
+.card-hdr:hover{background:#f8fafc}
+.card-hdr h3{font-size:15px;color:#001A55;display:flex;align-items:center;gap:10px}
+.card-hdr .arrow{font-size:18px;color:#999;transition:transform 0.2s}
+.card-hdr.open .arrow{transform:rotate(180deg)}
+.card-body{padding:20px;display:none;max-height:400px;overflow-y:auto;font-size:14px;line-height:1.7;color:#444;border-top:1px solid #e5e7eb}
+.card-body.open{display:block}
+.dl-link{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:#003ABA;text-decoration:none;padding:4px 10px;border:1px solid #bfdbfe;border-radius:6px}
+.dl-link:hover{background:#eff6ff}
+.accept-box{background:white;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.06);padding:24px;margin-top:24px}
+.accept-box h3{font-size:16px;color:#001A55;margin-bottom:16px}
+.chk{display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;font-size:14px;color:#333}
+.chk input{margin-top:3px;width:18px;height:18px;accent-color:#001A55;flex-shrink:0}
+.version{font-size:11px;color:#888;margin-top:4px}
+.input-name{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:8px;font-size:15px;margin:16px 0}
+.btn-accept{width:100%;padding:16px;background:linear-gradient(135deg,#001A55,#003ABA);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;opacity:0.4;pointer-events:none;transition:opacity 0.2s}
+.btn-accept.ready{opacity:1;pointer-events:auto}
+.btn-accept.ready:hover{opacity:0.9}
+.btn-wa{display:block;background:#25D366;color:white;text-align:center;padding:14px;border-radius:12px;text-decoration:none;font-size:15px;font-weight:700;margin-top:16px}
+.success{display:none;text-align:center;padding:40px;background:#f0fdf4;border-radius:12px;margin-top:20px}
+.success h2{color:#15803d;font-size:24px;margin-bottom:8px}.success p{color:#666}
+.loading{text-align:center;padding:60px 20px;color:#666}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Documentos Legales</h1>
+  <p>Catholizare Pro — Proceso de Onboarding</p>
+</div>
+
+<div class="container" id="content">
+  <div class="loading">Cargando...</div>
+</div>
+
+<script src="public/js/api.js"></script>
+<script>
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('token');
+  if (!token) { window.location.href = 'error?reason=no_token'; return; }
+
+  var BASE = '/catholizare_sistem/onboarding';
+  var WA = 'https://wa.me/5215510223883';
+  var LEGAL_VERSION = 'v1.0 - Febrero 2026';
+  var DOCS_URL = 'https://drive.google.com/drive/folders/1ZoZdAj9xBXlbZQh07lJAwuNQNp9h4SUs';
+
+  API.getStatus(token).then(function(status) {
+    if (!status || !status.success) { window.location.href = 'error?reason=invalid_token'; return; }
+    var nombre = status.nombre || '';
+    var backUrl = BASE + '?token=' + token;
+    var waUrl = WA + '?text=' + encodeURIComponent('Hola, soy ' + nombre + ' y tengo dudas sobre los documentos legales del onboarding');
+
+    document.getElementById('content').innerHTML =
+      '<p style="margin-bottom:16px;color:#666;font-size:15px;">Hola <strong>' + nombre + '</strong>, para formar parte de nuestra red, necesitas leer y aceptar los siguientes documentos:</p>' +
+      '<p style="margin-bottom:20px;font-size:12px;color:#888;">Version de documentos: <strong>' + LEGAL_VERSION + '</strong></p>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>Codigo de Etica del Psicologo Catolico</h3><span class="arrow">&#x25BC;</span></div>' +
+      '<div class="card-body"><p>El presente Codigo de Etica establece los principios y normas que rigen la practica profesional de los psicologos catolicos adscritos a la red Catholizare Pro.</p>' +
+      '<p style="margin-top:12px;">Incluye lineamientos sobre confidencialidad, respeto a la dignidad humana, integridad profesional, competencia, y la integracion de la fe catolica en la practica terapeutica.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + DOCS_URL + '" target="_blank">Descargar documento completo</a></div></div></div>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>Documento de Colaboracion con Catholizare</h3><span class="arrow">&#x25BC;</span></div>' +
+      '<div class="card-body"><p>Este documento establece los terminos de la relacion profesional entre el psicologo y Catholizare Pro, incluyendo responsabilidades, alcances del servicio, y condiciones de participacion en la red.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + DOCS_URL + '" target="_blank">Descargar documento completo</a></div></div></div>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>Aviso de Privacidad</h3><span class="arrow">&#x25BC;</span></div>' +
+      '<div class="card-body"><p>Describe como Catholizare Pro recopila, utiliza, almacena y protege los datos personales de los profesionales y sus pacientes, en cumplimiento con la legislacion mexicana de proteccion de datos.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + DOCS_URL + '" target="_blank">Descargar documento completo</a></div></div></div>' +
+
+      '<div class="card"><div class="card-hdr" onclick="toggle(this)"><h3>Acuerdo de Cesion y Licencia de Contenidos</h3><span class="arrow">&#x25BC;</span></div>' +
+      '<div class="card-body"><p>Establece los terminos sobre el contenido que el profesional genere dentro de la plataforma, incluyendo articulos de blog, materiales formativos y participaciones en eventos.</p>' +
+      '<div style="margin-top:12px;"><a class="dl-link" href="' + DOCS_URL + '" target="_blank">Descargar documento completo</a></div></div></div>' +
+
+      '<div style="text-align:center;margin:16px 0;"><a class="dl-link" href="' + DOCS_URL + '" target="_blank" style="font-size:14px;padding:10px 20px;">Descargar todos los documentos</a></div>' +
+
+      '<div class="accept-box" id="acceptBox">' +
+      '<h3>Aceptacion de documentos</h3>' +
+      '<div class="chk"><input type="checkbox" id="chk1" onchange="checkReady()"><label>He leido y acepto el <strong>Codigo de Etica del Psicologo Catolico</strong></label></div>' +
+      '<div class="chk"><input type="checkbox" id="chk2" onchange="checkReady()"><label>He leido y acepto el <strong>Documento de Colaboracion con Catholizare</strong></label></div>' +
+      '<div class="chk"><input type="checkbox" id="chk3" onchange="checkReady()"><label>He leido y acepto el <strong>Aviso de Privacidad</strong></label></div>' +
+      '<div class="chk"><input type="checkbox" id="chk4" onchange="checkReady()"><label>He leido y acepto el <strong>Acuerdo de Cesion y Licencia de Contenidos</strong></label></div>' +
+      '<div class="version">Version: ' + LEGAL_VERSION + '</div>' +
+      '<input type="text" class="input-name" id="fullName" placeholder="Escribe tu nombre completo como firma digital" oninput="checkReady()">' +
+      '<button class="btn-accept" id="btnAccept" onclick="submitAcceptance()">Acepto todos los terminos y condiciones</button>' +
+      '<p id="acceptError" style="color:#dc3545;font-size:13px;margin-top:8px;display:none;"></p></div>' +
+
+      '<div class="success" id="successBox">' +
+      '<div style="font-size:48px;margin-bottom:12px;">&#x2705;</div>' +
+      '<h2>Documentos Aceptados!</h2>' +
+      '<p>Has aceptado todos los documentos legales correctamente.</p>' +
+      '<p style="margin-top:8px;font-size:13px;color:#888;">Version aceptada: ' + LEGAL_VERSION + '</p></div>' +
+
+      '<a class="btn-wa" href="' + waUrl + '" target="_blank">Contactar a Coordinacion (WhatsApp)</a>' +
+      '<a href="' + backUrl + '" style="display:block;text-align:center;margin-top:12px;padding:12px;color:#001A55;text-decoration:none;font-size:14px;font-weight:600;">&larr; Regresar al inicio</a>';
+
+    // Si ya acepto, mostrar exito
+    if (status.legal) {
+      var ab = document.getElementById('acceptBox');
+      var sb = document.getElementById('successBox');
+      if (ab) ab.style.display = 'none';
+      if (sb) sb.style.display = 'block';
+    }
+  });
+
+  window.toggle = function(el) {
+    el.classList.toggle('open');
+    el.nextElementSibling.classList.toggle('open');
+  };
+
+  window.checkReady = function() {
+    var c = document.getElementById('chk1').checked && document.getElementById('chk2').checked &&
+            document.getElementById('chk3').checked && document.getElementById('chk4').checked;
+    var n = document.getElementById('fullName').value.trim().length >= 3;
+    document.getElementById('btnAccept').className = 'btn-accept' + (c && n ? ' ready' : '');
+  };
+
+  window.submitAcceptance = function() {
+    var btn = document.getElementById('btnAccept');
+    btn.textContent = 'Procesando...';
+    btn.className = 'btn-accept';
+    var signerName = document.getElementById('fullName').value.trim();
+
+    API.saveLegalAcceptance(token, 'v1.0 - Febrero 2026', signerName).then(function(r) {
+      if (r && r.success) {
+        document.getElementById('acceptBox').style.display = 'none';
+        document.getElementById('successBox').style.display = 'block';
+      } else {
+        document.getElementById('acceptError').textContent = 'Error: ' + (r ? r.message : 'desconocido');
+        document.getElementById('acceptError').style.display = 'block';
+        btn.textContent = 'Acepto todos los terminos y condiciones';
+        checkReady();
+      }
+    }).catch(function(e) {
+      document.getElementById('acceptError').textContent = 'Error: ' + e;
+      document.getElementById('acceptError').style.display = 'block';
+      btn.textContent = 'Acepto todos los terminos y condiciones';
+      checkReady();
+    });
+  };
+})();
+</script>
+</body>
+</html>

@@ -7,11 +7,10 @@ const pageRoutes = require('./src/routes/pages');
 
 const app = express();
 
-// --- Middleware global ---
-app.use(express.json());
+// Body parser - limite alto para upload de archivos base64
+app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// --- Rutas bajo BASE_PATH ---
 const base = config.basePath;
 
 // Archivos estaticos
@@ -23,8 +22,7 @@ app.use(base + '/api', apiRoutes);
 // Paginas HTML
 app.use(base, pageRoutes);
 
-// --- Start ---
 app.listen(config.port, () => {
   console.log(`Servidor corriendo en puerto ${config.port}`);
-  console.log(`App disponible en: http://localhost:${config.port}${base}`);
+  console.log(`App: http://localhost:${config.port}${base}`);
 });
