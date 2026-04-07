@@ -1,1 +1,69 @@
-<!-- Pegar contenido de Public_Upload.html del GAS aquí -->
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { padding: 20px; background: #f4f7fa; }
+    .upload-box { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); text-align: center; }
+    .btn-cath { background: #001A55; color: white; }
+  </style>
+</head>
+<body>
+  <div class="upload-box">
+    <h4 id="title">Cargar Documento</h4>
+    <p id="desc" class="text-muted small"></p>
+    <input type="file" id="fileInput" class="form-control mb-3" accept=".pdf,jpg,png">
+    <button onclick="processFile()" id="btnUp" class="btn btn-cath w-100">Subir Archivo</button>
+    <button onclick="goBack()" class="btn btn-link mt-2">Cancelar</button>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const TOKEN = urlParams.get('token');
+    const TYPE = (urlParams.get('type') || '').toLowerCase().trim();
+
+    if (!TOKEN) {
+      document.getElementById('desc').innerText = "Falta token.";
+    }
+
+    if (!TYPE) {
+      document.getElementById('desc').innerText = "Falta el parámetro type (ej: titulo, cedula, foto, carta).";
+    } else {
+      document.getElementById('title').innerText = "Cargar " + TYPE.toUpperCase();
+    }
+
+    function goBack() {
+      window.location.href = "<?= scriptUrl ?>?token=" + encodeURIComponent(TOKEN || '');
+    }
+
+    function processFile() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return alert("Selecciona un archivo");
+      if (!TOKEN) return alert("Falta token");
+      if (!TYPE) return alert("Falta type (titulo/cedula/foto/carta)");
+
+      const btn = document.getElementById('btnUp');
+      btn.disabled = true;
+      btn.innerText = "Subiendo...";
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        google.script.run
+          .withSuccessHandler(res => {
+            if (res && res.success) {
+              alert("Archivo subido con éxito");
+              goBack();
+            } else {
+              alert("Error: " + (res ? res.message : 'Respuesta vacía'));
+              btn.disabled = false;
+              btn.innerText = "Subir Archivo";
+            }
+          })
+          .uploadFile(TOKEN, e.target.result, file.name, TYPE);
+      };
+      reader.readAsDataURL(file);
+    }
+  </script>
+</body>
+</html>
