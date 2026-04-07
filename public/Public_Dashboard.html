@@ -443,16 +443,25 @@
   </div>
 
   <script>
-    const TOKEN = "<?= token ?>";
-    const SCRIPT_URL = "<?= scriptUrl ?>";
+    const params = new URLSearchParams(window.location.search);
+    const TOKEN = params.get('token') || '';
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/proxy.php';
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
 
     // Cargar datos
     async function loadDashboard() {
       try {
-        google.script.run
-          .withSuccessHandler(renderDashboard)
-          .withFailureHandler(showError)
-          .getProfessionalStatus(TOKEN);
+        callProxy('getStatus', { token: TOKEN })
+          .then(renderDashboard)
+          .catch(function(e) { showError('Error al cargar: ' + e.message); });
       } catch (error) {
         console.error('Error:', error);
         showError('Error al cargar el dashboard: ' + error.message);
@@ -560,14 +569,14 @@
                       'Documentos Legales',
                       'Firma código de ética y acuerdo',
                       status.legal,
-                      `${SCRIPT_URL}?page=legal&token=${TOKEN}`
+                      `${BASE}/acepto-terminos.html?token=${TOKEN}`
                     )}
                     ${renderActionItem(
                       '👤',
                       'Perfil Profesional',
                       'Completa tu información',
                       status.perfil,
-                      `${SCRIPT_URL}?page=perfil&token=${TOKEN}`
+                      `${BASE}/public/Public_Perfil.html?token=${TOKEN}`
                     )}
                     ${renderActionItem(
                       '📎',
@@ -745,8 +754,8 @@
 
         const reader = new FileReader();
         reader.onload = function(event) {
-          google.script.run
-            .withSuccessHandler(function(result) {
+          callProxy('uploadFile', { token: TOKEN, base64Data: event.target.result, fileName: file.name, fileType: type })
+            .then(function(result) {
               if (result.success) {
                 alert('¡Documento subido con éxito!');
                 loadDashboard();
@@ -754,10 +763,9 @@
                 alert('Error: ' + result.message);
               }
             })
-            .withFailureHandler(function(error) {
-              alert('Error al subir: ' + error);
-            })
-            .uploadFile(TOKEN, event.target.result, file.name, type);
+            .catch(function(error) {
+              alert('Error al subir: ' + error.message);
+            });
         };
         reader.readAsDataURL(file);
       };

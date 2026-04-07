@@ -483,8 +483,19 @@
   <script>
     // Variables globales
     let allUsers = [];
-    let currentAdminToken = '<?= adminToken ?>';
-    let currentUserRole = '<?= userRole ?>';
+    const params = new URLSearchParams(window.location.search);
+    let currentAdminToken = params.get('adminToken') || '';
+    let currentUserRole = params.get('userRole') || '';
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/proxy.php';
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
     
     // Cargar al iniciar
     window.onload = function() {
@@ -506,10 +517,9 @@
     
     // Cargar usuarios
     function loadUsers() {
-      google.script.run
-        .withSuccessHandler(renderUsers)
-        .withFailureHandler(showError)
-        .getAllAdminUsers();
+      callProxy('getAllAdminUsers')
+        .then(function(r) { renderUsers(r.data || r); })
+        .catch(function(e) { showError(e.message); });
     }
     
     // Renderizar usuarios
@@ -630,11 +640,10 @@
       btn.disabled = true;
       btn.textContent = 'Creando...';
       
-      google.script.run
-        .withSuccessHandler(function(result) {
+      callProxy('generateAdminToken', { email: email, role: role, nombre: nombre, currentUserToken: currentAdminToken })
+        .then(function(result) {
           btn.disabled = false;
           btn.textContent = 'Crear Usuario';
-          
           if (result.success) {
             cerrarModal();
             mostrarTokenGenerado(result.token, email);
@@ -644,18 +653,16 @@
             showAlert(result.message, 'error');
           }
         })
-        .withFailureHandler(function(error) {
+        .catch(function(error) {
           btn.disabled = false;
           btn.textContent = 'Crear Usuario';
-          showAlert('Error: ' + error, 'error');
-        })
-        .generateAdminToken(email, role, nombre, currentAdminToken);
+          showAlert('Error: ' + error.message, 'error');
+        });
     }
     
     // Mostrar token generado
     function mostrarTokenGenerado(token, email) {
-      const scriptUrl = '<?= scriptUrl ?>';
-      const url = `${scriptUrl}?admin=true&adminToken=${token}`;
+      const url = BASE + '/dashboard-admin.html?adminToken=' + encodeURIComponent(token);
       
       document.getElementById('tokenGenerado').value = token;
       document.getElementById('urlGenerada').value = url;
@@ -679,8 +686,8 @@
     function desactivarUsuario(token) {
       if (!confirm('¿Estás seguro de desactivar este usuario?')) return;
       
-      google.script.run
-        .withSuccessHandler(function(result) {
+      callProxy('deactivateAdminToken', { tokenToDeactivate: token, currentUserToken: currentAdminToken })
+        .then(function(result) {
           if (result.success) {
             showAlert('Usuario desactivado', 'success');
             loadUsers();
@@ -688,10 +695,9 @@
             showAlert(result.message, 'error');
           }
         })
-        .withFailureHandler(function(error) {
-          showAlert('Error: ' + error, 'error');
-        })
-        .deactivateAdminToken(token, currentAdminToken);
+        .catch(function(error) {
+          showAlert('Error: ' + error.message, 'error');
+        });
     }
     
     // Activar usuario (función placeholder)

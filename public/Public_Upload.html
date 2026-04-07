@@ -22,6 +22,8 @@
     const urlParams = new URLSearchParams(window.location.search);
     const TOKEN = urlParams.get('token');
     const TYPE = (urlParams.get('type') || '').toLowerCase().trim();
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/proxy.php';
 
     if (!TOKEN) {
       document.getElementById('desc').innerText = "Falta token.";
@@ -34,7 +36,7 @@
     }
 
     function goBack() {
-      window.location.href = "<?= scriptUrl ?>?token=" + encodeURIComponent(TOKEN || '');
+      window.location.href = BASE + "/index.html?token=" + encodeURIComponent(TOKEN || '');
     }
 
     function processFile() {
@@ -49,18 +51,27 @@
 
       const reader = new FileReader();
       reader.onload = function(e) {
-        google.script.run
-          .withSuccessHandler(res => {
-            if (res && res.success) {
-              alert("Archivo subido con éxito");
-              goBack();
-            } else {
-              alert("Error: " + (res ? res.message : 'Respuesta vacía'));
-              btn.disabled = false;
-              btn.innerText = "Subir Archivo";
-            }
-          })
-          .uploadFile(TOKEN, e.target.result, file.name, TYPE);
+        fetch(PROXY + '?action=uploadFile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: TOKEN, base64Data: e.target.result, fileName: file.name, fileType: TYPE })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(res) {
+          if (res && res.success) {
+            alert("Archivo subido con éxito");
+            goBack();
+          } else {
+            alert("Error: " + (res ? res.message : 'Respuesta vacía'));
+            btn.disabled = false;
+            btn.innerText = "Subir Archivo";
+          }
+        })
+        .catch(function(err) {
+          alert("Error: " + err.message);
+          btn.disabled = false;
+          btn.innerText = "Subir Archivo";
+        });
       };
       reader.readAsDataURL(file);
     }

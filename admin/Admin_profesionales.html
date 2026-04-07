@@ -226,14 +226,16 @@
   </div>
 
   <script>
-    // CONFIG
-    const scriptUrl = '<?= scriptUrl ?>';
-    const adminToken = '<?= adminToken ?>';
-    const dashUrl = scriptUrl + '?admin=true&adminToken=' + adminToken;
+    // CONFIG - leer de URL params
+    const params = new URLSearchParams(window.location.search);
+    const adminToken = params.get('adminToken') || '';
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/proxy.php';
+    const dashUrl = BASE + '/dashboard-admin.html?adminToken=' + encodeURIComponent(adminToken) + '&userName=' + encodeURIComponent(params.get('userName') || '') + '&userRole=' + encodeURIComponent(params.get('userRole') || '') + '&userEmail=' + encodeURIComponent(params.get('userEmail') || '');
 
     // INIT
-    document.getElementById('uName').textContent = '<?= userName ?>';
-    document.getElementById('uRole').textContent = '<?= userRole ?>';
+    document.getElementById('uName').textContent = params.get('userName') || '';
+    document.getElementById('uRole').textContent = params.get('userRole') || '';
     document.getElementById('lnkHome').href = dashUrl;
     document.getElementById('lnkDash').href = dashUrl;
     document.getElementById('btnBack').href = dashUrl;
@@ -245,12 +247,20 @@
     let expandedTokens = new Set();
     let detailCache = {};
 
+    // Helper: llamar proxy
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
     // LOAD
     window.onload = function() {
-      google.script.run
-        .withSuccessHandler(onDataLoaded)
-        .withFailureHandler(onError)
-        .getAllProfesionales();
+      callProxy('getAllProfesionales')
+        .then(function(r) { onDataLoaded(r.data || r); })
+        .catch(function(e) { onError(e.message); });
     };
 
     function onDataLoaded(data) {
@@ -384,18 +394,17 @@
         renderTable();
         // Load detail if not cached
         if (!detailCache[token]) {
-          google.script.run
-            .withSuccessHandler(function(status) {
+          callProxy('getProfessionalStatus', { token: token })
+            .then(function(status) {
               detailCache[token] = status;
               const prof = filteredData.find(p => p.token === token);
               const el = document.getElementById('detail-content-' + token);
               if (el && prof) el.innerHTML = renderDetail(prof, status);
             })
-            .withFailureHandler(function(err) {
+            .catch(function(err) {
               const el = document.getElementById('detail-content-' + token);
-              if (el) el.innerHTML = '<p style="color:var(--red);padding:20px">Error al cargar: ' + err + '</p>';
-            })
-            .getProfessionalStatus(token);
+              if (el) el.innerHTML = '<p style="color:var(--red);padding:20px">Error al cargar: ' + err.message + '</p>';
+            });
         }
       }
     }

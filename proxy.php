@@ -8,7 +8,7 @@
  */
 
 // URL del Web App de Google Apps Script (doPost)
-define('GAS_WEBAPP_URL', 'TU_URL_DEL_GAS_WEBAPP_AQUI');
+define('GAS_WEBAPP_URL', 'https://script.google.com/macros/s/AKfycbz2AVRd7HEHLDUM1opo4r0J_PKKcxSa14elCjbkUeCMJOa6jzZOLRgHTHukvBrQoRQ/exec');
 
 // CORS headers para permitir peticiones desde el mismo dominio
 header('Content-Type: application/json; charset=utf-8');
@@ -30,14 +30,21 @@ if (empty($action)) {
     exit;
 }
 
-// Obtener datos del body (JSON)
+// Obtener datos del body (JSON) o de GET params
 $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, true);
 if (!$input) {
     $input = [];
 }
 
-// Construir payload para el GAS
+// Merge GET params (para token, etc.)
+foreach ($_GET as $k => $v) {
+    if ($k !== 'action' && !isset($input[$k])) {
+        $input[$k] = $v;
+    }
+}
+
+// Construir payload para el GAS (siempre via POST al doPost)
 $payload = array_merge($input, ['action' => $action]);
 
 // Enviar petición al GAS

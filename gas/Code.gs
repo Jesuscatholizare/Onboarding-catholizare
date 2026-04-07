@@ -135,42 +135,40 @@ const ALLOWED_TYPES = {
 };
 
 // ============================================================================
-// HELPER: SERVIR PÁGINA ADMIN (con fallback)
+// URL BASE DEL SERVIDOR WORDPRESS (donde están los HTML migrados)
+// ============================================================================
+
+var SERVER_BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+
+// ============================================================================
+// HELPER: REDIRIGIR A PÁGINA ADMIN EN SERVIDOR
 // ============================================================================
 
 function serveAdminPage(fileName, title, adminToken, user) {
-  try {
-    var template = HtmlService.createTemplateFromFile(fileName);
-    template.scriptUrl = ScriptApp.getService().getUrl();
-    template.adminToken = adminToken;
-    template.userRole = user.role;
-    template.userEmail = user.email;
-    template.userName = user.nombre;
-    
-    return template.evaluate()
-      .setTitle(title + ' - Catholizare')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-      
-  } catch (error) {
-    Logger.log('⚠️ Archivo no encontrado: ' + fileName + '.html');
-    var scriptUrl = ScriptApp.getService().getUrl();
-    var dashUrl = scriptUrl + '?admin=true&adminToken=' + adminToken;
-    
-    return HtmlService.createHtmlOutput(
-      '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>' + title + '</title>' +
-      '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f8f9fa;display:flex;align-items:center;justify-content:center;min-height:100vh}' +
-      '.card{text-align:center;max-width:450px;padding:40px}.icon{width:100px;height:100px;background:linear-gradient(135deg,#001A55,#003ABA);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:44px;box-shadow:0 8px 30px rgba(0,26,85,0.2)}' +
-      '.badge{display:inline-block;background:linear-gradient(135deg,#D4AF37,#e8c84a);color:#001A55;padding:5px 14px;border-radius:16px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;margin-bottom:16px}' +
-      'h1{color:#001A55;font-size:28px;margin-bottom:10px}p{color:#6c757d;font-size:15px;line-height:1.6;margin-bottom:24px}' +
-      '.btn{display:inline-block;background:#001A55;color:white;padding:12px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:14px}</style></head>' +
-      '<body><div class="card"><div class="icon">🚧</div><div class="badge">Próximamente</div><h1>' + title + '</h1>' +
-      '<p>Esta sección está en desarrollo y estará disponible en una próxima actualización.</p>' +
-      '<a class="btn" href="' + dashUrl + '">← Volver al Dashboard</a></div></body></html>'
-    ).setTitle(title + ' - Catholizare')
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1')
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
-  }
+  // Mapeo de archivos GAS → rutas del servidor
+  var pageMap = {
+    'Admin_Dashboard_Complete': '/dashboard-admin.html',
+    'Admin_Gestion_Usuarios': '/admin/Admin_Gestion_Usuarios.html',
+    'Admin_profesionales': '/admin/Admin_profesionales.html',
+    'Admin_legal': '/admin/Admin_legal.html',
+    'Admin_analitica': '/admin/Admin_analitica.html',
+    'Admin_superadmin': '/admin/Admin_superadmin.html',
+    'Admin_health': '/admin/Admin_health.html'
+  };
+
+  var path = pageMap[fileName] || '/dashboard-admin.html';
+  var url = SERVER_BASE + path +
+    '?adminToken=' + encodeURIComponent(adminToken) +
+    '&userName=' + encodeURIComponent(user.nombre) +
+    '&userRole=' + encodeURIComponent(user.role) +
+    '&userEmail=' + encodeURIComponent(user.email || '');
+
+  return HtmlService.createHtmlOutput(
+    '<html><head><meta http-equiv="refresh" content="0;url=' + url + '"></head>' +
+    '<body>Redirigiendo... <a href="' + url + '">Click aquí si no se redirige</a></body></html>'
+  ).setTitle(title + ' - Catholizare')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
 
 // ============================================================================
@@ -301,16 +299,38 @@ function doGet(e) {
     ).setTitle('Token Inválido');
   }
 
-  // === BLOQUE 4: PÁGINAS PROFESIONALES ===
-  
-  // Página de aceptación de términos
-  if (page === 'aceptacion_terminos') {
-    var driveFolderUrl = 'https://drive.google.com/drive/folders/' + LEGAL_DOCS_FOLDER;
-    var LEGAL_VERSION = 'v1.0 - Febrero 2026';
-    var scriptUrl = ScriptApp.getService().getUrl();
-    var backUrl = scriptUrl + '?token=' + token;
+  // === BLOQUE 4: PÁGINAS PROFESIONALES → REDIRIGIR AL SERVIDOR ===
+
+  function redirectToServer(path, params) {
+    var url = SERVER_BASE + path;
+    var qs = [];
+    for (var key in params) {
+      if (params[key]) qs.push(key + '=' + encodeURIComponent(params[key]));
+    }
+    if (qs.length) url += '?' + qs.join('&');
     return HtmlService.createHtmlOutput(
-      '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+      '<html><head><meta http-equiv="refresh" content="0;url=' + url + '"></head>' +
+      '<body>Redirigiendo... <a href="' + url + '">Click aquí</a></body></html>'
+    ).setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+
+  if (page === 'aceptacion_terminos') {
+    return redirectToServer('/acepto-terminos.html', { token: token, nombre: professional.nombre });
+  }
+
+  if (page === 'informacion_perfil') {
+    return redirectToServer('/public/Public_Perfil.html', { token: token, nombre: professional.nombre });
+  }
+
+  // Dashboard del profesional (página por defecto)
+  return redirectToServer('/index.html', { token: token, nombre: professional.nombre });
+
+  // ==================== CÓDIGO INLINE ORIGINAL (MIGRADO AL SERVIDOR) ====================
+  // Las siguientes líneas son el HTML inline original que ahora está en archivos separados.
+  // Se conservan como referencia. NO se ejecutan.
+  if (false) {
+    return HtmlService.createHtmlOutput(
+      '<!-- MIGRADO -->' +
       '<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f4f7fa;min-height:100vh}' +
       '.header{background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);padding:24px 30px;color:white;text-align:center}' +
       '.header h1{font-size:22px;margin-bottom:4px}.header p{opacity:0.85;font-size:14px}' +
@@ -609,6 +629,106 @@ function doGet(e) {
     '<\/script>' +
     '</body></html>'
   ).setTitle('Mi Onboarding - Catholizare').setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+// ============================================================================
+// doPost - ROUTER PARA PROXY PHP
+// ============================================================================
+// El proxy PHP (proxy.php) envía POST con { action: "nombreFuncion", ...params }
+// y este router despacha a la función correcta del backend.
+// ============================================================================
+
+function doPost(e) {
+  try {
+    var data = JSON.parse(e.postData.contents);
+    var action = data.action;
+    Logger.log('[doPost] Action: ' + action);
+    var result;
+
+    switch (action) {
+      // === Profesional ===
+      case 'saveLegalAcceptance':
+        result = saveLegalAcceptance(data.token, data.version, data.signerName);
+        break;
+      case 'saveProfileInfo':
+        result = saveProfileInfo(data.token, data.formData);
+        break;
+      case 'uploadFile':
+        result = uploadFile(data.token, data.base64Data, data.fileName, data.fileType);
+        break;
+
+      // === Admin: gestión de profesionales ===
+      case 'getAllProfesionales':
+        result = { success: true, data: getAllProfesionales() };
+        break;
+      case 'getProfessionalStatus':
+        result = getProfessionalStatus(data.token);
+        break;
+      case 'sendManualEmailFromDashboard':
+        result = sendManualEmailFromDashboard(data.token, data.emailType);
+        break;
+      case 'adminAdvancePhase':
+        result = adminAdvancePhase(data.token);
+        break;
+      case 'adminSetStatus':
+        result = adminSetStatus(data.token, data.nuevoEstado);
+        break;
+      case 'adminMarkAction':
+        result = adminMarkAction(data.token, data.actionId);
+        break;
+      case 'adminDeleteProfessional':
+        result = adminDeleteProfessional(data.token);
+        break;
+      case 'adminResetOnboarding':
+        result = adminResetOnboarding(data.token);
+        break;
+      case 'initializeNewProfessional':
+        result = initializeNewProfessional(data.nombre, data.email, data.especialidad, data.categoria);
+        break;
+
+      // === Admin: usuarios admin ===
+      case 'validateAdminToken':
+        var user = validateAdminToken(data.token);
+        result = user ? { success: true, data: user } : { success: false, message: 'Token invalido' };
+        break;
+      case 'getAllAdminUsers':
+        result = { success: true, data: getAllAdminUsers() };
+        break;
+      case 'generateAdminToken':
+        result = generateAdminToken(data.email, data.role, data.nombre, data.currentUserToken);
+        break;
+      case 'deactivateAdminToken':
+        result = deactivateAdminToken(data.tokenToDeactivate, data.currentUserToken);
+        break;
+      case 'activateAdminToken':
+        result = activateAdminToken(data.tokenToActivate, data.currentUserToken);
+        break;
+
+      // === Timeline y estado ===
+      case 'getTimeline':
+        result = getTimeline(data.token);
+        break;
+      case 'getEmailHistory':
+        result = { success: true, data: getEmailHistory(data.token) };
+        break;
+      case 'getStatus':
+        result = getProfessionalStatus(data.token);
+        break;
+
+      default:
+        result = { success: false, message: 'Accion no reconocida: ' + action };
+    }
+
+    return ContentService.createTextOutput(JSON.stringify(result))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (error) {
+    Logger.log('[doPost ERROR] ' + error.message);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      message: 'Error del servidor: ' + error.message
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 // ============================================================================

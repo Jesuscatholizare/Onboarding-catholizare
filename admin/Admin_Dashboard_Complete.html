@@ -346,11 +346,22 @@
 <!-- ALL JS IN ONE BLOCK AT THE END -->
 <script>
   // === CONFIG ===
-  var SCRIPT_URL = '<?= scriptUrl ?>';
-  var ADMIN_TOKEN = '<?= adminToken ?>';
-  var USER_EMAIL = '<?= userEmail ?>';
-  var USER_ROLE = '<?= userRole ?>';
-  var USER_NAME = '<?= userName ?>';
+  var params = new URLSearchParams(window.location.search);
+  var ADMIN_TOKEN = params.get('adminToken') || '';
+  var USER_EMAIL = params.get('userEmail') || '';
+  var USER_ROLE = params.get('userRole') || '';
+  var USER_NAME = params.get('userName') || '';
+  var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+  var PROXY = BASE + '/proxy.php';
+  var SCRIPT_URL = BASE; // compatibility
+
+  function callProxy(action, data) {
+    return fetch(PROXY + '?action=' + action, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data || {})
+    }).then(function(r) { return r.json(); });
+  }
 
   // === STATE ===
   var profData = [];
@@ -408,27 +419,27 @@
       var prof = profData.find(function(p){ return p.token === currentToken; });
       var faseActual = prof ? prof.fase : '';
       if(confirm('¿Avanzar a ' + prof.nombre + ' de ' + faseActual + ' a la siguiente fase?')) {
-        google.script.run.withSuccessHandler(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).adminAdvancePhase(currentToken);
+        callProxy('adminAdvancePhase', {token: currentToken}).then(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).catch(function(e){ alert('Error: ' + e.message); });
       }
     });
     document.getElementById('maReiniciar').addEventListener('click', function(){ 
       if(!currentToken) return;
       if(confirm('¿Reiniciar onboarding? Se borrarán datos de legal y perfil.')) {
-        google.script.run.withSuccessHandler(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).adminResetOnboarding(currentToken);
+        callProxy('adminResetOnboarding', {token: currentToken}).then(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).catch(function(e){ alert('Error: ' + e.message); });
       }
     });
     document.getElementById('maPausar').addEventListener('click', function(){ 
       if(!currentToken) return;
-      google.script.run.withSuccessHandler(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).adminSetStatus(currentToken, 'Pausado');
+      callProxy('adminSetStatus', {token: currentToken, nuevoEstado: 'Pausado'}).then(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).catch(function(e){ alert('Error: ' + e.message); });
     });
     document.getElementById('maAtrasado').addEventListener('click', function(){ 
       if(!currentToken) return;
-      google.script.run.withSuccessHandler(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).adminSetStatus(currentToken, 'Incompleto');
+      callProxy('adminSetStatus', {token: currentToken, nuevoEstado: 'Incompleto'}).then(function(r){ alert(r.message); if(r.success){ delete detailCache[currentToken]; closeModal(); cargarDashboardInicial(); }}).catch(function(e){ alert('Error: ' + e.message); });
     });
     document.getElementById('maEliminar').addEventListener('click', function(){ 
       if(!currentToken) return;
       if(confirm('¿Estás seguro de eliminar este profesional? Esta acción NO se puede deshacer.')) { 
-        google.script.run.withSuccessHandler(function(r){ alert(r.message); if(r.success){ closeModal(); cargarDashboardInicial(); }}).adminDeleteProfessional(currentToken);
+        callProxy('adminDeleteProfessional', {token: currentToken}).then(function(r){ alert(r.message); if(r.success){ closeModal(); cargarDashboardInicial(); }}).catch(function(e){ alert('Error: ' + e.message); });
       }
     });
 
@@ -455,12 +466,12 @@
       this.textContent = 'Creando...';
       document.getElementById('addResult').innerHTML = '<div class="loading"><div class="spinner"></div><p style="font-size:13px;">Creando profesional y enviando email...</p></div>';
       
-      google.script.run
-        .withSuccessHandler(function(r) {
+      callProxy('initializeNewProfessional', {nombre: nombre, email: email, especialidad: especialidad, categoria: categoria})
+        .then(function(r) {
           document.getElementById('btnConfirmAdd').disabled = false;
           document.getElementById('btnConfirmAdd').textContent = '🚀 Crear e Iniciar Onboarding';
           if (r && r.success) {
-            document.getElementById('addResult').innerHTML = 
+            document.getElementById('addResult').innerHTML =
               '<div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">' +
               '<strong style="color:var(--green);">&#x2705; Profesional creado exitosamente</strong><br>' +
               '<span style="font-size:13px;">Token: <code>' + r.token + '</code></span>' +
@@ -479,12 +490,11 @@
             document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Error: ' + (r ? r.message : 'Respuesta vacía') + '</p>';
           }
         })
-        .withFailureHandler(function(e) {
+        .catch(function(e) {
           document.getElementById('btnConfirmAdd').disabled = false;
           document.getElementById('btnConfirmAdd').textContent = '🚀 Crear e Iniciar Onboarding';
-          document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Error: ' + e + '</p>';
-        })
-        .initializeNewProfessional(nombre, email, especialidad, categoria);
+          document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Error: ' + e.message + '</p>';
+        });
     });
 
     // Close dropdowns on click outside
@@ -502,7 +512,7 @@
     document.querySelectorAll('.sidebar-link').forEach(function(l){ l.classList.remove('active'); });
     el.classList.add('active');
   }
-  function goPage(p) { window.location.href = SCRIPT_URL + '?admin=true&adminToken=' + ADMIN_TOKEN + '&page=' + p; }
+  function goPage(p) { window.location.href = BASE + '/admin/Admin_profesionales.html?adminToken=' + encodeURIComponent(ADMIN_TOKEN) + '&userName=' + encodeURIComponent(USER_NAME) + '&userRole=' + encodeURIComponent(USER_ROLE) + '&userEmail=' + encodeURIComponent(USER_EMAIL); }
 
   // === LOAD DATA ===
   function loadData(callback) {
@@ -510,21 +520,20 @@
     if (loading) return;
     loading = true;
     document.getElementById('mainContent').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando...</p></div>';
-    google.script.run
-      .withSuccessHandler(function(data) {
+    callProxy('getAllProfesionales')
+      .then(function(r) {
         loading = false;
-        profData = data || [];
+        profData = (r && r.data) ? r.data : [];
         callback(profData);
       })
-      .withFailureHandler(function(err) {
+      .catch(function(err) {
         loading = false;
         document.getElementById('mainContent').innerHTML =
           '<div class="loading"><p style="color:var(--red);font-size:16px;font-weight:600;">Error al cargar datos</p>' +
-          '<p style="margin:8px 0 20px;color:var(--gray-500);">' + err + '</p>' +
+          '<p style="margin:8px 0 20px;color:var(--gray-500);">' + err.message + '</p>' +
           '<button style="padding:10px 24px;background:var(--navy);color:white;border:none;border-radius:8px;cursor:pointer;" id="retryBtn">Reintentar</button></div>';
         document.getElementById('retryBtn').addEventListener('click', function(){ loading=false; profData=[]; loadData(callback); });
-      })
-      .getAllProfesionales();
+      });
   }
 
   // === DASHBOARD VIEW ===
@@ -689,8 +698,8 @@
     if (detailCache[token]) {
       renderModalData(detailCache[token]);
     } else {
-      google.script.run
-        .withSuccessHandler(function(data) {
+      callProxy('getProfessionalStatus', {token: token})
+        .then(function(data) {
           if (data && data.success !== false) {
             detailCache[token] = data;
             renderModalData(data);
@@ -701,10 +710,9 @@
             document.getElementById('paneDocs').innerHTML = '<p style="color:var(--red);padding:20px;">' + msg + '</p>';
           }
         })
-        .withFailureHandler(function(err) {
-          document.getElementById('panePerfil').innerHTML = '<p style="color:var(--red);padding:20px;">Error: ' + err + '</p>';
-        })
-        .getProfessionalStatus(token);
+        .catch(function(err) {
+          document.getElementById('panePerfil').innerHTML = '<p style="color:var(--red);padding:20px;">Error: ' + err.message + '</p>';
+        });
     }
   }
 
@@ -983,7 +991,7 @@
         var el = document.getElementById(id);
         if (el) el.addEventListener('click', function(){
           window.open(waBase + encodeURIComponent(waButtons[id]), '_blank');
-          google.script.run.adminMarkAction(currentToken, id);
+          callProxy('adminMarkAction', {token: currentToken, actionId: id});
         });
       });
       
@@ -994,10 +1002,10 @@
         if (el) el.addEventListener('click', function(){ 
           var actionName = id.replace('trigMark','').replace(/([A-Z])/g,' $1').trim();
           if(confirm('¿Marcar "' + actionName + '" como completado?')) {
-            google.script.run.withSuccessHandler(function(r){
+            callProxy('adminMarkAction', {token: currentToken, actionId: id}).then(function(r){
               if(r && r.success) { delete detailCache[currentToken]; openModal(currentToken); }
               else alert('❌ Error: ' + (r ? r.message : ''));
-            }).adminMarkAction(currentToken, id);
+            }).catch(function(e){ alert('❌ Error: ' + e.message); });
           }
         });
       });
@@ -1043,11 +1051,11 @@
     };
     if (!confirm('¿Enviar email "' + (typeNames[type]||type) + '" a ' + (prof ? prof.nombre : '') + '?')) return;
     
-    google.script.run
-      .withSuccessHandler(function(r) { 
+    callProxy('sendManualEmailFromDashboard', {token: currentToken, emailType: type})
+      .then(function(r) {
         if (r && r.success) {
           // Also mark the trigger as done
-          if (trigMap[type]) google.script.run.adminMarkAction(currentToken, trigMap[type]);
+          if (trigMap[type]) callProxy('adminMarkAction', {token: currentToken, actionId: trigMap[type]});
           delete detailCache[currentToken];
           alert('✅ Email "' + (typeNames[type]||type) + '" enviado correctamente');
           openModal(currentToken);
@@ -1055,8 +1063,7 @@
           alert('❌ Error: ' + (r ? r.message : 'Sin respuesta'));
         }
       })
-      .withFailureHandler(function(e) { alert('Error enviando email: ' + e); })
-      .sendManualEmailFromDashboard(currentToken, type);
+      .catch(function(e) { alert('Error enviando email: ' + e.message); });
   }
 
   // === LEGAL VIEW ===
@@ -1187,9 +1194,9 @@
       '<p style="color:var(--gray-500);margin-bottom:28px;">Administra los usuarios y permisos del sistema.</p>' +
       '<div id="usuariosContainer"><div class="loading"><div class="spinner"></div><p>Cargando usuarios...</p></div></div>';
 
-    google.script.run
-      .withSuccessHandler(function(users) {
-        users = users || [];
+    callProxy('getAllAdminUsers')
+      .then(function(r) {
+        var users = (r && r.data) ? r.data : (r || []);
         var superadmins = users.filter(function(u){ return u.role === 'superadmin'; }).length;
         var admins = users.filter(function(u){ return u.role === 'administrador'; }).length;
         var activos = users.filter(function(u){ return u.activo; }).length;
@@ -1242,10 +1249,9 @@
             '</div>' +
           '</div>';
       })
-      .withFailureHandler(function(err) {
-        document.getElementById('usuariosContainer').innerHTML = '<div class="panel"><p style="color:var(--red);padding:20px;">Error al cargar usuarios: ' + err + '</p></div>';
-      })
-      .getAllAdminUsers();
+      .catch(function(err) {
+        document.getElementById('usuariosContainer').innerHTML = '<div class="panel"><p style="color:var(--red);padding:20px;">Error al cargar usuarios: ' + err.message + '</p></div>';
+      });
   }
 
   // === SUPER ADMIN VIEW ===
@@ -1303,18 +1309,17 @@
         var role = document.getElementById('newAdminRole').value;
         if (!email || !name) { alert('Completa todos los campos'); return; }
         
-        google.script.run
-          .withSuccessHandler(function(r) {
+        callProxy('generateAdminToken', {email: email, role: role, nombre: name, adminToken: ADMIN_TOKEN})
+          .then(function(r) {
             if (r.success) {
-              document.getElementById('tokenResult').innerHTML = 
+              document.getElementById('tokenResult').innerHTML =
                 '<div style="padding:12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;">' +
                 '<strong style="color:var(--green);">Token generado:</strong><br><code style="font-size:14px;">' + r.token + '</code></div>';
             } else {
               document.getElementById('tokenResult').innerHTML = '<p style="color:var(--red);">' + r.message + '</p>';
             }
           })
-          .withFailureHandler(function(e) { alert('Error: ' + e); })
-          .generateAdminToken(email, role, name, ADMIN_TOKEN);
+          .catch(function(e) { alert('Error: ' + e.message); });
       });
 
       document.getElementById('btnResetSystem').addEventListener('click', function() {
