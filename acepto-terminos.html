@@ -1,1 +1,361 @@
-<!-- Pegar contenido de acepto-terminos.html del servidor aquí -->
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Términos y Condiciones - Red de Psicólogos Católicos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #003ABA 0%, #001A55 100%);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #001A55, #0966FF);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .terms-section {
+            margin: 30px 0;
+            padding: 30px;
+            background: #F4F9FD;
+            border-radius: 10px;
+            border-left: 5px solid #0966FF;
+        }
+
+        .terms-section h2 {
+            color: #002699;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .terms-section p {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .terms-section ol {
+            margin-left: 25px;
+            color: #333;
+        }
+
+        .terms-section li {
+            margin-bottom: 15px;
+        }
+
+        .terms-section strong {
+            color: #001A55;
+        }
+
+        .checkbox-container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid #E9EDF2;
+            margin: 30px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .checkbox-container:hover {
+            border-color: #0966FF;
+            background: #F4F9FD;
+        }
+
+        .checkbox-container input[type="checkbox"] {
+            width: 24px;
+            height: 24px;
+            cursor: pointer;
+        }
+
+        .checkbox-container label {
+            cursor: pointer;
+            font-size: 1.1em;
+            color: #001A55;
+            font-weight: 600;
+        }
+
+        .btn-accept {
+            width: 100%;
+            padding: 18px;
+            background: #0966FF;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 20px;
+        }
+
+        .btn-accept:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .btn-accept:not(:disabled):hover {
+            background: #003ABA;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(9, 102, 255, 0.4);
+        }
+
+        .alert {
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-weight: 500;
+            display: none;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+            color: #0966FF;
+        }
+
+        .loading::after {
+            content: '...';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 1.5em;
+            }
+
+            .terms-section {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Términos y Condiciones</h1>
+            <p>Red de Psicólogos Católicos</p>
+        </div>
+
+        <div class="content">
+            <div id="alertContainer"></div>
+
+            <p style="font-size: 1.1em; color: #333; margin-bottom: 20px;">
+                Antes de continuar con el proceso de evaluación, por favor lee cuidadosamente y acepta nuestros términos y condiciones:
+            </p>
+
+            <!-- ================================================ -->
+            <!-- AQUÍ ESCRIBE TUS TÉRMINOS Y CONDICIONES -->
+            <!-- Puedes editar todo el contenido de esta sección -->
+            <!-- ================================================ -->
+            
+            <div class="terms-section">
+                <h2>Términos y Condiciones de Participación</h2>
+                
+                <p>Al aceptar estos términos, te comprometes a:</p>
+                
+                <ol>
+                    <li>
+                        <strong>Ejercicio profesional ético:</strong> Practicar la psicología con los más altos estándares éticos y profesionales, respetando la dignidad humana y siguiendo las enseñanzas de la Iglesia Católica.
+                    </li>
+                    
+                    <li>
+                        <strong>Compromiso con los valores católicos:</strong> Integrar los principios y valores católicos en tu práctica profesional, respetando siempre la doctrina de la Iglesia.
+                    </li>
+                    
+                    <li>
+                        <strong>Formación continua:</strong> Participar activamente en las actividades formativas, talleres, y espacios de crecimiento profesional que ofrece la red.
+                    </li>
+                    
+                    <li>
+                        <strong>Confidencialidad:</strong> Mantener estricta confidencialidad sobre la información compartida dentro de la red y con los pacientes, de acuerdo con los códigos éticos profesionales.
+                    </li>
+                    
+                    <li>
+                        <strong>Colaboración y apoyo mutuo:</strong> Contribuir positivamente al crecimiento de la red, apoyando a otros miembros cuando sea necesario y fomentando un ambiente de fraternidad.
+                    </li>
+                    
+                    <li>
+                        <strong>Respeto al magisterio:</strong> Actuar en coherencia con el magisterio de la Iglesia Católica en todos los aspectos de tu práctica profesional.
+                    </li>
+                    
+                    <li>
+                        <strong>Uso de información:</strong> Autorizar el uso de tus datos profesionales dentro de la red para fines de directorio, referencias, y comunicación interna, siempre respetando tu privacidad.
+                    </li>
+                    
+                    <li>
+                        <strong>Compromiso de permanencia:</strong> Entender que la membresía requiere un compromiso activo y continuo con los objetivos y misión de la red.
+                    </li>
+                </ol>
+                
+                <p style="margin-top: 25px; padding-top: 20px; border-top: 2px solid #0966FF;">
+                    <strong>Nota importante:</strong> Estos términos pueden ser actualizados periódicamente. Los cambios significativos serán comunicados con anticipación a todos los miembros.
+                </p>
+            </div>
+            
+            <!-- ================================================ -->
+            <!-- FIN DE LA SECCIÓN EDITABLE -->
+            <!-- ================================================ -->
+
+            <div class="checkbox-container" onclick="toggleCheckbox()">
+                <input type="checkbox" id="acceptCheckbox">
+                <label for="acceptCheckbox">
+                    He leído y acepto los términos y condiciones
+                </label>
+            </div>
+
+            <button class="btn-accept" id="acceptBtn" disabled onclick="acceptTerms()">
+                Acepto los Términos y Condiciones
+            </button>
+
+            <div class="loading" id="loading">
+                Procesando
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ⚠️ IMPORTANTE: Reemplaza esta URL con la de tu Apps Script
+        const WEBAPP_URL = 'https://profesionales.catholizare.com/api-proxy.php';
+
+        // Obtener UID de la URL
+        const urlParams = new URLSearchParams(window.location.search);
+        const candidateUID = urlParams.get('uid');
+
+        // Verificar que existe el UID
+        if (!candidateUID) {
+            showAlert('Error: No se encontró el identificador del candidato. Por favor, usa el enlace del email.', 'error');
+            document.getElementById('acceptBtn').style.display = 'none';
+        }
+
+        function toggleCheckbox() {
+            const checkbox = document.getElementById('acceptCheckbox');
+            checkbox.checked = !checkbox.checked;
+            updateButton();
+        }
+
+        function updateButton() {
+            const checkbox = document.getElementById('acceptCheckbox');
+            const btn = document.getElementById('acceptBtn');
+            btn.disabled = !checkbox.checked;
+        }
+
+        document.getElementById('acceptCheckbox').addEventListener('change', updateButton);
+
+        async function acceptTerms() {
+            if (!candidateUID) {
+                showAlert('Error: No se encontró el identificador del candidato.', 'error');
+                return;
+            }
+
+            const btn = document.getElementById('acceptBtn');
+            const loading = document.getElementById('loading');
+            
+            btn.disabled = true;
+            loading.style.display = 'block';
+
+            try {
+                const response = await fetch(WEBAPP_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        action: 'acceptTerms',
+                        uid: candidateUID
+                    })
+                });
+
+                const result = await response.json();
+
+                loading.style.display = 'none';
+
+                if (result.success) {
+                    showAlert(
+                        '¡Términos aceptados exitosamente! Recibirás un email con las instrucciones para el siguiente examen (E2). Puedes cerrar esta ventana.',
+                        'success'
+                    );
+                    
+                    // Ocultar el formulario
+                    document.querySelector('.checkbox-container').style.display = 'none';
+                    btn.style.display = 'none';
+                } else {
+                    showAlert('Error: ' + result.message, 'error');
+                    btn.disabled = false;
+                }
+
+            } catch (error) {
+                loading.style.display = 'none';
+                showAlert('Error de conexión. Por favor, intenta de nuevo.', 'error');
+                btn.disabled = false;
+                console.error('Error:', error);
+            }
+        }
+
+        function showAlert(message, type) {
+            const container = document.getElementById('alertContainer');
+            const alertClass = type === 'success' ? 'alert-success' : 'alert-error';
+            
+            container.innerHTML = `<div class="alert ${alertClass}" style="display: block;">${message}</div>`;
+            
+            // Scroll al top para que vean el mensaje
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
