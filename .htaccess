@@ -1,0 +1,16 @@
+<IfModule mod_rewrite.c>
+RewriteEngine On
+
+# Allow direct access to existing files (PHP, HTML, CSS, JS, images)
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# Allow direct access to existing directories
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+</IfModule>
+
+# Ensure PHP files execute as PHP
+<FilesMatch "\.php$">
+SetHandler application/x-httpd-php
+</FilesMatch>
