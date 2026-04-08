@@ -545,23 +545,33 @@
   </div>
 
   <script>
-    const token = "<?= token ?>";
-    const scriptUrl = "<?= scriptUrl ?>";
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token') || params.get('adminToken') || '';
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/api.php';
 
     // Cargar datos
     async function loadDashboard() {
       try {
         // Obtener estado del profesional
-        const statusResponse = await fetch(`${scriptUrl}?action=getStatus&token=${token}`);
+        const statusResponse = await fetch(`${PROXY}?action=getStatus&token=${token}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token })
+        });
         const status = await statusResponse.json();
-        
+
         if (!status.success) {
           showError(status.message);
           return;
         }
 
         // Obtener timeline
-        const timelineResponse = await fetch(`${scriptUrl}?action=getTimeline&token=${token}`);
+        const timelineResponse = await fetch(`${PROXY}?action=getTimeline`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: token })
+        });
         const timeline = await timelineResponse.json();
 
         renderDashboard(status, timeline);
@@ -670,21 +680,21 @@
                       'Documentos Legales',
                       'Firma código de ética y acuerdo',
                       status.legal,
-                      `${scriptUrl}?page=legal&token=${token}`
+                      `${BASE}/acepto-terminos.html?token=${token}`
                     )}
                     ${renderActionItem(
                       '👤',
                       'Perfil Profesional',
                       'Completa tu información',
                       status.perfil,
-                      `${scriptUrl}?page=perfil&token=${token}`
+                      `${BASE}/Public_Perfil.html?token=${token}`
                     )}
                     ${renderActionItem(
                       '📎',
                       'Subir Documentos',
                       'CV, cédula, foto, carta',
                       Object.values(status.documentos).every(v => v),
-                      `${scriptUrl}?page=upload&token=${token}`
+                      `${BASE}/Public_Upload.html?token=${token}`
                     )}
                   </div>
                 </div>
