@@ -23,7 +23,7 @@
     const TOKEN = urlParams.get('token');
     const TYPE = (urlParams.get('type') || '').toLowerCase().trim();
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
-    const PROXY = BASE + '/proxy.php';
+    const PROXY = BASE + '/api.php';
 
     if (!TOKEN) {
       document.getElementById('desc').innerText = "Falta token.";

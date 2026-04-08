@@ -230,7 +230,7 @@
     const params = new URLSearchParams(window.location.search);
     const adminToken = params.get('adminToken') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
-    const PROXY = BASE + '/proxy.php';
+    const PROXY = BASE + '/api.php';
     const dashUrl = BASE + '/dashboard-admin.html?adminToken=' + encodeURIComponent(adminToken) + '&userName=' + encodeURIComponent(params.get('userName') || '') + '&userRole=' + encodeURIComponent(params.get('userRole') || '') + '&userEmail=' + encodeURIComponent(params.get('userEmail') || '');
 
     // INIT

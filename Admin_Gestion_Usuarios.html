@@ -487,7 +487,7 @@
     let currentAdminToken = params.get('adminToken') || '';
     let currentUserRole = params.get('userRole') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
-    const PROXY = BASE + '/proxy.php';
+    const PROXY = BASE + '/api.php';
 
     function callProxy(action, data) {
       return fetch(PROXY + '?action=' + action, {
