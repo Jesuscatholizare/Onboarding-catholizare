@@ -53,21 +53,58 @@
       <a class="btn-logout" id="btnLogout">🚪 Salir</a>
     </div>
   </div>
-  <div class="main">
-    <div class="card">
-      <div class="icon-box">🏥</div>
-      <div class="badge">🚧 Próximamente</div>
-      <h1>System Health</h1>
-      <p class="desc">Monitoreo del estado del sistema: triggers, API de Brevo, almacenamiento y rendimiento general.</p>
-      <div class="features">
-        <h3>Funcionalidades planificadas</h3>
-        <div class="fi"><div class="fi-icon">💚</div>Estado de servicios en tiempo real</div>
-        <div class="fi"><div class="fi-icon">⏰</div>Verificación de triggers programados</div>
-        <div class="fi"><div class="fi-icon">📧</div>Estado de conexión con Brevo API</div>
-        <div class="fi"><div class="fi-icon">💾</div>Uso de almacenamiento en Drive</div>
+  <div class="main" style="align-items:flex-start;padding-top:24px;">
+    <div class="card" style="max-width:750px;text-align:left;">
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:24px;">
+        <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--navy),var(--blue));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;box-shadow:0 6px 20px rgba(0,26,85,0.2);">🏥</div>
+        <div>
+          <h1 style="font-size:24px;color:var(--navy);">System Health</h1>
+          <p style="font-size:14px;color:var(--gray-600);">Estado de los componentes del sistema</p>
+        </div>
       </div>
-      <a class="btn-back" id="btnB">← Volver al Dashboard</a>
-      <p class="note">Disponible en próxima actualización · Catholizare Pro v5.0</p>
+
+      <button onclick="runDiagnostics()" id="btnDiag" style="display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:white;padding:12px 28px;border:none;border-radius:10px;font-family:'Montserrat',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:24px;transition:all 0.2s;">
+        🔍 Ejecutar Diagnóstico
+      </button>
+
+      <div id="healthResults" style="margin-bottom:24px;">
+        <div class="features" style="margin-bottom:0;">
+          <h3>Estado General: <span id="statusGeneral" style="color:var(--gray-600);">Sin ejecutar</span></h3>
+          <div id="checkList">
+            <p style="color:var(--gray-600);font-size:14px;padding:16px 0;text-align:center;">Presiona "Ejecutar Diagnóstico" para verificar el estado del sistema</p>
+          </div>
+        </div>
+      </div>
+
+      <div id="sysInfo" class="features" style="display:none;">
+        <h3>Información del Sistema</h3>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:12px;">
+          <div style="padding:12px;background:var(--gray-50);border-radius:8px;">
+            <div style="font-size:11px;font-weight:600;color:var(--gray-600);text-transform:uppercase;margin-bottom:4px;">Versión</div>
+            <div style="font-size:15px;font-weight:600;color:var(--navy);">5.3</div>
+          </div>
+          <div style="padding:12px;background:var(--gray-50);border-radius:8px;">
+            <div style="font-size:11px;font-weight:600;color:var(--gray-600);text-transform:uppercase;margin-bottom:4px;">Entorno</div>
+            <div style="font-size:15px;font-weight:600;color:var(--navy);">Servidor + GAS</div>
+          </div>
+          <div style="padding:12px;background:var(--gray-50);border-radius:8px;">
+            <div style="font-size:11px;font-weight:600;color:var(--gray-600);text-transform:uppercase;margin-bottom:4px;">Email Admin</div>
+            <div id="sysEmail" style="font-size:15px;font-weight:600;color:var(--navy);">-</div>
+          </div>
+          <div style="padding:12px;background:var(--gray-50);border-radius:8px;">
+            <div style="font-size:11px;font-weight:600;color:var(--gray-600);text-transform:uppercase;margin-bottom:4px;">Rol</div>
+            <div id="sysRole" style="font-size:15px;font-weight:600;color:var(--navy);">-</div>
+          </div>
+        </div>
+        <div style="padding:12px;background:var(--gray-50);border-radius:8px;margin-top:12px;">
+          <div style="font-size:11px;font-weight:600;color:var(--gray-600);text-transform:uppercase;margin-bottom:4px;">Último diagnóstico</div>
+          <div id="sysTimestamp" style="font-size:14px;font-weight:600;color:var(--navy);">-</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px;display:flex;gap:12px;">
+        <a class="btn-back" id="btnB">← Volver al Dashboard</a>
+      </div>
     </div>
   </div>
   <script>
@@ -98,6 +135,67 @@
       });
     }
     applyRoleColor();
+
+    var PROXY = BASE + '/proxy.php';
+
+    function runDiagnostics() {
+      var btn = document.getElementById('btnDiag');
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Ejecutando diagnóstico...';
+
+      var checkList = document.getElementById('checkList');
+      checkList.innerHTML = '<p style="color:var(--gray-600);font-size:14px;padding:16px 0;text-align:center;">Conectando con el backend...</p>';
+
+      fetch(PROXY + '?action=diagnosticoRemoto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({})
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Ejecutar Diagnóstico';
+
+        if (!data || !data.success) {
+          document.getElementById('statusGeneral').innerHTML = '❌ Error';
+          document.getElementById('statusGeneral').style.color = '#dc3545';
+          checkList.innerHTML = '<p style="color:#dc3545;padding:16px;">' + (data ? data.message : 'Sin respuesta del servidor') + '</p>';
+          return;
+        }
+
+        // Status general
+        var allOk = data.results.every(function(r) { return r.status === 'ok'; });
+        document.getElementById('statusGeneral').innerHTML = (allOk ? '🟢' : '🟡') + ' ' + (data.status || 'Desconocido');
+        document.getElementById('statusGeneral').style.color = allOk ? '#28a745' : '#ffc107';
+
+        // Render results
+        var html = '';
+        data.results.forEach(function(item) {
+          var color = item.status === 'ok' ? '#28a745' : (item.status === 'warning' ? '#ffc107' : '#dc3545');
+          var icon = item.status === 'ok' ? '🟢' : (item.status === 'warning' ? '🟡' : '🔴');
+          var badge = item.status === 'ok' ? 'OK' : (item.status === 'warning' ? 'WARN' : 'ERROR');
+          html += '<div class="fi">' +
+            '<div class="fi-icon">' + icon + '</div>' +
+            '<div style="flex:1;"><strong>' + item.name + '</strong><br><span style="font-size:12px;color:var(--gray-600);">' + item.detail + '</span></div>' +
+            '<span style="background:' + color + '22;color:' + color + ';padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;">' + badge + '</span>' +
+          '</div>';
+        });
+        checkList.innerHTML = html;
+
+        // System info
+        document.getElementById('sysInfo').style.display = 'block';
+        document.getElementById('sysEmail').textContent = params.get('userEmail') || '-';
+        document.getElementById('sysRole').textContent = params.get('userRole') || '-';
+        document.getElementById('sysTimestamp').textContent = data.timestamp ? new Date(data.timestamp).toLocaleString('es-MX') : '-';
+      })
+      .catch(function(err) {
+        btn.disabled = false;
+        btn.innerHTML = '🔍 Ejecutar Diagnóstico';
+        document.getElementById('statusGeneral').innerHTML = '❌ Error de conexión';
+        document.getElementById('statusGeneral').style.color = '#dc3545';
+        checkList.innerHTML = '<p style="color:#dc3545;padding:16px;">No se pudo conectar con el proxy: ' + err.message + '</p>';
+      });
+    }
   </script>
 </body>
 </html>

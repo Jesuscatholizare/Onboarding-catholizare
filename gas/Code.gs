@@ -409,6 +409,9 @@ function doPost(e) {
       case 'getStatus':
         result = getProfessionalStatus(data.token);
         break;
+      case 'diagnosticoRemoto':
+        result = diagnosticoRemoto();
+        break;
 
       default:
         result = { success: false, message: 'Accion no reconocida: ' + action };
@@ -1996,6 +1999,70 @@ function testTimeline() {
   var timeline = getTimeline("ONB-12345678");
   Logger.log(JSON.stringify(timeline, null, 2));
 }
+/**
+ * Diagnóstico remoto - devuelve resultados JSON para el proxy
+ */
+function diagnosticoRemoto() {
+  var results = [];
+  try {
+    // 1. Hoja Onboarding
+    var sheet = getSS().getSheetByName("Onboarding");
+    if (sheet) {
+      var data = sheet.getDataRange().getValues();
+      results.push({ name: 'Hoja Onboarding', status: 'ok', detail: data.length + ' filas de datos' });
+    } else {
+      results.push({ name: 'Hoja Onboarding', status: 'error', detail: 'NO EXISTE' });
+    }
+
+    // 2. Conexión Spreadsheet
+    var ssId = getSS().getId();
+    results.push({ name: 'Conexión Spreadsheet', status: 'ok', detail: 'ID: ' + ssId.substring(0,8) + '...' + ssId.slice(-4) });
+
+    // 3. Brevo API
+    var brevoKey = PropertiesService.getScriptProperties().getProperty('BREVO_API_KEY');
+    results.push({ name: 'Brevo API', status: brevoKey ? 'ok' : 'error', detail: brevoKey ? 'Configurada en Properties' : 'NO CONFIGURADA' });
+
+    // 4. Google Drive
+    var folderId = PropertiesService.getScriptProperties().getProperty('PARENT_FOLDER_ID');
+    if (folderId) {
+      try {
+        DriveApp.getFolderById(folderId);
+        results.push({ name: 'Google Drive', status: 'ok', detail: 'Carpeta configurada' });
+      } catch(e) {
+        results.push({ name: 'Google Drive', status: 'warning', detail: 'Folder ID inválido' });
+      }
+    } else {
+      results.push({ name: 'Google Drive', status: 'error', detail: 'PARENT_FOLDER_ID no configurado' });
+    }
+
+    // 5. Admin_Users
+    var adminSheet = getSS().getSheetByName("Admin_Users");
+    if (adminSheet) {
+      results.push({ name: 'Admin_Users', status: 'ok', detail: adminSheet.getLastRow() + ' usuarios' });
+    } else {
+      results.push({ name: 'Admin_Users', status: 'error', detail: 'Hoja NO EXISTE' });
+    }
+
+    // 6. Implementación
+    var url = ScriptApp.getService().getUrl();
+    results.push({ name: 'Implementación', status: url ? 'ok' : 'warning', detail: url ? 'Web App activa' : 'Sin deploy' });
+
+    // 7. getAllProfesionales
+    try {
+      var profs = getAllProfesionales();
+      results.push({ name: 'getAllProfesionales()', status: 'ok', detail: (profs ? profs.length : 0) + ' profesionales' });
+    } catch(e) {
+      results.push({ name: 'getAllProfesionales()', status: 'error', detail: e.message });
+    }
+
+    var allOk = results.every(function(r) { return r.status === 'ok'; });
+    return { success: true, status: allOk ? 'Operativo' : 'Con advertencias', results: results, timestamp: new Date().toISOString() };
+
+  } catch (error) {
+    return { success: false, message: error.message, results: results };
+  }
+}
+
 function diagnostico() {
   try {
     Logger.log("1. Verificando hoja Onboarding...");
