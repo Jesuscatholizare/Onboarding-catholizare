@@ -30,6 +30,12 @@ if (empty($action)) {
     exit;
 }
 
+// Ping de prueba (no contacta GAS)
+if ($action === 'ping') {
+    echo json_encode(['success' => true, 'message' => 'Proxy OK', 'php' => phpversion(), 'curl' => function_exists('curl_init')]);
+    exit;
+}
+
 // Obtener datos del body (JSON) o de GET params
 $inputJSON = file_get_contents('php://input');
 $input = json_decode($inputJSON, true);

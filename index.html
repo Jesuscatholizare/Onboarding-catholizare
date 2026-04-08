@@ -562,7 +562,7 @@
         callProxy('getStatus', { token: token })
           .then(function(r) {
             if (r && r.success) {
-              window.location.href = BASE + '/public/Public_Dashboard.html?token=' + encodeURIComponent(token);
+              window.location.href = BASE + '/Public_Dashboard.html?token=' + encodeURIComponent(token);
             } else {
               btn.innerHTML = 'Entrar a mi Panel <span>→</span>';
               btn.style.pointerEvents = 'auto';

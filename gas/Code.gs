@@ -148,12 +148,12 @@ function serveAdminPage(fileName, title, adminToken, user) {
   // Mapeo de archivos GAS → rutas del servidor
   var pageMap = {
     'Admin_Dashboard_Complete': '/dashboard-admin.html',
-    'Admin_Gestion_Usuarios': '/admin/Admin_Gestion_Usuarios.html',
-    'Admin_profesionales': '/admin/Admin_profesionales.html',
-    'Admin_legal': '/admin/Admin_legal.html',
-    'Admin_analitica': '/admin/Admin_analitica.html',
-    'Admin_superadmin': '/admin/Admin_superadmin.html',
-    'Admin_health': '/admin/Admin_health.html'
+    'Admin_Gestion_Usuarios': '/Admin_Gestion_Usuarios.html',
+    'Admin_profesionales': '/Admin_profesionales.html',
+    'Admin_legal': '/Admin_legal.html',
+    'Admin_analitica': '/Admin_analitica.html',
+    'Admin_superadmin': '/Admin_superadmin.html',
+    'Admin_health': '/Admin_health.html'
   };
 
   var path = pageMap[fileName] || '/dashboard-admin.html';
@@ -319,7 +319,7 @@ function doGet(e) {
   }
 
   if (page === 'informacion_perfil') {
-    return redirectToServer('/public/Public_Perfil.html', { token: token, nombre: professional.nombre });
+    return redirectToServer('/Public_Perfil.html', { token: token, nombre: professional.nombre });
   }
 
   // Dashboard del profesional (página por defecto)
