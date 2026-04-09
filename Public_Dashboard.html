@@ -443,10 +443,11 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const TOKEN = params.get('token') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
+    // Leer token de sessionStorage (ya no de URL)
+    const TOKEN = sessionStorage.getItem('onb_token') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
 
     function callProxy(action, data) {
       return fetch(PROXY + '?action=' + action, {
@@ -569,14 +570,14 @@
                       'Documentos Legales',
                       'Firma código de ética y acuerdo',
                       status.legal,
-                      `${BASE}/acepto-terminos.html?token=${TOKEN}`
+                      `${BASE}/acepto-terminos.html?uid=${TOKEN}`
                     )}
                     ${renderActionItem(
                       '👤',
                       'Perfil Profesional',
                       'Completa tu información',
                       status.perfil,
-                      `${BASE}/Public_Perfil.html?token=${TOKEN}`
+                      `${BASE}/Public_Perfil.html`
                     )}
                     ${renderActionItem(
                       '📎',

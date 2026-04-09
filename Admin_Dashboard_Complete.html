@@ -209,7 +209,7 @@
         <small id="hdrRole">-</small>
       </div>
       <div style="width:36px;height:36px;border-radius:50%;background:var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:16px;">&#x1F464;</div>
-      <a class="btn-logout" id="btnLogout" href="https://profesionales.catholizare.com/catholizare_sistem/onboarding/">&#x1F6AA; Salir</a>
+      <a class="btn-logout" id="btnLogout" href="#" onclick="sessionStorage.clear(); window.location.href='https://profesionales.catholizare.com/catholizare_sistem/onboarding/index.html'; return false;">&#x1F6AA; Salir</a>
     </div>
   </header>
 
@@ -346,14 +346,15 @@
 <!-- ALL JS IN ONE BLOCK AT THE END -->
 <script>
   // === CONFIG ===
-  var params = new URLSearchParams(window.location.search);
-  var ADMIN_TOKEN = params.get('adminToken') || '';
-  var USER_EMAIL = params.get('userEmail') || '';
-  var USER_ROLE = params.get('userRole') || '';
-  var USER_NAME = params.get('userName') || '';
   var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
   var PROXY = BASE + '/api.php';
   var SCRIPT_URL = BASE; // compatibility
+  // Leer credenciales de sessionStorage (ya no de URL)
+  var ADMIN_TOKEN = sessionStorage.getItem('onb_token') || '';
+  var USER_EMAIL = sessionStorage.getItem('onb_userEmail') || '';
+  var USER_ROLE = sessionStorage.getItem('onb_userRole') || '';
+  var USER_NAME = sessionStorage.getItem('onb_userName') || '';
+  if (!ADMIN_TOKEN) { window.location.href = BASE + '/index.html'; }
 
   function callProxy(action, data) {
     return fetch(PROXY + '?action=' + action, {
@@ -512,7 +513,7 @@
     document.querySelectorAll('.sidebar-link').forEach(function(l){ l.classList.remove('active'); });
     el.classList.add('active');
   }
-  function goPage(p) { window.location.href = BASE + '/Admin_profesionales.html?adminToken=' + encodeURIComponent(ADMIN_TOKEN) + '&userName=' + encodeURIComponent(USER_NAME) + '&userRole=' + encodeURIComponent(USER_ROLE) + '&userEmail=' + encodeURIComponent(USER_EMAIL); }
+  function goPage(p) { window.location.href = BASE + '/' + p; }
 
   // === LOAD DATA ===
   function loadData(callback) {

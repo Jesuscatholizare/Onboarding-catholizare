@@ -58,12 +58,13 @@
     </div>
   </div>
   <script>
-    var params = new URLSearchParams(window.location.search);
-    var t = params.get('adminToken') || '';
     var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
-    var d = BASE + '/dashboard-admin.html?adminToken=' + encodeURIComponent(t) + '&userName=' + encodeURIComponent(params.get('userName') || '') + '&userRole=' + encodeURIComponent(params.get('userRole') || '') + '&userEmail=' + encodeURIComponent(params.get('userEmail') || '');
-    document.getElementById('uN').textContent = params.get('userName') || '';
-    document.getElementById('uR').textContent = params.get('userRole') || '';
+    // Leer credenciales de sessionStorage (ya no de URL)
+    var t = sessionStorage.getItem('onb_token') || '';
+    if (!t) { window.location.href = BASE + '/index.html'; }
+    var d = BASE + '/dashboard-admin.html';
+    document.getElementById('uN').textContent = sessionStorage.getItem('onb_userName') || '';
+    document.getElementById('uR').textContent = sessionStorage.getItem('onb_userRole') || '';
     document.getElementById('lnkD').href = d;
     document.getElementById('lnkD2').href = d;
     document.getElementById('btnB').href = d;

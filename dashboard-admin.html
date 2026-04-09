@@ -545,10 +545,11 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const token = params.get('token') || params.get('adminToken') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
+    // Leer credenciales de sessionStorage (ya no de URL)
+    const token = sessionStorage.getItem('onb_token') || '';
+    if (!token) { window.location.href = BASE + '/index.html'; }
 
     // Cargar datos
     async function loadDashboard() {
@@ -680,21 +681,21 @@
                       'Documentos Legales',
                       'Firma código de ética y acuerdo',
                       status.legal,
-                      `${BASE}/acepto-terminos.html?token=${token}`
+                      `${BASE}/acepto-terminos.html?uid=${token}`
                     )}
                     ${renderActionItem(
                       '👤',
                       'Perfil Profesional',
                       'Completa tu información',
                       status.perfil,
-                      `${BASE}/Public_Perfil.html?token=${token}`
+                      `${BASE}/Public_Perfil.html`
                     )}
                     ${renderActionItem(
                       '📎',
                       'Subir Documentos',
                       'CV, cédula, foto, carta',
                       Object.values(status.documentos).every(v => v),
-                      `${BASE}/Public_Upload.html?token=${token}`
+                      `${BASE}/Public_Upload.html`
                     )}
                   </div>
                 </div>

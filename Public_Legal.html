@@ -190,10 +190,11 @@
   </div>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const TOKEN = params.get('token') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
+    // Leer token de sessionStorage (ya no de URL)
+    const TOKEN = sessionStorage.getItem('onb_token') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
 
     function callProxy(action, data) {
       return fetch(PROXY + '?action=' + action, {
@@ -220,7 +221,7 @@
           .then(function(r) {
             if (r && r.success) {
               alert('¡Documentos firmados exitosamente!');
-              window.location.href = BASE + '/index.html?token=' + TOKEN;
+              window.location.href = BASE + '/Public_Dashboard.html';
             } else {
               alert('Error: ' + (r ? r.message : 'Sin respuesta'));
               btn.disabled = false;

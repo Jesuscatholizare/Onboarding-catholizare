@@ -483,11 +483,12 @@
   <script>
     // Variables globales
     let allUsers = [];
-    const params = new URLSearchParams(window.location.search);
-    let currentAdminToken = params.get('adminToken') || '';
-    let currentUserRole = params.get('userRole') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
+    // Leer credenciales de sessionStorage (ya no de URL)
+    let currentAdminToken = sessionStorage.getItem('onb_token') || '';
+    let currentUserRole = sessionStorage.getItem('onb_userRole') || '';
+    if (!currentAdminToken) { window.location.href = BASE + '/index.html'; }
 
     function callProxy(action, data) {
       return fetch(PROXY + '?action=' + action, {
@@ -662,7 +663,7 @@
     
     // Mostrar token generado
     function mostrarTokenGenerado(token, email) {
-      const url = BASE + '/dashboard-admin.html?adminToken=' + encodeURIComponent(token);
+      const url = BASE + '/index.html';
       
       document.getElementById('tokenGenerado').value = token;
       document.getElementById('urlGenerada').value = url;

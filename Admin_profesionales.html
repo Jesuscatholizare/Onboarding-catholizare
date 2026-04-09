@@ -226,16 +226,16 @@
   </div>
 
   <script>
-    // CONFIG - leer de URL params
-    const params = new URLSearchParams(window.location.search);
-    const adminToken = params.get('adminToken') || '';
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
-    const dashUrl = BASE + '/dashboard-admin.html?adminToken=' + encodeURIComponent(adminToken) + '&userName=' + encodeURIComponent(params.get('userName') || '') + '&userRole=' + encodeURIComponent(params.get('userRole') || '') + '&userEmail=' + encodeURIComponent(params.get('userEmail') || '');
+    // Leer credenciales de sessionStorage (ya no de URL)
+    const adminToken = sessionStorage.getItem('onb_token') || '';
+    if (!adminToken) { window.location.href = BASE + '/index.html'; }
+    const dashUrl = BASE + '/dashboard-admin.html';
 
     // INIT
-    document.getElementById('uName').textContent = params.get('userName') || '';
-    document.getElementById('uRole').textContent = params.get('userRole') || '';
+    document.getElementById('uName').textContent = sessionStorage.getItem('onb_userName') || '';
+    document.getElementById('uRole').textContent = sessionStorage.getItem('onb_userRole') || '';
     document.getElementById('lnkHome').href = dashUrl;
     document.getElementById('lnkDash').href = dashUrl;
     document.getElementById('btnBack').href = dashUrl;
@@ -517,10 +517,9 @@
       return div.innerHTML;
     }
   
-    // LOGOUT
-    var loginUrl = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding/';
+    // LOGOUT (limpiar sessionStorage)
     var logoutBtn = document.getElementById('btnLogout');
-    if (logoutBtn) logoutBtn.href = loginUrl;
+    if (logoutBtn) logoutBtn.onclick = function(e) { e.preventDefault(); sessionStorage.clear(); window.location.href = BASE + '/index.html'; };
     
     // ROLE COLOR
     function applyRoleColor() {
