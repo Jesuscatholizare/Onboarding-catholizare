@@ -286,7 +286,7 @@
               sessionStorage.setItem('onb_userRole', r.data.role || '');
               sessionStorage.setItem('onb_userEmail', r.data.email || '');
               // Redirigir SIN token en URL
-              window.location.href = BASE + '/dashboard-admin.html';
+              window.location.href = BASE + '/Admin_Dashboard_Complete.html';
             } else {
               showError(r.message || 'Clave no válida.');
               btn.innerHTML = 'Ingresar';
