@@ -460,9 +460,17 @@
     // Cargar datos
     async function loadDashboard() {
       try {
-        callProxy('getStatus', { token: TOKEN })
-          .then(renderDashboard)
-          .catch(function(e) { showError('Error al cargar: ' + e.message); });
+        // Cargar estado del profesional y documentos legales en paralelo
+        var statusPromise = callProxy('getStatus', { token: TOKEN });
+        var legalPromise = callProxy('getDocumentosStatus', { token: TOKEN });
+        var results = await Promise.all([statusPromise, legalPromise]);
+
+        // Guardar datos de documentos legales
+        if (results[1] && results[1].success && results[1].documentos) {
+          legalDocsData = results[1].documentos;
+        }
+
+        renderDashboard(results[0]);
       } catch (error) {
         console.error('Error:', error);
         showError('Error al cargar el dashboard: ' + error.message);
@@ -565,13 +573,7 @@
                   </div>
                   
                   <div class="action-list">
-                    ${renderActionItem(
-                      '📄',
-                      'Documentos Legales',
-                      'Firma código de ética y acuerdo',
-                      status.legal,
-                      `${BASE}/acepto-terminos.html?uid=${TOKEN}`
-                    )}
+                    ${renderLegalDocs()}
                     ${renderActionItem(
                       '👤',
                       'Perfil Profesional',
@@ -616,6 +618,24 @@
           document.querySelector(`[data-tab-content="${targetTab}"]`).classList.add('active');
         });
       });
+    }
+
+    // Variable global para docs legales
+    var legalDocsData = [];
+
+    function renderLegalDocs() {
+      if (!legalDocsData.length) {
+        return '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>Documentos Legales</h4><p>Cargando...</p></div></div></div>';
+      }
+      var html = '';
+      legalDocsData.forEach(function(d) {
+        if (d.aceptado) {
+          html += '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + d.version + '</p></div></div><span class="action-status completed">✓ Firmado</span></div>';
+        } else {
+          html += '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + d.version + ' — Pendiente de firma</p></div></div><a href="' + BASE + '/Public_Legal_Viewer.html?doc=' + d.id + '" class="btn btn-primary">Firmar</a></div>';
+        }
+      });
+      return html;
     }
 
     function renderActionItem(icon, title, description, isCompleted, link, isDocuments = false) {

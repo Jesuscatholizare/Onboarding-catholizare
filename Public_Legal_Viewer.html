@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documento Legal - Catholizare Pro</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --navy: #001A55;
+      --blue: #003ABA;
+      --blue-light: #0966FF;
+      --gold: #D4AF37;
+      --green: #15803D;
+      --red: #DC3545;
+      --gray-50: #F8F9FC;
+      --gray-100: #EEF0F5;
+      --gray-400: #9CA3B4;
+      --gray-600: #5A6275;
+      --gray-700: #374151;
+      --white: #FFFFFF;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-700);
+      line-height: 1.6;
+    }
+    .top-bar {
+      background: var(--navy);
+      color: var(--white);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .top-bar h1 { font-size: 16px; font-weight: 600; }
+    .top-bar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; }
+    .top-bar a:hover { color: white; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+    /* Status bar */
+    .status-bar {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .status-bar .doc-info { display: flex; align-items: center; gap: 12px; }
+    .status-bar .version { font-size: 12px; color: var(--gray-400); background: var(--gray-100); padding: 4px 10px; border-radius: 12px; }
+    .status-bar .accepted { font-size: 13px; color: var(--green); font-weight: 600; }
+    .toolbar {
+      display: flex; gap: 8px;
+    }
+    .toolbar button {
+      padding: 8px 16px;
+      border: 1px solid var(--gray-100);
+      border-radius: 8px;
+      background: var(--white);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-700);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .toolbar button:hover { background: var(--gray-50); border-color: var(--blue); color: var(--blue); }
+
+    /* Document content */
+    .doc-panel {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 40px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid var(--gray-100);
+    }
+    .doc-panel h1, .doc-panel h2, .doc-panel h3 { color: var(--navy); margin: 20px 0 10px; }
+    .doc-panel h1 { font-size: 24px; }
+    .doc-panel h2 { font-size: 20px; }
+    .doc-panel h3 { font-size: 16px; }
+    .doc-panel p { margin-bottom: 12px; }
+    .doc-panel ol, .doc-panel ul { margin: 12px 0 12px 24px; }
+    .doc-panel li { margin-bottom: 8px; }
+    .doc-panel strong { color: var(--navy); }
+    .doc-panel table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .doc-panel td, .doc-panel th { padding: 8px 12px; border: 1px solid var(--gray-100); font-size: 14px; }
+    .doc-panel th { background: var(--gray-50); font-weight: 600; text-align: left; }
+
+    /* Acceptance form */
+    .accept-panel {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 2px solid var(--gray-100);
+    }
+    .accept-panel.already-accepted {
+      border-color: var(--green);
+      background: #f0fdf4;
+    }
+    .accept-panel h2 { font-size: 18px; color: var(--navy); margin-bottom: 16px; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .form-group input {
+      padding: 10px 14px;
+      border: 1px solid var(--gray-100);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--gray-700);
+      background: var(--gray-50);
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--blue);
+      background: var(--white);
+      box-shadow: 0 0 0 3px rgba(0,58,186,0.08);
+    }
+    .form-group input:read-only {
+      background: var(--gray-100);
+      color: var(--gray-400);
+    }
+    .form-group .hint {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: 8px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 20px; height: 20px; margin-top: 2px; cursor: pointer; flex-shrink: 0;
+    }
+    .checkbox-row label {
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .btn-accept {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s;
+    }
+    .btn-accept:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,26,85,0.3); }
+    .btn-accept:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+    .accepted-badge {
+      text-align: center;
+      padding: 24px;
+      color: var(--green);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* OTP section */
+    .otp-section {
+      margin: 16px 0;
+      padding: 12px 16px;
+      background: #fefce8;
+      border: 1px solid #fef08a;
+      border-radius: 8px;
+    }
+    .otp-section label { font-size: 13px; font-weight: 500; color: #854d0e; }
+    .otp-section input { margin-top: 6px; }
+    .otp-section .hint { color: #a16207; }
+
+    /* Alert */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .alert.show { display: block; }
+    .alert-success { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+    .alert-error { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+
+    .loading { text-align: center; padding: 60px; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 4px solid var(--gray-100);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .doc-panel { padding: 24px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .status-bar { flex-direction: column; gap: 12px; align-items: flex-start; }
+    }
+
+    /* Print styles */
+    @media print {
+      .top-bar, .toolbar, .accept-panel, .status-bar { display: none !important; }
+      .container { max-width: 100%; padding: 0; }
+      .doc-panel { box-shadow: none; border: none; padding: 20px; }
+      body { background: white; }
+    }
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <h1 id="topTitle">Documento Legal</h1>
+    <a href="#" onclick="goBack()">Volver al dashboard</a>
+  </div>
+
+  <div class="container">
+    <div id="alertBox" class="alert"></div>
+
+    <div id="loadingArea" class="loading">
+      <div class="spinner"></div>
+      <p>Cargando documento...</p>
+    </div>
+
+    <div id="contentArea" style="display:none;">
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div class="doc-info">
+          <strong id="docTitle"></strong>
+          <span class="version" id="docVersion"></span>
+          <span class="accepted" id="docAccepted" style="display:none;"></span>
+        </div>
+        <div class="toolbar">
+          <button onclick="printDoc()">Imprimir</button>
+          <button onclick="downloadDoc()">Descargar</button>
+        </div>
+      </div>
+
+      <!-- Document content -->
+      <div class="doc-panel" id="docContent"></div>
+
+      <!-- Acceptance form -->
+      <div class="accept-panel" id="acceptPanel">
+        <h2>Datos de Aceptación</h2>
+        <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">
+          Confirma tus datos para registrar la aceptación legal de este documento.
+        </p>
+
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Nombre completo</label>
+            <input type="text" id="inputNombre" placeholder="Tu nombre completo">
+            <span class="hint">Confirma que tu nombre es correcto</span>
+          </div>
+          <div class="form-group">
+            <label>Correo electrónico</label>
+            <input type="email" id="inputCorreo" placeholder="tu@email.com">
+            <span class="hint">Recibirás la copia del documento aquí</span>
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="inputTelefono" placeholder="+52 55 1234 5678">
+            <span class="hint">Número de contacto verificable</span>
+          </div>
+          <div class="form-group">
+            <label>RFC (o identificador)</label>
+            <input type="text" id="inputRFC" placeholder="XXXX000000XXX" maxlength="13" style="text-transform:uppercase;">
+            <span class="hint">Tu RFC o identificador fiscal</span>
+          </div>
+        </div>
+
+        <div class="otp-section">
+          <label>OTP / PIN de verificación (opcional)</label>
+          <input type="text" id="inputOTP" placeholder="Déjalo vacío si no aplica" style="width:100%;padding:8px 12px;border:1px solid #fef08a;border-radius:6px;font-size:14px;">
+          <span class="hint">Solo si se te proporcionó un código de verificación adicional</span>
+        </div>
+
+        <div class="checkbox-row" onclick="toggleCheck()">
+          <input type="checkbox" id="checkAccept">
+          <label for="checkAccept" id="checkLabel">He leído y acepto este documento</label>
+        </div>
+
+        <button class="btn-accept" id="btnAccept" disabled onclick="firmarDocumento()">
+          Firmar y aceptar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    var PROXY = BASE + '/api.php';
+    var TOKEN = sessionStorage.getItem('onb_token') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
+
+    // Obtener doc_id de la URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var DOC_ID = urlParams.get('doc') || '';
+
+    var currentDoc = null;
+    var currentProf = null;
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    function goBack() {
+      window.location.href = BASE + '/Public_Dashboard.html';
+    }
+
+    function showAlert(msg, type) {
+      var el = document.getElementById('alertBox');
+      el.textContent = msg;
+      el.className = 'alert alert-' + type + ' show';
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Load document and status
+    async function loadDocument() {
+      if (!DOC_ID) {
+        document.getElementById('loadingArea').innerHTML = '<p style="color:var(--red);">Error: No se especificó un documento. Usa ?doc=CONTRATO, ?doc=TERMINOS o ?doc=PRIVACIDAD</p>';
+        return;
+      }
+
+      try {
+        // Load document and status in parallel
+        var docPromise = callProxy('getDocumentoLegal', { docId: DOC_ID });
+        var statusPromise = callProxy('getDocumentosStatus', { token: TOKEN });
+        var results = await Promise.all([docPromise, statusPromise]);
+
+        var docResult = results[0];
+        var statusResult = results[1];
+
+        if (!docResult.success) {
+          document.getElementById('loadingArea').innerHTML = '<p style="color:var(--red);">' + docResult.message + '</p>';
+          return;
+        }
+
+        currentDoc = docResult.documento;
+        currentProf = statusResult.profesional || {};
+
+        // Render document
+        document.getElementById('topTitle').textContent = currentDoc.titulo;
+        document.getElementById('docTitle').textContent = currentDoc.titulo;
+        document.getElementById('docVersion').textContent = 'v' + currentDoc.version;
+        document.getElementById('docContent').innerHTML = currentDoc.contenido;
+
+        // Update checkbox label
+        document.getElementById('checkLabel').textContent = 'He leído y acepto ' + currentDoc.titulo;
+
+        // Pre-fill form
+        document.getElementById('inputNombre').value = currentProf.nombre || '';
+        document.getElementById('inputCorreo').value = currentProf.email || '';
+
+        // Check if already accepted
+        var isAccepted = false;
+        if (statusResult.success && statusResult.documentos) {
+          statusResult.documentos.forEach(function(d) {
+            if (d.id === DOC_ID && d.aceptado) {
+              isAccepted = true;
+              document.getElementById('docAccepted').textContent = 'Aceptado (Folio: ' + d.datosAceptacion.folio + ')';
+              document.getElementById('docAccepted').style.display = 'inline';
+            }
+          });
+        }
+
+        if (isAccepted) {
+          document.getElementById('acceptPanel').classList.add('already-accepted');
+          document.getElementById('acceptPanel').innerHTML =
+            '<div class="accepted-badge">' +
+              'Este documento ya fue aceptado.<br>' +
+              '<span style="font-size:13px;color:var(--gray-400);">La constancia fue enviada a tu correo electrónico.</span>' +
+            '</div>';
+        }
+
+        document.getElementById('loadingArea').style.display = 'none';
+        document.getElementById('contentArea').style.display = 'block';
+
+      } catch (error) {
+        document.getElementById('loadingArea').innerHTML = '<p style="color:var(--red);">Error de conexión: ' + error.message + '</p>';
+      }
+    }
+
+    function toggleCheck() {
+      var cb = document.getElementById('checkAccept');
+      cb.checked = !cb.checked;
+      document.getElementById('btnAccept').disabled = !cb.checked;
+    }
+
+    document.getElementById('checkAccept').addEventListener('change', function() {
+      document.getElementById('btnAccept').disabled = !this.checked;
+    });
+
+    function firmarDocumento() {
+      var nombre = document.getElementById('inputNombre').value.trim();
+      var correo = document.getElementById('inputCorreo').value.trim();
+      var telefono = document.getElementById('inputTelefono').value.trim();
+      var rfc = document.getElementById('inputRFC').value.trim().toUpperCase();
+      var otp = document.getElementById('inputOTP').value.trim();
+
+      if (!nombre) { showAlert('Ingresa tu nombre completo.', 'error'); return; }
+      if (!correo || !correo.includes('@')) { showAlert('Ingresa un correo válido.', 'error'); return; }
+      if (!telefono) { showAlert('Ingresa tu número de teléfono.', 'error'); return; }
+
+      var btn = document.getElementById('btnAccept');
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:3px;margin:0;"></div> Procesando firma...';
+
+      callProxy('aceptarDocumento', {
+        token: TOKEN,
+        docId: DOC_ID,
+        nombreCompleto: nombre,
+        correo: correo,
+        telefono: telefono,
+        rfc: rfc,
+        otp: otp
+      })
+      .then(function(r) {
+        if (r.success) {
+          showAlert('Documento firmado exitosamente. Folio: ' + r.folio + '. Se envió una copia a tu correo.', 'success');
+          document.getElementById('acceptPanel').classList.add('already-accepted');
+          document.getElementById('acceptPanel').innerHTML =
+            '<div class="accepted-badge">' +
+              'Documento firmado exitosamente.<br>' +
+              '<strong style="font-size:18px;">' + r.folio + '</strong><br>' +
+              '<span style="font-size:13px;color:var(--gray-400);">La constancia fue enviada a tu correo electrónico.</span>' +
+            '</div>';
+          document.getElementById('docAccepted').textContent = 'Aceptado (Folio: ' + r.folio + ')';
+          document.getElementById('docAccepted').style.display = 'inline';
+        } else {
+          showAlert(r.message || 'Error al firmar el documento.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = 'Firmar y aceptar';
+        }
+      })
+      .catch(function(e) {
+        showAlert('Error de conexión: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = 'Firmar y aceptar';
+      });
+    }
+
+    function printDoc() {
+      window.print();
+    }
+
+    function downloadDoc() {
+      var content = document.getElementById('docContent').innerHTML;
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (currentDoc ? currentDoc.titulo : 'Documento') + '</title>' +
+        '<style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6;color:#333;}h1,h2,h3{color:#001A55;}table{width:100%;border-collapse:collapse;}td,th{padding:8px;border:1px solid #ddd;}th{background:#f5f5f5;}</style>' +
+        '</head><body>' + content +
+        '<hr style="margin-top:40px;"><p style="font-size:11px;color:#999;">Documento generado desde Catholizare Pro — ' + new Date().toLocaleString('es-MX') + '</p>' +
+        '</body></html>';
+      var blob = new Blob([html], { type: 'text/html' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (currentDoc ? currentDoc.id : 'documento') + '_v' + (currentDoc ? currentDoc.version : '1') + '.html';
+      a.click();
+    }
+
+    // Init
+    loadDocument();
+  </script>
+</body>
+</html>

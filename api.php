@@ -51,7 +51,16 @@ foreach ($_GET as $k => $v) {
 }
 
 // Construir payload para el GAS (siempre via POST al doPost)
-$payload = array_merge($input, ['action' => $action]);
+// Incluir IP del cliente para audit trail legal
+$clientIP = '';
+if (!empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+    $clientIP = explode(',', $_SERVER['HTTP_X_FORWARDED_FOR'])[0];
+} elseif (!empty($_SERVER['HTTP_X_REAL_IP'])) {
+    $clientIP = $_SERVER['HTTP_X_REAL_IP'];
+} elseif (!empty($_SERVER['REMOTE_ADDR'])) {
+    $clientIP = $_SERVER['REMOTE_ADDR'];
+}
+$payload = array_merge($input, ['action' => $action, 'clientIP' => trim($clientIP)]);
 
 // Enviar petición al GAS
 $ch = curl_init(GAS_WEBAPP_URL);

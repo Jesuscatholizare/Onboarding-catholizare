@@ -416,6 +416,17 @@ function doPost(e) {
         result = sendTestEmail(data.email, data.adminToken);
         break;
 
+      // === Documentos Legales ===
+      case 'getDocumentoLegal':
+        result = getDocumentoLegal(data.docId);
+        break;
+      case 'getDocumentosStatus':
+        result = getDocumentosStatus(data.token);
+        break;
+      case 'aceptarDocumento':
+        result = aceptarDocumento(data);
+        break;
+
       default:
         result = { success: false, message: 'Accion no reconocida: ' + action };
     }
@@ -2080,6 +2091,285 @@ function diagnosticoRemoto() {
     return { success: false, message: error.message, results: results };
   }
 }
+
+// ============================================================================
+// MÓDULO DE DOCUMENTOS LEGALES — Aceptación con audit trail
+// ============================================================================
+
+/**
+ * Obtiene un documento legal activo por su ID
+ * Hoja: Documentos_Legales (doc_id, titulo, version, contenido_html, fecha_vigencia, estado)
+ */
+function getDocumentoLegal(docId) {
+  try {
+    var sheet = getSS().getSheetByName("Documentos_Legales");
+    if (!sheet) return { success: false, message: "La hoja Documentos_Legales no existe. Créala en la spreadsheet." };
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (data[i][0] === docId && data[i][5] === 'activo') {
+        return {
+          success: true,
+          documento: {
+            id: data[i][0],
+            titulo: data[i][1],
+            version: String(data[i][2]),
+            contenido: data[i][3],
+            fechaVigencia: data[i][4]
+          }
+        };
+      }
+    }
+    return { success: false, message: "Documento no encontrado o sin versión activa: " + docId };
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Obtiene el estado de aceptación de todos los documentos para un profesional
+ * Hoja: Aceptaciones_Legales
+ */
+function getDocumentosStatus(token) {
+  try {
+    // Obtener datos del profesional
+    var profData = getProfessionalByToken(token);
+
+    var sheet = getSS().getSheetByName("Aceptaciones_Legales");
+    var aceptados = {};
+
+    if (sheet && sheet.getLastRow() > 1) {
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        if (data[i][4] === token) { // col E = token
+          aceptados[data[i][1]] = { // col B = doc_id
+            folio: data[i][0],
+            version: String(data[i][2]),
+            fecha: data[i][3],
+            nombre: data[i][5]
+          };
+        }
+      }
+    }
+
+    // Lista de documentos requeridos
+    var docsSheet = getSS().getSheetByName("Documentos_Legales");
+    var documentos = [];
+    if (docsSheet) {
+      var docsData = docsSheet.getDataRange().getValues();
+      for (var j = 1; j < docsData.length; j++) {
+        if (docsData[j][5] === 'activo') {
+          documentos.push({
+            id: docsData[j][0],
+            titulo: docsData[j][1],
+            version: String(docsData[j][2]),
+            aceptado: !!aceptados[docsData[j][0]],
+            datosAceptacion: aceptados[docsData[j][0]] || null
+          });
+        }
+      }
+    }
+
+    return {
+      success: true,
+      documentos: documentos,
+      profesional: profData || {}
+    };
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Busca un profesional por token y retorna sus datos básicos
+ */
+function getProfessionalByToken(token) {
+  var sheet = getSHEET();
+  var data = sheet.getDataRange().getValues();
+  for (var i = 1; i < data.length; i++) {
+    if (data[i][0] === token) {
+      return {
+        nombre: data[i][1],
+        email: data[i][2],
+        token: data[i][0]
+      };
+    }
+  }
+  return null;
+}
+
+/**
+ * Registra la aceptación de un documento legal con audit trail completo
+ * Hoja: Aceptaciones_Legales
+ * Columnas: Folio | doc_id | version | fecha_hora | token | nombre | correo | telefono | rfc | ip | metodo | token_otp | hash | ref_sesion | copia_enviada | fecha_envio
+ */
+function aceptarDocumento(data) {
+  try {
+    var token = data.token;
+    var docId = data.docId;
+    if (!token || !docId) return { success: false, message: "Faltan datos obligatorios (token, docId)" };
+
+    // Verificar que el profesional existe
+    var prof = getProfessionalByToken(token);
+    if (!prof) return { success: false, message: "Token de profesional no válido" };
+
+    // Obtener el documento activo
+    var docResult = getDocumentoLegal(docId);
+    if (!docResult.success) return docResult;
+    var doc = docResult.documento;
+
+    // Verificar que no haya aceptado ya esta versión
+    var aceptSheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (!aceptSheet) {
+      // Crear la hoja si no existe
+      aceptSheet = getSS().insertSheet("Aceptaciones_Legales");
+      aceptSheet.appendRow([
+        'Folio', 'doc_id', 'Version', 'Fecha_Hora', 'Token', 'Nombre_Completo',
+        'Correo', 'Telefono', 'RFC', 'IP', 'Metodo_Aceptacion', 'Token_OTP',
+        'Hash_Documento', 'Ref_Sesion', 'Copia_Enviada', 'Fecha_Envio_Copia'
+      ]);
+    }
+
+    var existingData = aceptSheet.getDataRange().getValues();
+    for (var i = 1; i < existingData.length; i++) {
+      if (existingData[i][4] === token && existingData[i][1] === docId && String(existingData[i][2]) === doc.version) {
+        return { success: false, message: "Ya aceptaste este documento (versión " + doc.version + ")" };
+      }
+    }
+
+    // Generar folio
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = ('0' + (now.getMonth() + 1)).slice(-2);
+    var seq = ('00000' + aceptSheet.getLastRow()).slice(-5);
+    var folio = 'ACC-' + year + '-' + month + '-' + seq;
+
+    // Generar hash SHA-256 del contenido del documento
+    var hashBytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, doc.contenido || '');
+    var hash = hashBytes.map(function(b) { return ('0' + (b & 0xFF).toString(16)).slice(-2); }).join('');
+
+    // Referencia de sesión
+    var refSesion = 'SES-' + Math.floor(now.getTime() / 1000) + '-' + token.replace('ONB-', '').substring(0, 4);
+
+    // Datos del profesional (confirmados o capturados)
+    var nombreCompleto = data.nombreCompleto || prof.nombre;
+    var correo = data.correo || prof.email;
+    var telefono = data.telefono || '';
+    var rfc = data.rfc || '';
+    var ip = data.clientIP || 'No disponible';
+    var metodo = 'Checkbox + botón "Firmar y aceptar" en plataforma web';
+    var tokenOtp = data.otp || 'N/A (opcional)';
+
+    // Registrar la aceptación
+    aceptSheet.appendRow([
+      folio, docId, doc.version, now, token, nombreCompleto,
+      correo, telefono, rfc, ip, metodo, tokenOtp,
+      hash, refSesion, 'Pendiente', ''
+    ]);
+
+    // Enviar emails
+    var emailResult = sendAcceptanceEmails(folio, doc, nombreCompleto, correo, telefono, rfc, ip, metodo, hash, refSesion, now);
+
+    // Actualizar columna de copia enviada
+    if (emailResult.success) {
+      var lastRow = aceptSheet.getLastRow();
+      aceptSheet.getRange(lastRow, 15).setValue('Sí');
+      aceptSheet.getRange(lastRow, 16).setValue(new Date());
+    }
+
+    return {
+      success: true,
+      folio: folio,
+      message: doc.titulo + " aceptado exitosamente. Folio: " + folio,
+      emailEnviado: emailResult.success
+    };
+  } catch (error) {
+    Logger.log("Error en aceptarDocumento: " + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Envía emails de confirmación de aceptación al profesional y al admin
+ */
+function sendAcceptanceEmails(folio, doc, nombre, correo, telefono, rfc, ip, metodo, hash, refSesion, fecha) {
+  try {
+    var config = getConfig();
+    var fechaStr = fecha.toLocaleString('es-MX', { timeZone: 'America/Mexico_City' });
+
+    var auditHtml =
+      '<table style="width:100%;border-collapse:collapse;font-size:13px;margin:20px 0;">' +
+        '<tr style="background:#f8f9fa;"><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;width:40%;">Folio de aceptación</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + folio + '</td></tr>' +
+        '<tr><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Documento</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + doc.titulo + '</td></tr>' +
+        '<tr style="background:#f8f9fa;"><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Versión</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + doc.version + '</td></tr>' +
+        '<tr><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Fecha y hora</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + fechaStr + '</td></tr>' +
+        '<tr style="background:#f8f9fa;"><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Nombre completo</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + nombre + '</td></tr>' +
+        '<tr><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Correo electrónico</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + correo + '</td></tr>' +
+        '<tr style="background:#f8f9fa;"><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Teléfono</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + (telefono || 'No proporcionado') + '</td></tr>' +
+        '<tr><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">RFC</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + (rfc || 'No proporcionado') + '</td></tr>' +
+        '<tr style="background:#f8f9fa;"><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Dirección IP</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + ip + '</td></tr>' +
+        '<tr><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Método de aceptación</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + metodo + '</td></tr>' +
+        '<tr style="background:#f8f9fa;"><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Hash del documento (SHA-256)</td><td style="padding:8px 12px;border:1px solid #dee2e6;font-family:monospace;font-size:11px;word-break:break-all;">' + hash + '</td></tr>' +
+        '<tr><td style="padding:8px 12px;border:1px solid #dee2e6;font-weight:600;">Referencia de sesión</td><td style="padding:8px 12px;border:1px solid #dee2e6;">' + refSesion + '</td></tr>' +
+      '</table>';
+
+    // Email al profesional
+    var profHtml =
+      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+        '<div style="background:#001A55;color:white;padding:30px;text-align:center;border-radius:12px 12px 0 0;">' +
+          '<h1 style="margin:0;font-size:22px;">Confirmación de Aceptación</h1>' +
+          '<p style="margin:8px 0 0;opacity:0.8;">Catholizare Pro — Onboarding</p>' +
+        '</div>' +
+        '<div style="padding:30px;background:white;border:1px solid #eee;">' +
+          '<p>Estimado/a <strong>' + nombre + '</strong>,</p>' +
+          '<p>Confirmamos que has aceptado el siguiente documento:</p>' +
+          '<div style="background:#f0f7ff;border-left:4px solid #003ABA;padding:16px;margin:16px 0;border-radius:0 8px 8px 0;">' +
+            '<strong style="color:#001A55;">' + doc.titulo + '</strong><br>' +
+            '<span style="font-size:13px;color:#666;">Versión ' + doc.version + ' — Folio: ' + folio + '</span>' +
+          '</div>' +
+          '<h3 style="color:#001A55;margin-top:24px;">Registro de Aceptación</h3>' +
+          auditHtml +
+          '<p style="font-size:13px;color:#666;margin-top:20px;">Este correo sirve como constancia de aceptación del documento. Conserva este email para tu registro.</p>' +
+          '<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">' +
+          '<h3 style="color:#001A55;">Copia del Documento Aceptado</h3>' +
+          '<div style="background:#fafafa;padding:20px;border:1px solid #eee;border-radius:8px;margin-top:12px;font-size:13px;">' +
+            doc.contenido +
+          '</div>' +
+        '</div>' +
+        '<div style="padding:20px;text-align:center;font-size:11px;color:#999;background:#f8f9fa;border-radius:0 0 12px 12px;">' +
+          'Catholizare Pro — Red de Psicólogos Católicos<br>Este es un correo automático, no responder.' +
+        '</div>' +
+      '</div>';
+
+    var profResult = sendEmailViaBrevo(correo, 'Confirmación: ' + doc.titulo + ' — Folio ' + folio, profHtml);
+
+    // Email al admin
+    var adminHtml =
+      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+        '<div style="background:#D4AF37;color:#001A55;padding:20px;text-align:center;border-radius:12px 12px 0 0;">' +
+          '<h2 style="margin:0;">Notificación de Aceptación Legal</h2>' +
+        '</div>' +
+        '<div style="padding:30px;background:white;border:1px solid #eee;">' +
+          '<p>El profesional <strong>' + nombre + '</strong> ha aceptado:</p>' +
+          '<div style="background:#f0f7ff;border-left:4px solid #003ABA;padding:16px;margin:16px 0;border-radius:0 8px 8px 0;">' +
+            '<strong>' + doc.titulo + '</strong> (v' + doc.version + ')<br>' +
+            '<span style="font-size:13px;">Folio: ' + folio + ' — ' + fechaStr + '</span>' +
+          '</div>' +
+          '<h3>Datos del Registro</h3>' +
+          auditHtml +
+        '</div>' +
+      '</div>';
+
+    sendEmailViaBrevo(config.ADMIN_EMAIL, 'Aceptación Legal: ' + nombre + ' — ' + doc.titulo, adminHtml);
+
+    return { success: profResult.success };
+  } catch (error) {
+    Logger.log("Error en sendAcceptanceEmails: " + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
 
 function sendTestEmail(email, adminToken) {
   try {
