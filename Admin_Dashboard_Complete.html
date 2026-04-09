@@ -381,11 +381,13 @@
     if (USER_ROLE === 'superadmin') roleEl.className = 'role-superadmin';
     else if (USER_ROLE === 'administrador') roleEl.className = 'role-administrador';
     else roleEl.className = 'role-coordinador';
-    
-    // Hide Super Admin nav for non-superadmins
+
+    // Hide Super Admin and System Health nav for non-superadmins
     if (USER_ROLE !== 'superadmin') {
       var saNav = document.getElementById('navSuperAdmin');
       if (saNav) saNav.style.display = 'none';
+      var healthNav = document.getElementById('navHealth');
+      if (healthNav) healthNav.style.display = 'none';
     }
 
     // Sidebar navigation
@@ -1237,7 +1239,10 @@
                   '<li style="padding:3px 0;">&#x2705; Acceso total al sistema</li>' +
                   '<li style="padding:3px 0;">&#x2705; Crear/desactivar tokens admin</li>' +
                   '<li style="padding:3px 0;">&#x2705; Gestionar profesionales</li>' +
+                  '<li style="padding:3px 0;">&#x2705; Enviar emails manuales</li>' +
                   '<li style="padding:3px 0;">&#x2705; Ver analítica completa</li>' +
+                  '<li style="padding:3px 0;">&#x2705; Ver documentos legales</li>' +
+                  '<li style="padding:3px 0;">&#x2705; System Health y diagnósticos</li>' +
                   '<li style="padding:3px 0;">&#x2705; Configuración del sistema</li></ul></div>' +
               '<div style="padding:16px;background:var(--gray-50);border-radius:8px;border:1px solid var(--gray-200);">' +
                 '<h4 style="font-size:14px;color:var(--gray-700);margin-bottom:8px;">&#x1F464; Administrador</h4>' +
@@ -1246,7 +1251,10 @@
                   '<li style="padding:3px 0;">&#x2705; Gestionar profesionales</li>' +
                   '<li style="padding:3px 0;">&#x2705; Enviar emails manuales</li>' +
                   '<li style="padding:3px 0;">&#x2705; Ver documentos legales</li>' +
-                  '<li style="padding:3px 0;">&#x274C; No puede crear tokens</li></ul></div>' +
+                  '<li style="padding:3px 0;">&#x2705; Ver analítica</li>' +
+                  '<li style="padding:3px 0;">&#x274C; No puede crear tokens</li>' +
+                  '<li style="padding:3px 0;">&#x274C; Sin acceso a System Health</li>' +
+                  '<li style="padding:3px 0;">&#x274C; Sin acceso a Super Admin</li></ul></div>' +
             '</div>' +
           '</div>';
       })

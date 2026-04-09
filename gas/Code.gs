@@ -899,13 +899,28 @@ function uploadFile(token, base64Data, fileName, fileType) {
     if (userRow === -1) throw new Error("Token no válido");
 
     var parentFolder = DriveApp.getFolderById(config.PARENT_FOLDER_ID);
-    var userFolder;
-    var folders = parentFolder.getFoldersByName(userName);
-    
-    if (folders.hasNext()) {
-      userFolder = folders.next();
-    } else {
-      userFolder = parentFolder.createFolder(userName);
+    var userFolder = null;
+
+    // Buscar carpeta existente por token (clave única, nunca cambia)
+    var allFolders = parentFolder.getFolders();
+    while (allFolders.hasNext()) {
+      var f = allFolders.next();
+      if (f.getName().indexOf(token) >= 0) {
+        userFolder = f;
+        break;
+      }
+    }
+
+    if (!userFolder) {
+      // Compatibilidad: buscar por nombre (carpetas viejas sin token)
+      var byName = parentFolder.getFoldersByName(userName);
+      if (byName.hasNext()) {
+        userFolder = byName.next();
+        // Renombrar para incluir token y evitar duplicados futuros
+        userFolder.setName(userName + ' (' + token + ')');
+      } else {
+        userFolder = parentFolder.createFolder(userName + ' (' + token + ')');
+      }
     }
 
     var bytes = Utilities.base64Decode(base64Data.split(',')[1]);
