@@ -412,6 +412,9 @@ function doPost(e) {
       case 'diagnosticoRemoto':
         result = diagnosticoRemoto();
         break;
+      case 'sendTestEmail':
+        result = sendTestEmail(data.email, data.adminToken);
+        break;
 
       default:
         result = { success: false, message: 'Accion no reconocida: ' + action };
@@ -2060,6 +2063,29 @@ function diagnosticoRemoto() {
 
   } catch (error) {
     return { success: false, message: error.message, results: results };
+  }
+}
+
+function sendTestEmail(email, adminToken) {
+  try {
+    var user = validateAdminToken(adminToken);
+    if (!user) return { success: false, message: 'Token de admin inválido' };
+
+    if (!email) return { success: false, message: 'Email no proporcionado' };
+
+    var subject = 'Prueba de sistema — Catholizare Onboarding';
+    var htmlContent = '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px;border:1px solid #eee;border-radius:12px;">' +
+      '<h2 style="color:#001A55;margin-bottom:10px;">Prueba de Email Exitosa</h2>' +
+      '<p style="color:#333;">Este es un correo de prueba enviado desde el módulo <strong>System Health</strong> del sistema de onboarding.</p>' +
+      '<hr style="border:none;border-top:1px solid #eee;margin:20px 0;">' +
+      '<p style="font-size:13px;color:#999;">Enviado por: ' + user.nombre + ' (' + user.email + ')<br>' +
+      'Fecha: ' + new Date().toLocaleString('es-MX') + '</p>' +
+      '</div>';
+
+    var result = sendEmailViaBrevo(email, subject, htmlContent);
+    return result;
+  } catch (error) {
+    return { success: false, message: error.toString() };
   }
 }
 

@@ -1331,37 +1331,323 @@
 
   // === SYSTEM HEALTH VIEW ===
   function showHealth() {
-    loadData(function(data) {
-      var checks = [
-        { name: 'Hoja Onboarding', status: true, detail: data.length + ' filas de datos' },
-        { name: 'Conexión Spreadsheet', status: true, detail: 'ID: 1YgbnsB0...XW4I' },
-        { name: 'Brevo API', status: true, detail: 'Configurada en Properties' },
-        { name: 'Google Drive', status: true, detail: 'Carpeta configurada' },
-        { name: 'Implementación', status: true, detail: 'Web App activa' }
-      ];
+    document.getElementById('mainContent').innerHTML =
+      '<h1 style="font-size:28px;font-weight:700;margin-bottom:4px;">System Health</h1>' +
+      '<p style="color:var(--gray-500);margin-bottom:28px;">Diagnóstico y pruebas del sistema en tiempo real.</p>' +
 
-      var checksHtml = '';
-      checks.forEach(function(c) {
-        checksHtml += '<div style="display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--gray-100);">' +
-          '<div style="display:flex;align-items:center;gap:12px;">' +
-            '<div style="width:8px;height:8px;border-radius:50%;background:' + (c.status?'var(--green)':'var(--red)') + ';"></div>' +
-            '<span style="font-weight:500;">' + c.name + '</span></div>' +
-          '<span style="font-size:13px;color:var(--gray-500);">' + c.detail + '</span>' +
-          '<span class="badge ' + (c.status?'badge-green':'badge-red') + '">' + (c.status?'OK':'Error') + '</span></div>';
-      });
+      // Panel 1: Diagnóstico general
+      '<div class="panel" id="healthPanel">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">' +
+          '<h3>Diagnóstico del Backend (GAS)</h3>' +
+          '<button class="btn-primary" id="btnDiag" onclick="runDiagnostico()" style="font-size:13px;padding:8px 16px;">Ejecutar Diagnóstico</button>' +
+        '</div>' +
+        '<div id="diagResults" style="color:var(--gray-500);font-size:14px;">Presiona el botón para verificar todos los componentes del backend.</div>' +
+      '</div>' +
 
-      document.getElementById('mainContent').innerHTML =
-        '<h1 style="font-size:28px;font-weight:700;margin-bottom:4px;">System Health</h1>' +
-        '<p style="color:var(--gray-500);margin-bottom:28px;">Estado de los componentes del sistema.</p>' +
-        '<div class="panel"><h3 style="margin-bottom:16px;">&#x1F7E2; Estado General: Operativo</h3>' + checksHtml + '</div>' +
-        '<div class="panel" style="margin-top:20px;"><h3 style="margin-bottom:12px;">Información del Sistema</h3>' +
+      // Panel 2: Pruebas individuales
+      '<div class="panel" style="margin-top:20px;">' +
+        '<h3 style="margin-bottom:16px;">Pruebas Individuales</h3>' +
+        '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px;" id="testGrid">' +
+
+          // Test 1: Proxy ping
+          buildTestCard('testProxy', 'Proxy PHP', 'Verifica que api.php responde correctamente', 'runTestProxy()') +
+
+          // Test 2: Conexión GAS
+          buildTestCard('testGAS', 'Conexión GAS', 'Verifica comunicación PHP ↔ Google Apps Script', 'runTestGAS()') +
+
+          // Test 3: Validar token admin
+          buildTestCard('testAuth', 'Autenticación Admin', 'Valida tu token de administrador actual', 'runTestAuth()') +
+
+          // Test 4: Leer profesionales
+          buildTestCard('testProfs', 'Leer Profesionales', 'Consulta la lista de profesionales desde la hoja', 'runTestProfs()') +
+
+          // Test 5: Brevo email
+          buildTestCard('testEmail', 'Envío de Email (Brevo)', 'Envía un correo de prueba a tu email', 'runTestEmail()') +
+
+          // Test 6: Error 500 / acción inválida
+          buildTestCard('testError', 'Manejo de Errores', 'Envía una acción inválida para probar manejo de errores', 'runTestError()') +
+
+          // Test 7: Latencia
+          buildTestCard('testLatency', 'Latencia Proxy→GAS', 'Mide el tiempo de respuesta del sistema completo', 'runTestLatency()') +
+
+          // Test 8: SessionStorage
+          buildTestCard('testSession', 'Sesión Activa', 'Verifica los datos almacenados en tu sesión', 'runTestSession()') +
+
+        '</div>' +
+      '</div>' +
+
+      // Panel 3: Log de resultados
+      '<div class="panel" style="margin-top:20px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+          '<h3>Log de Pruebas</h3>' +
+          '<button class="btn-sm" onclick="document.getElementById(\'testLog\').innerHTML=\'\'" style="font-size:12px;padding:4px 12px;border:1px solid var(--gray-200);border-radius:6px;background:white;cursor:pointer;">Limpiar</button>' +
+        '</div>' +
+        '<div id="testLog" style="font-family:monospace;font-size:12px;background:var(--gray-50);border-radius:8px;padding:16px;max-height:300px;overflow-y:auto;"></div>' +
+      '</div>' +
+
+      // Panel 4: Info del sistema
+      '<div class="panel" style="margin-top:20px;">' +
+        '<h3 style="margin-bottom:12px;">Información del Sistema</h3>' +
         '<div class="info-grid">' +
-          '<div class="info-item"><label>Versión</label><span>1.0.0</span></div>' +
-          '<div class="info-item"><label>Entorno</label><span>Google Apps Script</span></div>' +
+          '<div class="info-item"><label>Versión</label><span>5.3</span></div>' +
+          '<div class="info-item"><label>Entorno</label><span>WordPress + GAS</span></div>' +
           '<div class="info-item"><label>Email Admin</label><span>' + USER_EMAIL + '</span></div>' +
           '<div class="info-item"><label>Rol</label><span>' + USER_ROLE + '</span></div>' +
-        '</div></div>';
-    });
+          '<div class="info-item"><label>Proxy</label><span>' + PROXY + '</span></div>' +
+          '<div class="info-item"><label>Sesión</label><span>' + (ADMIN_TOKEN ? ADMIN_TOKEN.substring(0,10) + '...' : 'N/A') + '</span></div>' +
+        '</div>' +
+      '</div>';
+  }
+
+  function buildTestCard(id, title, desc, onclick) {
+    return '<div style="border:1px solid var(--gray-200);border-radius:10px;padding:16px;background:white;">' +
+      '<div style="font-weight:600;font-size:14px;margin-bottom:4px;">' + title + '</div>' +
+      '<div style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">' + desc + '</div>' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;">' +
+        '<button id="btn_' + id + '" onclick="' + onclick + '" style="padding:6px 14px;font-size:12px;font-weight:600;border:none;border-radius:6px;background:var(--navy);color:white;cursor:pointer;">Probar</button>' +
+        '<span id="res_' + id + '" style="font-size:12px;color:var(--gray-500);">—</span>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function logTest(msg, type) {
+    var el = document.getElementById('testLog');
+    var time = new Date().toLocaleTimeString('es-MX');
+    var color = type === 'ok' ? 'var(--green)' : type === 'error' ? 'var(--red)' : type === 'warn' ? 'var(--orange)' : 'var(--gray-500)';
+    el.innerHTML += '<div style="margin-bottom:4px;color:' + color + ';">[' + time + '] ' + msg + '</div>';
+    el.scrollTop = el.scrollHeight;
+  }
+
+  function setTestResult(id, text, ok) {
+    var el = document.getElementById('res_' + id);
+    el.textContent = text;
+    el.style.color = ok ? 'var(--green)' : 'var(--red)';
+    el.style.fontWeight = '600';
+  }
+
+  // Test 1: Proxy ping
+  function runTestProxy() {
+    document.getElementById('btn_testProxy').disabled = true;
+    setTestResult('testProxy', 'Probando...', true);
+    logTest('Probando proxy (ping)...', 'info');
+    fetch(PROXY + '?action=ping')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) {
+          setTestResult('testProxy', 'OK — PHP ' + d.php, true);
+          logTest('Proxy OK. PHP ' + d.php + ', cURL: ' + d.curl, 'ok');
+        } else {
+          setTestResult('testProxy', 'Error', false);
+          logTest('Proxy respondió pero sin success', 'error');
+        }
+        document.getElementById('btn_testProxy').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testProxy', 'Sin respuesta', false);
+        logTest('Proxy no responde: ' + e.message, 'error');
+        document.getElementById('btn_testProxy').disabled = false;
+      });
+  }
+
+  // Test 2: Conexión GAS
+  function runTestGAS() {
+    document.getElementById('btn_testGAS').disabled = true;
+    setTestResult('testGAS', 'Probando...', true);
+    logTest('Probando conexión Proxy → GAS (diagnosticoRemoto)...', 'info');
+    callProxy('diagnosticoRemoto', {})
+      .then(function(d) {
+        if (d.success) {
+          setTestResult('testGAS', 'OK — ' + d.status, true);
+          logTest('GAS responde. Estado: ' + d.status + '. Checks: ' + d.results.length, 'ok');
+        } else {
+          setTestResult('testGAS', 'Error: ' + (d.message || ''), false);
+          logTest('GAS error: ' + (d.message || 'sin mensaje'), 'error');
+        }
+        document.getElementById('btn_testGAS').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testGAS', 'Sin respuesta', false);
+        logTest('GAS no responde: ' + e.message, 'error');
+        document.getElementById('btn_testGAS').disabled = false;
+      });
+  }
+
+  // Test 3: Validar token admin
+  function runTestAuth() {
+    document.getElementById('btn_testAuth').disabled = true;
+    setTestResult('testAuth', 'Validando...', true);
+    logTest('Validando token admin: ' + ADMIN_TOKEN.substring(0,10) + '...', 'info');
+    callProxy('validateAdminToken', { token: ADMIN_TOKEN })
+      .then(function(d) {
+        if (d.success && d.data) {
+          setTestResult('testAuth', 'OK — ' + d.data.nombre, true);
+          logTest('Token válido. Nombre: ' + d.data.nombre + ', Rol: ' + d.data.role + ', Email: ' + d.data.email, 'ok');
+        } else {
+          setTestResult('testAuth', 'Token inválido', false);
+          logTest('Token NO válido: ' + (d.message || ''), 'error');
+        }
+        document.getElementById('btn_testAuth').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testAuth', 'Error', false);
+        logTest('Error validando token: ' + e.message, 'error');
+        document.getElementById('btn_testAuth').disabled = false;
+      });
+  }
+
+  // Test 4: Leer profesionales
+  function runTestProfs() {
+    document.getElementById('btn_testProfs').disabled = true;
+    setTestResult('testProfs', 'Consultando...', true);
+    logTest('Consultando lista de profesionales...', 'info');
+    callProxy('getAllProfesionales', { token: ADMIN_TOKEN })
+      .then(function(d) {
+        if (d.success !== false && Array.isArray(d)) {
+          setTestResult('testProfs', 'OK — ' + d.length + ' registros', true);
+          logTest('Profesionales encontrados: ' + d.length, 'ok');
+        } else if (d.success && d.data) {
+          setTestResult('testProfs', 'OK — ' + (d.data.length || 0) + ' registros', true);
+          logTest('Profesionales encontrados: ' + (d.data.length || 0), 'ok');
+        } else {
+          setTestResult('testProfs', 'Error', false);
+          logTest('Error leyendo profesionales: ' + (d.message || JSON.stringify(d).substring(0,100)), 'error');
+        }
+        document.getElementById('btn_testProfs').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testProfs', 'Error', false);
+        logTest('Error: ' + e.message, 'error');
+        document.getElementById('btn_testProfs').disabled = false;
+      });
+  }
+
+  // Test 5: Email de prueba
+  function runTestEmail() {
+    var email = USER_EMAIL || prompt('Email para la prueba:');
+    if (!email) return;
+    document.getElementById('btn_testEmail').disabled = true;
+    setTestResult('testEmail', 'Enviando...', true);
+    logTest('Enviando email de prueba a: ' + email, 'info');
+    callProxy('sendTestEmail', { email: email, adminToken: ADMIN_TOKEN })
+      .then(function(d) {
+        if (d.success) {
+          setTestResult('testEmail', 'Enviado', true);
+          logTest('Email de prueba enviado exitosamente a ' + email, 'ok');
+        } else {
+          setTestResult('testEmail', 'Falló', false);
+          logTest('Error enviando email: ' + (d.message || 'sin detalle'), 'error');
+        }
+        document.getElementById('btn_testEmail').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testEmail', 'Error', false);
+        logTest('Error: ' + e.message, 'error');
+        document.getElementById('btn_testEmail').disabled = false;
+      });
+  }
+
+  // Test 6: Manejo de errores
+  function runTestError() {
+    document.getElementById('btn_testError').disabled = true;
+    setTestResult('testError', 'Probando...', true);
+    logTest('Enviando acción inválida "accionQueNoExiste" al GAS...', 'info');
+    callProxy('accionQueNoExiste', { test: true })
+      .then(function(d) {
+        if (d.success === false) {
+          setTestResult('testError', 'OK — Error controlado', true);
+          logTest('GAS respondió correctamente con error controlado: ' + d.message, 'ok');
+        } else {
+          setTestResult('testError', 'Inesperado', false);
+          logTest('Respuesta inesperada (debería ser error): ' + JSON.stringify(d).substring(0,100), 'warn');
+        }
+        document.getElementById('btn_testError').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testError', 'Error de red', false);
+        logTest('Error de red (no se pudo conectar): ' + e.message, 'error');
+        document.getElementById('btn_testError').disabled = false;
+      });
+  }
+
+  // Test 7: Latencia
+  function runTestLatency() {
+    document.getElementById('btn_testLatency').disabled = true;
+    setTestResult('testLatency', 'Midiendo...', true);
+    logTest('Midiendo latencia completa (Navegador → Proxy → GAS → Proxy → Navegador)...', 'info');
+    var start = performance.now();
+    callProxy('diagnosticoRemoto', {})
+      .then(function(d) {
+        var ms = Math.round(performance.now() - start);
+        var quality = ms < 2000 ? 'Excelente' : ms < 5000 ? 'Aceptable' : 'Lento';
+        var ok = ms < 5000;
+        setTestResult('testLatency', ms + 'ms — ' + quality, ok);
+        logTest('Latencia: ' + ms + 'ms (' + quality + ')', ok ? 'ok' : 'warn');
+        document.getElementById('btn_testLatency').disabled = false;
+      })
+      .catch(function(e) {
+        setTestResult('testLatency', 'Timeout', false);
+        logTest('Timeout o error: ' + e.message, 'error');
+        document.getElementById('btn_testLatency').disabled = false;
+      });
+  }
+
+  // Test 8: Sesión
+  function runTestSession() {
+    var token = sessionStorage.getItem('onb_token') || '';
+    var role = sessionStorage.getItem('onb_role') || '';
+    var name = sessionStorage.getItem('onb_userName') || '';
+    var email = sessionStorage.getItem('onb_userEmail') || '';
+    var userRole = sessionStorage.getItem('onb_userRole') || '';
+
+    if (token && role) {
+      setTestResult('testSession', 'OK — Activa', true);
+      logTest('Sesión activa. Token: ' + token.substring(0,10) + '..., Tipo: ' + role + ', Nombre: ' + name + ', Email: ' + email + ', Rol: ' + userRole, 'ok');
+    } else {
+      setTestResult('testSession', 'Sin sesión', false);
+      logTest('No hay datos en sessionStorage. El usuario podría perder acceso al recargar.', 'error');
+    }
+  }
+
+  // Diagnóstico completo
+  function runDiagnostico() {
+    document.getElementById('btnDiag').disabled = true;
+    document.getElementById('btnDiag').textContent = 'Ejecutando...';
+    document.getElementById('diagResults').innerHTML = '<div style="color:var(--gray-400);">Conectando con el backend...</div>';
+    logTest('=== DIAGNÓSTICO COMPLETO INICIADO ===', 'info');
+
+    callProxy('diagnosticoRemoto', {})
+      .then(function(d) {
+        if (d.success) {
+          var html = '<div style="margin-bottom:12px;font-size:15px;font-weight:600;color:' + (d.status === 'Operativo' ? 'var(--green)' : 'var(--orange)') + ';">Estado: ' + d.status + '</div>';
+          d.results.forEach(function(r) {
+            var color = r.status === 'ok' ? 'var(--green)' : r.status === 'warning' ? 'var(--orange)' : 'var(--red)';
+            var badge = r.status === 'ok' ? 'OK' : r.status === 'warning' ? 'Advertencia' : 'Error';
+            html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100);">' +
+              '<div style="display:flex;align-items:center;gap:10px;">' +
+                '<div style="width:8px;height:8px;border-radius:50%;background:' + color + ';"></div>' +
+                '<span style="font-weight:500;font-size:14px;">' + r.name + '</span></div>' +
+              '<span style="font-size:12px;color:var(--gray-500);">' + r.detail + '</span>' +
+              '<span style="font-size:11px;font-weight:600;color:' + color + ';padding:2px 10px;background:' + color + '15;border-radius:10px;">' + badge + '</span></div>';
+            logTest(r.name + ': ' + badge + ' — ' + r.detail, r.status === 'ok' ? 'ok' : 'error');
+          });
+          if (d.timestamp) {
+            html += '<div style="margin-top:12px;font-size:11px;color:var(--gray-400);">Último diagnóstico: ' + new Date(d.timestamp).toLocaleString('es-MX') + '</div>';
+          }
+          document.getElementById('diagResults').innerHTML = html;
+        } else {
+          document.getElementById('diagResults').innerHTML = '<div style="color:var(--red);font-weight:500;">Error: ' + (d.message || 'Sin respuesta del GAS') + '</div>';
+          logTest('Diagnóstico falló: ' + (d.message || ''), 'error');
+        }
+        document.getElementById('btnDiag').disabled = false;
+        document.getElementById('btnDiag').textContent = 'Ejecutar Diagnóstico';
+        logTest('=== DIAGNÓSTICO COMPLETO FINALIZADO ===', 'info');
+      })
+      .catch(function(e) {
+        document.getElementById('diagResults').innerHTML = '<div style="color:var(--red);font-weight:500;">Error de conexión: ' + e.message + '</div>';
+        logTest('Error de conexión: ' + e.message, 'error');
+        document.getElementById('btnDiag').disabled = false;
+        document.getElementById('btnDiag').textContent = 'Ejecutar Diagnóstico';
+      });
   }
 
   // === PRÓXIMAMENTE ===
