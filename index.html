@@ -266,7 +266,7 @@
       clearError();
 
       var email = document.getElementById('email').value.trim().toLowerCase();
-      var token = document.getElementById('password').value.trim().toUpperCase();
+      var token = document.getElementById('password').value.trim();
 
       if (!email) {
         showError('Ingresa tu correo electrónico.');
@@ -287,8 +287,10 @@
       btn.innerHTML = '<div class="spinner"></div> Verificando...';
       btn.style.pointerEvents = 'none';
 
-      // Detectar tipo de token y validar
-      if (token.startsWith('ADMIN-')) {
+      // Detectar tipo de token por prefijo (case-insensitive)
+      var prefix = token.substring(0, 6).toUpperCase();
+
+      if (prefix === 'ADMIN-') {
         // Flujo administrador
         if (token.length < 10) {
           showError('Clave de administrador inválida.');
@@ -319,7 +321,7 @@
             btn.style.pointerEvents = 'auto';
           });
 
-      } else if (token.startsWith('ONB-')) {
+      } else if (prefix.substring(0, 4) === 'ONB-') {
         // Flujo profesional
         if (token.length < 8) {
           showError('Clave de profesional inválida.');
@@ -361,15 +363,16 @@
       if (urlToken) {
         // Limpiar URL inmediatamente (seguridad: token fuera del historial)
         history.replaceState(null, '', window.location.pathname);
-        // Guardar en variable temporal (no mostrar en el campo por seguridad)
-        var cleanToken = urlToken.trim().toUpperCase();
+        // NO convertir a mayúsculas: los tokens pueden tener minúsculas (ej: ONB-fb85d4e7)
+        var cleanToken = urlToken.trim();
+        var prefix = cleanToken.substring(0, 6).toUpperCase();
 
         var btn = document.getElementById('btnLogin');
         btn.innerHTML = '<div class="spinner"></div> Verificando acceso...';
         btn.style.pointerEvents = 'none';
 
         // Validar según tipo
-        if (cleanToken.startsWith('ADMIN-')) {
+        if (prefix === 'ADMIN-') {
           callProxy('validateAdminToken', { token: cleanToken })
             .then(function(r) {
               if (r && r.success && r.data) {
@@ -390,7 +393,7 @@
               btn.innerHTML = 'Ingresar';
               btn.style.pointerEvents = 'auto';
             });
-        } else if (cleanToken.startsWith('ONB-')) {
+        } else if (prefix.substring(0, 4) === 'ONB-') {
           callProxy('getStatus', { token: cleanToken })
             .then(function(r) {
               if (r && r.success) {

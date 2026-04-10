@@ -1608,8 +1608,9 @@ function getEmailTypeInfo(emailType) {
 function getProfessionalStatus(token, expectedEmail) {
   try {
     var data = getSHEET().getDataRange().getValues();
+    var tokenNorm = String(token || '').trim().toLowerCase();
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] == token) {
+      if (String(data[i][0] || '').trim().toLowerCase() === tokenNorm) {
         var row = data[i];
         // Verificación opcional de email (doble factor en login manual)
         if (expectedEmail) {
@@ -1873,8 +1874,9 @@ function validateAdminToken(token, expectedEmail) {
     if (!sheet) { Logger.log("❌ Hoja Admin_Users no existe"); return null; }
 
     var data = sheet.getDataRange().getValues();
+    var tokenNorm = String(token || '').trim().toLowerCase();
     for (var i = 1; i < data.length; i++) {
-      if (data[i][0] === token && data[i][4] === true) {
+      if (String(data[i][0] || '').trim().toLowerCase() === tokenNorm && data[i][4] === true) {
         // Verificación opcional de email (doble factor en login manual)
         if (expectedEmail) {
           var storedEmail = String(data[i][1] || '').trim().toLowerCase();
