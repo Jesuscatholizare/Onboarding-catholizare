@@ -383,8 +383,8 @@ function doPost(e) {
 
       // === Admin: usuarios admin ===
       case 'validateAdminToken':
-        var user = validateAdminToken(data.token);
-        result = user ? { success: true, data: user } : { success: false, message: 'Token invalido' };
+        var user = validateAdminToken(data.token, data.email);
+        result = user ? { success: true, data: user } : { success: false, message: 'Clave o correo incorrectos' };
         break;
       case 'getAllAdminUsers':
         result = { success: true, data: getAllAdminUsers() };
@@ -407,7 +407,7 @@ function doPost(e) {
         result = { success: true, data: getEmailHistory(data.token) };
         break;
       case 'getStatus':
-        result = getProfessionalStatus(data.token);
+        result = getProfessionalStatus(data.token, data.loginEmail);
         break;
       case 'diagnosticoRemoto':
         result = diagnosticoRemoto();
@@ -1605,12 +1605,20 @@ function getEmailTypeInfo(emailType) {
 // ESTADO DEL PROFESIONAL Y TIMELINE
 // ============================================================================
 
-function getProfessionalStatus(token) {
+function getProfessionalStatus(token, expectedEmail) {
   try {
     var data = getSHEET().getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == token) {
         var row = data[i];
+        // Verificación opcional de email (doble factor en login manual)
+        if (expectedEmail) {
+          var storedEmail = String(row[2] || '').trim().toLowerCase();
+          var provided = String(expectedEmail).trim().toLowerCase();
+          if (!storedEmail || storedEmail !== provided) {
+            return { success: false, message: 'El correo no coincide con la clave proporcionada.' };
+          }
+        }
         var diasDesdeInicio = null;
         var diasRestantes = null;
         var diasEnRed = null;
@@ -1858,15 +1866,23 @@ function mostrarEstadisticas() {
 // AUTENTICACIÓN ADMIN
 // ============================================================================
 
-function validateAdminToken(token) {
+function validateAdminToken(token, expectedEmail) {
   try {
     if (!token) return null;
     var sheet = getSS().getSheetByName("Admin_Users");
     if (!sheet) { Logger.log("❌ Hoja Admin_Users no existe"); return null; }
-    
+
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] === token && data[i][4] === true) {
+        // Verificación opcional de email (doble factor en login manual)
+        if (expectedEmail) {
+          var storedEmail = String(data[i][1] || '').trim().toLowerCase();
+          var provided = String(expectedEmail).trim().toLowerCase();
+          if (!storedEmail || storedEmail !== provided) {
+            return null;
+          }
+        }
         return { token: data[i][0], email: data[i][1], role: data[i][2], nombre: data[i][3], activo: data[i][4] };
       }
     }

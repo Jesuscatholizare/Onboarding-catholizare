@@ -175,6 +175,18 @@
 
     <form id="loginForm" onsubmit="handleLogin(event)">
       <div class="input-group">
+        <label class="input-label" for="email">Correo electrónico</label>
+        <input
+          type="email"
+          class="input-field"
+          id="email"
+          placeholder="tucorreo@ejemplo.com"
+          autocomplete="email"
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="input-group">
         <label class="input-label" for="password">Clave de acceso</label>
         <input
           type="password"
@@ -194,7 +206,7 @@
 
     <div class="help-section">
       <p class="help-text">
-        Tu clave de acceso fue enviada a tu correo electrónico.<br>
+        Ingresa con el correo registrado y la clave de acceso que recibiste por email.<br>
         Si no la encuentras, contacta al equipo de coordinación.
       </p>
       <a class="wa-link" href="https://wa.me/5215510223883?text=Hola%2C%20necesito%20ayuda%20para%20acceder%20al%20sistema%20de%20Catholizare%20Pro" target="_blank">
@@ -236,16 +248,33 @@
     function clearError() {
       document.getElementById('errorMsg').classList.remove('show');
       document.getElementById('password').classList.remove('error');
+      document.getElementById('email').classList.remove('error');
     }
 
     document.getElementById('password').addEventListener('input', clearError);
+    document.getElementById('email').addEventListener('input', clearError);
+
+    function isValidEmail(e) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    }
 
     function handleLogin(e) {
       e.preventDefault();
       clearError();
 
+      var email = document.getElementById('email').value.trim().toLowerCase();
       var token = document.getElementById('password').value.trim().toUpperCase();
 
+      if (!email) {
+        showError('Ingresa tu correo electrónico.');
+        document.getElementById('email').classList.add('error');
+        return;
+      }
+      if (!isValidEmail(email)) {
+        showError('El correo electrónico no es válido.');
+        document.getElementById('email').classList.add('error');
+        return;
+      }
       if (!token) {
         showError('Ingresa tu clave de acceso.');
         return;
@@ -264,7 +293,7 @@
           btn.style.pointerEvents = 'auto';
           return;
         }
-        callProxy('validateAdminToken', { token: token })
+        callProxy('validateAdminToken', { token: token, email: email })
           .then(function(r) {
             if (r && r.success && r.data) {
               // Guardar en sessionStorage
@@ -276,7 +305,7 @@
               // Redirigir SIN token en URL
               window.location.href = BASE + '/Admin_Dashboard_Complete.html';
             } else {
-              showError(r.message || 'Clave no válida.');
+              showError('Correo o clave incorrectos.');
               btn.innerHTML = 'Ingresar';
               btn.style.pointerEvents = 'auto';
             }
@@ -295,7 +324,7 @@
           btn.style.pointerEvents = 'auto';
           return;
         }
-        callProxy('getStatus', { token: token })
+        callProxy('getStatus', { token: token, loginEmail: email })
           .then(function(r) {
             if (r && r.success) {
               // Guardar en sessionStorage
@@ -304,7 +333,7 @@
               // Redirigir SIN token en URL
               window.location.href = BASE + '/Public_Dashboard.html';
             } else {
-              showError(r.message || 'Clave no encontrada.');
+              showError('Correo o clave incorrectos.');
               btn.innerHTML = 'Ingresar';
               btn.style.pointerEvents = 'auto';
             }
