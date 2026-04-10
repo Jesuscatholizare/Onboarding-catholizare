@@ -175,18 +175,6 @@
 
     <form id="loginForm" onsubmit="handleLogin(event)">
       <div class="input-group">
-        <label class="input-label" for="username">Usuario</label>
-        <input
-          type="text"
-          class="input-field"
-          id="username"
-          placeholder="Tu correo o nombre de usuario"
-          autocomplete="username"
-          spellcheck="false"
-        >
-      </div>
-
-      <div class="input-group">
         <label class="input-label" for="password">Clave de acceso</label>
         <input
           type="password"
@@ -339,11 +327,60 @@
       var params = new URLSearchParams(window.location.search);
       var urlToken = params.get('token');
       if (urlToken) {
-        // Limpiar URL inmediatamente (seguridad)
+        // Limpiar URL inmediatamente (seguridad: token fuera del historial)
         history.replaceState(null, '', window.location.pathname);
-        // Llenar el campo y auto-enviar
-        document.getElementById('password').value = urlToken;
-        handleLogin(new Event('submit'));
+        // Guardar en variable temporal (no mostrar en el campo por seguridad)
+        var cleanToken = urlToken.trim().toUpperCase();
+
+        var btn = document.getElementById('btnLogin');
+        btn.innerHTML = '<div class="spinner"></div> Verificando acceso...';
+        btn.style.pointerEvents = 'none';
+
+        // Validar según tipo
+        if (cleanToken.startsWith('ADMIN-')) {
+          callProxy('validateAdminToken', { token: cleanToken })
+            .then(function(r) {
+              if (r && r.success && r.data) {
+                sessionStorage.setItem('onb_token', cleanToken);
+                sessionStorage.setItem('onb_role', 'admin');
+                sessionStorage.setItem('onb_userName', r.data.nombre || '');
+                sessionStorage.setItem('onb_userRole', r.data.role || '');
+                sessionStorage.setItem('onb_userEmail', r.data.email || '');
+                window.location.href = BASE + '/Admin_Dashboard_Complete.html';
+              } else {
+                showError('Tu enlace de acceso no es válido o ya expiró. Contacta al equipo por WhatsApp.');
+                btn.innerHTML = 'Ingresar';
+                btn.style.pointerEvents = 'auto';
+              }
+            })
+            .catch(function() {
+              showError('No pudimos validar tu enlace. Intenta de nuevo o contacta por WhatsApp.');
+              btn.innerHTML = 'Ingresar';
+              btn.style.pointerEvents = 'auto';
+            });
+        } else if (cleanToken.startsWith('ONB-')) {
+          callProxy('getStatus', { token: cleanToken })
+            .then(function(r) {
+              if (r && r.success) {
+                sessionStorage.setItem('onb_token', cleanToken);
+                sessionStorage.setItem('onb_role', 'professional');
+                window.location.href = BASE + '/Public_Dashboard.html';
+              } else {
+                showError('Tu enlace de acceso no es válido o ya expiró. Contacta al equipo por WhatsApp.');
+                btn.innerHTML = 'Ingresar';
+                btn.style.pointerEvents = 'auto';
+              }
+            })
+            .catch(function() {
+              showError('No pudimos validar tu enlace. Intenta de nuevo o contacta por WhatsApp.');
+              btn.innerHTML = 'Ingresar';
+              btn.style.pointerEvents = 'auto';
+            });
+        } else {
+          showError('Enlace de acceso no reconocido. Contacta al equipo por WhatsApp.');
+          btn.innerHTML = 'Ingresar';
+          btn.style.pointerEvents = 'auto';
+        }
       }
     })();
   </script>
