@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
   <title>Admin Dashboard - Catholizare</title>
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
@@ -191,6 +194,15 @@
 </head>
 <body>
 
+  <!-- LOADING OVERLAY (for async operations like sending email) -->
+  <div id="globalLoadingOverlay" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,13,46,0.75);z-index:99999;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
+    <div style="background:#fff;padding:32px 44px;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,0.4);text-align:center;max-width:340px;">
+      <div style="width:54px;height:54px;border:5px solid #EEF0F5;border-top-color:#003ABA;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 18px;"></div>
+      <div id="globalLoadingTitle" style="font-size:16px;font-weight:700;color:#001A55;margin-bottom:6px;">Procesando...</div>
+      <div id="globalLoadingMsg" style="font-size:13px;color:#5A6275;line-height:1.5;">Por favor espera unos segundos</div>
+    </div>
+  </div>
+
   <!-- HEADER -->
   <header class="header">
     <div class="header-brand">
@@ -362,6 +374,16 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data || {})
     }).then(function(r) { return r.json(); });
+  }
+
+  // === GLOBAL LOADING OVERLAY ===
+  function showLoading(title, msg) {
+    document.getElementById('globalLoadingTitle').textContent = title || 'Procesando...';
+    document.getElementById('globalLoadingMsg').textContent = msg || 'Por favor espera unos segundos';
+    document.getElementById('globalLoadingOverlay').style.display = 'flex';
+  }
+  function hideLoading() {
+    document.getElementById('globalLoadingOverlay').style.display = 'none';
   }
 
   // === STATE ===
@@ -1053,12 +1075,24 @@
       blogInvite:'trigBlogInvite', monthlyMeeting:'trigMonthlyMeeting'
     };
     if (!confirm('¿Enviar email "' + (typeNames[type]||type) + '" a ' + (prof ? prof.nombre : '') + '?')) return;
-    
+
+    showLoading('Enviando correo...', 'Enviando "' + (typeNames[type]||type) + '" a ' + (prof ? prof.nombre : '') + '. Esto puede tardar unos segundos.');
+
     callProxy('sendManualEmailFromDashboard', {token: currentToken, emailType: type})
       .then(function(r) {
         if (r && r.success) {
           // Also mark the trigger as done
-          if (trigMap[type]) callProxy('adminMarkAction', {token: currentToken, actionId: trigMap[type]});
+          if (trigMap[type]) {
+            return callProxy('adminMarkAction', {token: currentToken, actionId: trigMap[type]})
+              .then(function() { return r; });
+          }
+          return r;
+        }
+        return r;
+      })
+      .then(function(r) {
+        hideLoading();
+        if (r && r.success) {
           delete detailCache[currentToken];
           alert('✅ Email "' + (typeNames[type]||type) + '" enviado correctamente');
           openModal(currentToken);
@@ -1066,7 +1100,10 @@
           alert('❌ Error: ' + (r ? r.message : 'Sin respuesta'));
         }
       })
-      .catch(function(e) { alert('Error enviando email: ' + e.message); });
+      .catch(function(e) {
+        hideLoading();
+        alert('Error enviando email: ' + e.message);
+      });
   }
 
   // === LEGAL VIEW ===
