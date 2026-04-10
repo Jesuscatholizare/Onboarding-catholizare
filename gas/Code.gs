@@ -617,7 +617,7 @@ function sendPhase2AndGuidesEmail(email, firstName, token) {
     '<p style="margin:0 0 12px 0;color:#666;font-size:14px;">Notas para contactar a tus pacientes</p>' +
     '<a href="https://drive.google.com/file/d/1cmbn9-azJ0v1iCpdYvse6xBPNoGHeLYv/view?usp=sharing" style="color:#b8860b;text-decoration:none;font-weight:600;font-size:14px;">→ Descarga el PDF</a></td></tr></table>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="https://drive.google.com/file/d/1tCzYAzO9EXpzquvHGcsTnFZntsyCqApn/view?usp=drive_link" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;box-shadow:0 4px 12px rgba(0,26,85,0.25);">📚 VER TODAS LAS GUÍAS</a></td></tr></table>' +
+    '<a href="https://drive.google.com/file/d/1tCzYAzO9EXpzquvHGcsTnFZntsyCqApn/view?usp=drive_link" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;box-shadow:0 4px 12px rgba(0,26,85,0.25);">📚 VER TODAS LAS GUÍAS</a></td></tr></table>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:#e3f2fd;border-radius:10px;margin:25px 0;"><tr><td style="padding:20px;">' +
     '<p style="margin:0;color:#001A55;font-size:14px;line-height:1.6;">📅 <strong>Próximo paso:</strong> Recibirás un email para agendar tu reunión de bienvenida por Zoom.</p></td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
@@ -659,7 +659,7 @@ function sendPhase3WelcomeEmail(email, firstName, token) {
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:#fff3cd;border-radius:10px;border-left:4px solid #D4AF37;margin:25px 0;"><tr><td style="padding:20px;">' +
     '<p style="margin:0;color:#666;font-size:14px;line-height:1.6;">🎓 <strong>Extra:</strong> Si tienes dudas de un caso también las puedes externar para que puedan ser contestadas en un post por uno de nuestros expertos.</p></td></tr></table>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="https://profesionales.catholizare.com/" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">🚀 COMENZAR MI FORMACIÓN</a></td></tr></table>' +
+    '<a href="https://profesionales.catholizare.com/" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">🚀 COMENZAR MI FORMACIÓN</a></td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Bendiciones,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
     '</table></td></tr></table></body></html>';
@@ -698,7 +698,7 @@ function sendBlogInviteEmail(email, firstName, token) {
     '<li style="margin-bottom:8px;">Contribuir al crecimiento de la comunidad</li>' +
     '<li>Posicionamiento como experto en tu área</li></ul></td></tr></table>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="https://wa.me/5215510223883?text=Quiero%20participar%20escribiendo%20un%20post" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">✍️ ENVIAR MI PRIMER ARTÍCULO</a></td></tr></table>' +
+    '<a href="https://wa.me/5215510223883?text=Quiero%20participar%20escribiendo%20un%20post" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">✍️ ENVIAR MI PRIMER ARTÍCULO</a></td></tr></table>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:#e3f2fd;border-radius:10px;margin:25px 0;"><tr><td style="padding:15px;">' +
     '<p style="margin:0;color:#666;font-size:13px;line-height:1.6;">💡 <strong>Nota:</strong> No te preocupes por el formato perfecto. Nuestro equipo editorial te ayudará a pulir y dar formato a tu artículo antes de publicarlo.</p></td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
@@ -741,7 +741,7 @@ function sendMonthlyMeetingEmail(email, firstName, token) {
     '<li style="margin-bottom:10px;">Espacio de oración comunitaria</li>' +
     '<li>Actualizaciones de la plataforma</li></ul>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="https://us06web.zoom.us/j/83347662979?pwd=gQDTtfI5x3wduMYYJOXXINFCgqsWx8.1" style="display:inline-block;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(40,167,69,0.3);">✅ CONFIRMAR ASISTENCIA</a></td></tr></table>' +
+    '<a href="https://us06web.zoom.us/j/83347662979?pwd=gQDTtfI5x3wduMYYJOXXINFCgqsWx8.1" style="display:inline-block;background-color:#28a745;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(40,167,69,0.3);">✅ CONFIRMAR ASISTENCIA</a></td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">En Cristo,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
     '</table></td></tr></table></body></html>';
@@ -1041,7 +1041,7 @@ function sendWelcomeEmail(email, nombre, token) {
     '<tr><td style="text-align:center;padding:10px;">' +
     '<a href="' + profileFormUrl + '" style="display:inline-block;background:#ffffff;border:2px solid #001A55;color:#001A55;text-decoration:none;padding:14px 30px;border-radius:50px;font-size:15px;font-weight:700;width:80%;box-sizing:border-box;">📝 Completar Información de Perfil</a></td></tr>' +
     '<tr><td style="text-align:center;padding:10px;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#ffffff;text-decoration:none;padding:16px 30px;border-radius:50px;font-size:16px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);width:80%;box-sizing:border-box;">🚀 IR A MI DASHBOARD</a></td></tr></table>' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#ffffff;text-decoration:none;padding:16px 30px;border-radius:50px;font-size:16px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);width:80%;box-sizing:border-box;">🚀 IR A MI DASHBOARD</a></td></tr></table>' +
     
     '<p style="margin:30px 0 0 0;color:#333;font-size:16px;">Con gratitud y en Cristo,<br><strong style="color:#001A55;">Equipo de Catholizare Pro</strong></p>' +
     '</td></tr>' +
@@ -1078,7 +1078,7 @@ function sendReminder1(email, nombre, progreso, token) {
     '<p style="margin:10px 0 0 0;text-align:center;color:#001A55;font-size:20px;font-weight:700;">' + progreso + '% completado</p>' +
     '</td></tr></table>' +
     '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 45px;border-radius:50px;font-size:17px;font-weight:700;">📊 VER MI PROGRESO</a>' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 45px;border-radius:50px;font-size:17px;font-weight:700;">📊 VER MI PROGRESO</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr>' +
@@ -1118,7 +1118,7 @@ function sendReminder2(email, nombre, progreso, token) {
     '<div style="width:100%;height:30px;background:#e0e0e0;border-radius:15px;overflow:hidden;margin-bottom:30px;">' +
     '<div style="width:' + progreso + '%;height:100%;background:' + progGrad + ';"></div></div>' +
     '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:#fff;text-decoration:none;padding:20px 55px;border-radius:50px;font-size:19px;font-weight:800;text-transform:uppercase;">⚡ COMPLETAR AHORA</a>' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#c82333;background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:#fff;text-decoration:none;padding:20px 55px;border-radius:50px;font-size:19px;font-weight:800;text-transform:uppercase;">⚡ COMPLETAR AHORA</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Estamos aquí para ayudarte,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr>' +
@@ -1150,7 +1150,7 @@ function sendIncompleteNotification(email, nombre) {
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f8f9fa;border-radius:10px;border-left:4px solid #6c757d;margin:25px 0;">' +
     '<tr><td style="padding:20px;"><p style="margin:0;color:#495057;font-size:16px;font-weight:600;">Tu estado ha sido cambiado a <strong>"Incompleto"</strong>.</p></td></tr></table>' +
     '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="mailto:' + config.ADMIN_EMAIL + '?subject=Solicitud%20de%20extensión" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;">📧 CONTACTAR A SOPORTE</a>' +
+    '<a href="mailto:' + config.ADMIN_EMAIL + '?subject=Solicitud%20de%20extensión" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;">📧 CONTACTAR A SOPORTE</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Con aprecio,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr>' +
@@ -1210,7 +1210,7 @@ function sendZoomReminderEmail(email, nombre, fechaReunion) {
     '<p style="margin:0 0 8px 0;color:#001A55;font-size:16px;font-weight:700;">🔗 Link de Zoom:</p>' +
     '<p style="margin:0;font-size:14px;word-break:break-all;"><a href="' + config.ZOOM_LINK + '" style="color:#003ABA;">' + config.ZOOM_LINK + '</a></p></td></tr></table>' +
     '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
-    '<a href="' + googleCalendarLink + '" target="_blank" style="display:inline-block;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;">📅 AGREGAR A MI CALENDARIO</a>' +
+    '<a href="' + googleCalendarLink + '" target="_blank" style="display:inline-block;background-color:#28a745;background:linear-gradient(135deg,#28a745 0%,#20c997 100%);color:#fff;text-decoration:none;padding:16px 40px;border-radius:50px;font-size:17px;font-weight:700;">📅 AGREGAR A MI CALENDARIO</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr>' +
@@ -1284,7 +1284,7 @@ function sendAnnualUpdateEmail(email, nombre, token, anios) {
     '<li style="margin-bottom:8px;">Tu Curriculum Vitae</li><li style="margin-bottom:8px;">Certificaciones nuevas</li>' +
     '<li style="margin-bottom:8px;">Especialidades o enfoques</li><li>Disponibilidad de horarios</li></ul></td></tr></table>' +
     '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;">✏️ ACTUALIZAR MI PERFIL</a>' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;">✏️ ACTUALIZAR MI PERFIL</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Con inmensa gratitud y cariño,<br><strong style="color:#001A55;">Equipo de Catholizare Pro</strong></p>' +
     '</td></tr>' +
