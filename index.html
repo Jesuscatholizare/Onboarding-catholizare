@@ -333,6 +333,19 @@
         btn.style.pointerEvents = 'auto';
       }
     }
+
+    // Auto-login desde enlaces de email (?token=ONB-xxx o ?token=ADMIN-xxx)
+    (function checkEmailLink() {
+      var params = new URLSearchParams(window.location.search);
+      var urlToken = params.get('token');
+      if (urlToken) {
+        // Limpiar URL inmediatamente (seguridad)
+        history.replaceState(null, '', window.location.pathname);
+        // Llenar el campo y auto-enviar
+        document.getElementById('password').value = urlToken;
+        handleLogin(new Event('submit'));
+      }
+    })();
   </script>
 </body>
 </html>

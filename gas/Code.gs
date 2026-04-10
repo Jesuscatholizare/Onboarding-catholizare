@@ -1008,10 +1008,9 @@ function sendEmailViaBrevo(to, subject, htmlContent) {
 // ============================================================================
 
 function sendWelcomeEmail(email, nombre, token) {
-  var scriptUrl = ScriptApp.getService().getUrl();
-  var dashboardLink = scriptUrl + '?token=' + token;
-  var legalFormUrl = scriptUrl + '?page=aceptacion_terminos&token=' + token;
-  var profileFormUrl = scriptUrl + '?page=informacion_perfil&token=' + token;
+  var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
+  var legalFormUrl = SERVER_BASE + '/index.html?token=' + token;
+  var profileFormUrl = SERVER_BASE + '/index.html?token=' + token;
   var subject = "¡Bienvenido a Catholizare Pro! - Inicia tu Onboarding";
   
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
@@ -1032,7 +1031,7 @@ function sendWelcomeEmail(email, nombre, token) {
     '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;">📋 Pasos a completar:</h3>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:20px;">' +
     '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">1.</span><span style="color:#333;font-size:15px;"><strong>Subir documentos:</strong> CV, Cédula Profesional + RFC, Foto de Perfil, Carta de Sacerdote</span></td></tr>' +
-    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">2.</span><span style="color:#333;font-size:15px;"><strong>Aceptar documentos legales:</strong> Código de Ética, Colaboración, Privacidad, Cesión de Contenidos</span></td></tr>' +
+    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">2.</span><span style="color:#333;font-size:15px;"><strong>Aceptar documentos legales:</strong> Contrato de Intermediación, Términos y Condiciones, Aviso de Privacidad</span></td></tr>' +
     '<tr><td style="padding:12px;"><span style="color:#28a745;font-size:18px;margin-right:10px;">3.</span><span style="color:#333;font-size:15px;"><strong>Completar tu perfil:</strong> Servicios, modalidad, horarios, enfoque terapéutico</span></td></tr></table>' +
     
     '<h3 style="margin:30px 0 15px 0;color:#001A55;font-size:18px;">🔗 Tus enlaces personales:</h3>' +
@@ -1059,8 +1058,7 @@ function sendWelcomeEmail(email, nombre, token) {
 // ============================================================================
 
 function sendReminder1(email, nombre, progreso, token) {
-  var scriptUrl = ScriptApp.getService().getUrl();
-  var dashboardLink = scriptUrl + '?token=' + token;
+  var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
   var subject = "Recordatorio amigable - Completa tu onboarding en Catholizare Pro";
   
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
@@ -1097,8 +1095,7 @@ function sendReminder1(email, nombre, progreso, token) {
 // ============================================================================
 
 function sendReminder2(email, nombre, progreso, token) {
-  var scriptUrl = ScriptApp.getService().getUrl();
-  var dashboardLink = scriptUrl + '?token=' + token;
+  var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
   var subject = "⚠️ URGENTE - Solo quedan 20 días para completar tu onboarding";
   
   var progColor = progreso >= 50 ? '#28a745' : '#dc3545';
@@ -1247,9 +1244,8 @@ function createGoogleCalendarLink(fecha, nombre) {
 
 function sendAnnualUpdateEmail(email, nombre, token, anios) {
   anios = anios || 1;
-  var scriptUrl = ScriptApp.getService().getUrl();
-  var dashboardLink = scriptUrl + '?token=' + token;
-  
+  var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
+
   // Mensajes personalizados por año
   var mensajes = {
     1: { emoji: '🎉', titulo: '¡Feliz Primer Aniversario!', color: '#D4AF37', msg: 'Ha pasado <strong>un año increíble</strong> desde que te uniste a nuestra familia de profesionales católicos. ¡Estamos muy orgullosos de tenerte!' },
@@ -1306,8 +1302,7 @@ function sendAnnualUpdateEmail(email, nombre, token, anios) {
 
 function notifyAdminForZoomScheduling(profesionalEmail, profesionalNombre, token) {
   var config = getConfig();
-  var scriptUrl = ScriptApp.getService().getUrl();
-  var dashboardLink = scriptUrl + '?token=' + token;
+  var dashboardLink = SERVER_BASE + '/Admin_Dashboard_Complete.html';
   var subject = '[Acción requerida] Agendar reunión Zoom para ' + profesionalNombre;
   
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
@@ -1449,8 +1444,7 @@ function sendAnnualCVUpdateReminders() {
 
 function moveContactToBrevoPhase(email, nombre, nuevaFase, token) {
   var config = getConfig();
-  var scriptUrl = ScriptApp.getService().getUrl();
-  var dashboardLink = scriptUrl + '?token=' + token;
+  var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
   var nombreParts = nombre.split(' ');
   
   var endpoint = 'https://api.brevo.com/v3/contacts/' + encodeURIComponent(email);
@@ -1481,15 +1475,15 @@ function moveContactToBrevoPhase(email, nombre, nuevaFase, token) {
 
 function addContactToBrevo(email, nombre, token, fase) {
   var config = getConfig();
-  var scriptUrl = ScriptApp.getService().getUrl();
+  var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
   var nombreParts = nombre.split(' ');
   var listId = config.LIST_IDS[fase];
-  
+
   Logger.log('📋 Brevo: Agregando ' + email + ' a lista ' + fase + ' (ID: ' + listId + ')');
-  
+
   var payload = {
     email: email,
-    attributes: { FIRSTNAME: nombreParts[0], LASTNAME: nombreParts.slice(1).join(' ') || '', DASHBOARD_LINK: scriptUrl + '?token=' + token, TOKEN: token, FASE_ACTUAL: fase, FECHA_INICIO: new Date().toISOString().split('T')[0] },
+    attributes: { FIRSTNAME: nombreParts[0], LASTNAME: nombreParts.slice(1).join(' ') || '', DASHBOARD_LINK: dashboardLink, TOKEN: token, FASE_ACTUAL: fase, FECHA_INICIO: new Date().toISOString().split('T')[0] },
     listIds: [listId],
     updateEnabled: true
   };
