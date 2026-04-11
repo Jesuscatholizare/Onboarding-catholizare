@@ -185,17 +185,92 @@
       font-weight: 600;
     }
 
-    /* OTP section */
-    .otp-section {
-      margin: 16px 0;
-      padding: 12px 16px;
-      background: #fefce8;
-      border: 1px solid #fef08a;
-      border-radius: 8px;
+    /* Código de firma */
+    .codigo-section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f0f7ff;
+      border: 2px solid #bfdbfe;
+      border-radius: 12px;
+      transition: all 0.3s;
     }
-    .otp-section label { font-size: 13px; font-weight: 500; color: #854d0e; }
-    .otp-section input { margin-top: 6px; }
-    .otp-section .hint { color: #a16207; }
+    .codigo-section.sent {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .codigo-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .codigo-desc { font-size: 13px; color: var(--gray-600); margin-bottom: 14px; line-height: 1.5; }
+    .codigo-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+    .btn-request-code {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      background: var(--navy);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 180px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-request-code:hover:not(:disabled) { background: var(--blue); }
+    .btn-request-code:disabled { background: #9ca3b4; cursor: not-allowed; }
+    .codigo-input-wrap { display: none; margin-top: 14px; }
+    .codigo-section.sent .codigo-input-wrap { display: block; }
+    .codigo-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #86efac;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 10px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      color: var(--navy);
+      background: white;
+    }
+    .codigo-input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(0,58,186,0.1);
+    }
+    .codigo-sent-msg {
+      font-size: 13px;
+      color: var(--green);
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #f0fdf4;
+      border-radius: 6px;
+      display: none;
+    }
+    .codigo-section.sent .codigo-sent-msg { display: block; }
+    .btn-resend {
+      margin-top: 8px;
+      background: transparent;
+      border: none;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px 0;
+    }
+    .btn-resend:disabled { color: var(--gray-400); cursor: not-allowed; text-decoration: none; }
 
     /* Alert */
     .alert {
@@ -297,15 +372,26 @@
           </div>
         </div>
 
-        <div class="otp-section">
-          <label>OTP / PIN de verificación (opcional)</label>
-          <input type="text" id="inputOTP" placeholder="Déjalo vacío si no aplica" style="width:100%;padding:8px 12px;border:1px solid #fef08a;border-radius:6px;font-size:14px;">
-          <span class="hint">Solo si se te proporcionó un código de verificación adicional</span>
-        </div>
-
         <div class="checkbox-row" onclick="toggleCheck()">
           <input type="checkbox" id="checkAccept">
           <label for="checkAccept" id="checkLabel">He leído y acepto este documento</label>
+        </div>
+
+        <div class="codigo-section" id="codigoSection">
+          <div class="codigo-title">Código de firma</div>
+          <div class="codigo-desc">
+            Para que tu firma quede registrada como legítima te enviaremos un código de 6 dígitos a tu correo. Es único para este contrato y de un solo uso.
+          </div>
+          <div class="codigo-row">
+            <button type="button" class="btn-request-code" id="btnSolicitarCodigo" onclick="solicitarCodigoFirma()">
+              Enviar código a mi correo
+            </button>
+          </div>
+          <div class="codigo-input-wrap">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="inputCodigo" class="codigo-input" placeholder="------" autocomplete="one-time-code">
+            <div class="codigo-sent-msg" id="codigoSentMsg">Te enviamos un código a tu correo. Escríbelo arriba.</div>
+            <button type="button" class="btn-resend" id="btnResend" onclick="solicitarCodigoFirma()" disabled>Reenviar código</button>
+          </div>
         </div>
 
         <button class="btn-accept" id="btnAccept" disabled onclick="firmarDocumento()">
@@ -413,26 +499,103 @@
       }
     }
 
+    var codigoSolicitado = false;
+    var resendCooldownTimer = null;
+
     function toggleCheck() {
       var cb = document.getElementById('checkAccept');
       cb.checked = !cb.checked;
-      document.getElementById('btnAccept').disabled = !cb.checked;
+      updateBtnAcceptState();
     }
 
-    document.getElementById('checkAccept').addEventListener('change', function() {
-      document.getElementById('btnAccept').disabled = !this.checked;
+    document.getElementById('checkAccept').addEventListener('change', updateBtnAcceptState);
+
+    function updateBtnAcceptState() {
+      var checked = document.getElementById('checkAccept').checked;
+      var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
+      document.getElementById('btnAccept').disabled = !(checked && codigoSolicitado && codigo.length === 6);
+    }
+
+    document.getElementById('inputCodigo').addEventListener('input', function(e) {
+      // Solo dígitos
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+      updateBtnAcceptState();
     });
+
+    function solicitarCodigoFirma() {
+      // Validar datos mínimos antes de pedir el código
+      var nombre = document.getElementById('inputNombre').value.trim();
+      var correo = document.getElementById('inputCorreo').value.trim();
+      var telefono = document.getElementById('inputTelefono').value.trim();
+      if (!nombre) { showAlert('Escribe tu nombre completo antes de pedir el código.', 'error'); return; }
+      if (!correo || !correo.includes('@')) { showAlert('Escribe un correo válido antes de pedir el código.', 'error'); return; }
+      if (!telefono) { showAlert('Escribe tu teléfono antes de pedir el código.', 'error'); return; }
+
+      var btn = document.getElementById('btnSolicitarCodigo');
+      var btnResend = document.getElementById('btnResend');
+      btn.disabled = true;
+      btnResend.disabled = true;
+      var originalBtnHtml = btn.innerHTML;
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:3px;margin:0;"></div> Enviando...';
+
+      callProxy('solicitarCodigoFirma', {
+        token: TOKEN,
+        docId: DOC_ID,
+        email: correo
+      }).then(function(r) {
+        if (r && r.success) {
+          codigoSolicitado = true;
+          document.getElementById('codigoSection').classList.add('sent');
+          document.getElementById('codigoSentMsg').textContent =
+            'Te enviamos un código de 6 dígitos a ' + (r.email || 'tu correo') + '. Vigencia: ' + (r.vigenciaMinutos || 15) + ' minutos.';
+          btn.style.display = 'none';
+          document.getElementById('inputCodigo').focus();
+          showAlert('Código enviado. Revisa tu correo (y la bandeja de spam por si acaso).', 'success');
+          startResendCooldown();
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = originalBtnHtml;
+          showAlert((r && r.message) || 'No pudimos enviar el código. Intenta de nuevo.', 'error');
+        }
+      }).catch(function(e) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+        showAlert('Error de conexión: ' + e.message, 'error');
+      });
+    }
+
+    function startResendCooldown() {
+      var btnResend = document.getElementById('btnResend');
+      var secs = 60;
+      btnResend.disabled = true;
+      btnResend.textContent = 'Reenviar código (' + secs + 's)';
+      clearInterval(resendCooldownTimer);
+      resendCooldownTimer = setInterval(function() {
+        secs--;
+        if (secs <= 0) {
+          clearInterval(resendCooldownTimer);
+          btnResend.disabled = false;
+          btnResend.textContent = 'Reenviar código';
+        } else {
+          btnResend.textContent = 'Reenviar código (' + secs + 's)';
+        }
+      }, 1000);
+    }
 
     function firmarDocumento() {
       var nombre = document.getElementById('inputNombre').value.trim();
       var correo = document.getElementById('inputCorreo').value.trim();
       var telefono = document.getElementById('inputTelefono').value.trim();
       var rfc = document.getElementById('inputRFC').value.trim().toUpperCase();
-      var otp = document.getElementById('inputOTP').value.trim();
+      var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
 
       if (!nombre) { showAlert('Ingresa tu nombre completo.', 'error'); return; }
       if (!correo || !correo.includes('@')) { showAlert('Ingresa un correo válido.', 'error'); return; }
       if (!telefono) { showAlert('Ingresa tu número de teléfono.', 'error'); return; }
+      if (!codigoSolicitado || codigo.length !== 6) {
+        showAlert('Necesitas solicitar y escribir el código de firma de 6 dígitos.', 'error');
+        return;
+      }
 
       var btn = document.getElementById('btnAccept');
       btn.disabled = true;
@@ -445,7 +608,7 @@
         correo: correo,
         telefono: telefono,
         rfc: rfc,
-        otp: otp
+        otp: codigo
       })
       .then(function(r) {
         if (r.success) {

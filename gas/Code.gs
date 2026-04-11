@@ -426,6 +426,15 @@ function doPost(e) {
       case 'aceptarDocumento':
         result = aceptarDocumento(data);
         break;
+      case 'solicitarCodigoFirma':
+        result = solicitarCodigoFirma(data);
+        break;
+      case 'listLegalAcceptances':
+        result = listLegalAcceptances(data.query, data.adminToken);
+        break;
+      case 'getLegalAcceptanceDetail':
+        result = getLegalAcceptanceDetail(data.folio, data.adminToken);
+        break;
 
       default:
         result = { success: false, message: 'Accion no reconocida: ' + action };
@@ -2249,6 +2258,17 @@ function aceptarDocumento(data) {
       }
     }
 
+    // === Validación obligatoria del código de firma (OTP) ===
+    var codigoIngresado = String(data.otp || '').replace(/\s+/g, '');
+    if (!codigoIngresado) {
+      return { success: false, message: "Falta el código de firma. Solicítalo y escribe los 6 dígitos que llegaron a tu correo." };
+    }
+    var otpCheck = consumirCodigoFirma(token, docId, doc.version, codigoIngresado, data.clientIP);
+    if (!otpCheck.success) {
+      return { success: false, message: otpCheck.message };
+    }
+    var folioOtp = otpCheck.folioOtp;
+
     // Generar folio
     var now = new Date();
     var year = now.getFullYear();
@@ -2269,8 +2289,8 @@ function aceptarDocumento(data) {
     var telefono = data.telefono || '';
     var rfc = data.rfc || '';
     var ip = data.clientIP || 'No disponible';
-    var metodo = 'Checkbox + botón "Firmar y aceptar" en plataforma web';
-    var tokenOtp = data.otp || 'N/A (opcional)';
+    var metodo = 'Checkbox + botón "Firmar y aceptar" + código de firma (6 dígitos) enviado por correo';
+    var tokenOtp = folioOtp;
 
     // Registrar la aceptación
     aceptSheet.appendRow([
@@ -2297,6 +2317,367 @@ function aceptarDocumento(data) {
     };
   } catch (error) {
     Logger.log("Error en aceptarDocumento: " + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+// ============================================================================
+// CÓDIGO DE FIRMA (OTP) — Un solo uso por contrato
+// ============================================================================
+// Hoja: OTP_Firma
+// Columnas: Folio_OTP | Token | DocId | Version | Email | Codigo | Estado |
+//           Fecha_Generacion | Fecha_Envio | Fecha_Uso | IP_Solicitud | IP_Uso | Intentos
+// Estados: PENDIENTE | USADO | EXPIRADO | CANCELADO
+// Vigencia: 15 minutos desde generación
+// ============================================================================
+
+var OTP_VIGENCIA_MIN = 15;
+var OTP_MAX_INTENTOS = 5;
+
+function getOtpSheet_() {
+  var sheet = getSS().getSheetByName("OTP_Firma");
+  if (!sheet) {
+    sheet = getSS().insertSheet("OTP_Firma");
+    sheet.appendRow([
+      'Folio_OTP', 'Token', 'DocId', 'Version', 'Email', 'Codigo', 'Estado',
+      'Fecha_Generacion', 'Fecha_Envio', 'Fecha_Uso', 'IP_Solicitud', 'IP_Uso', 'Intentos'
+    ]);
+  }
+  return sheet;
+}
+
+/**
+ * Genera un código de firma de 6 dígitos para un contrato específico,
+ * lo registra en OTP_Firma (cancelando cualquier otro pendiente del mismo
+ * profesional+contrato) y lo envía por correo.
+ *
+ * Data: { token, docId, email (opcional) }
+ */
+function solicitarCodigoFirma(data) {
+  try {
+    var token = String(data.token || '').trim();
+    var docId = String(data.docId || '').trim();
+    if (!token || !docId) return { success: false, message: 'Faltan datos (token, docId).' };
+
+    var prof = getProfessionalByToken(token);
+    if (!prof) return { success: false, message: 'Token de profesional inválido.' };
+
+    var docResult = getDocumentoLegal(docId);
+    if (!docResult.success) return docResult;
+    var doc = docResult.documento;
+
+    // Si ya firmó este contrato en esta versión, rechazar
+    var aceptSheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (aceptSheet && aceptSheet.getLastRow() > 1) {
+      var existing = aceptSheet.getDataRange().getValues();
+      for (var i = 1; i < existing.length; i++) {
+        if (existing[i][4] === token && existing[i][1] === docId && String(existing[i][2]) === doc.version) {
+          return { success: false, message: 'Este contrato ya fue firmado (folio ' + existing[i][0] + ').' };
+        }
+      }
+    }
+
+    var otpSheet = getOtpSheet_();
+    var values = otpSheet.getDataRange().getValues();
+
+    // Cancelar cualquier código PENDIENTE previo del mismo profesional+doc+version
+    for (var j = 1; j < values.length; j++) {
+      if (values[j][1] === token && values[j][2] === docId && String(values[j][3]) === doc.version && values[j][6] === 'PENDIENTE') {
+        otpSheet.getRange(j + 1, 7).setValue('CANCELADO');
+      }
+    }
+
+    // Generar código de 6 dígitos (rango 100000–999999 para evitar ceros a la izquierda confusos)
+    var codigo = String(Math.floor(100000 + Math.random() * 900000));
+
+    // Folio OTP
+    var now = new Date();
+    var year = now.getFullYear();
+    var month = ('0' + (now.getMonth() + 1)).slice(-2);
+    var seq = ('00000' + (otpSheet.getLastRow())).slice(-5);
+    var folioOtp = 'OTP-' + year + '-' + month + '-' + seq;
+
+    var email = String(data.email || prof.email || '').trim();
+    var ip = data.clientIP || 'No disponible';
+
+    otpSheet.appendRow([
+      folioOtp, token, docId, doc.version, email, codigo, 'PENDIENTE',
+      now, '', '', ip, '', 0
+    ]);
+    var newRow = otpSheet.getLastRow();
+
+    // Enviar por correo
+    var envio = sendCodigoFirmaEmail_(email, prof.nombre, doc, codigo, folioOtp);
+    if (envio.success) {
+      otpSheet.getRange(newRow, 9).setValue(new Date()); // Fecha_Envio
+    }
+
+    // Log
+    try {
+      logAction(token, email, 'Código de firma solicitado para ' + docId + ' (v' + doc.version + ') — Folio ' + folioOtp, 'OTP_Solicitud', '', folioOtp, 'Profesional');
+    } catch(e) {}
+
+    if (!envio.success) {
+      return { success: false, message: 'No pudimos enviar el código por correo: ' + (envio.message || 'error desconocido') };
+    }
+
+    return {
+      success: true,
+      folioOtp: folioOtp,
+      email: maskEmail_(email),
+      vigenciaMinutos: OTP_VIGENCIA_MIN,
+      message: 'Código enviado a tu correo. Vigencia: ' + OTP_VIGENCIA_MIN + ' minutos.'
+    };
+  } catch (error) {
+    Logger.log('Error solicitarCodigoFirma: ' + error);
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Valida y consume un código de firma. Se llama internamente desde aceptarDocumento.
+ * Marca el código como USADO (single-use). Devuelve el folio OTP para audit trail.
+ */
+function consumirCodigoFirma(token, docId, version, codigo, clientIP) {
+  try {
+    var otpSheet = getOtpSheet_();
+    if (otpSheet.getLastRow() < 2) {
+      return { success: false, message: 'No hay ningún código de firma activo. Solicítalo primero.' };
+    }
+    var values = otpSheet.getDataRange().getValues();
+    var now = new Date();
+    var vigenciaMs = OTP_VIGENCIA_MIN * 60 * 1000;
+
+    // Buscar el PENDIENTE más reciente para ese profesional+doc+version
+    var matchIdx = -1;
+    for (var i = values.length - 1; i >= 1; i--) {
+      if (values[i][1] === token && values[i][2] === docId && String(values[i][3]) === String(version) && values[i][6] === 'PENDIENTE') {
+        matchIdx = i;
+        break;
+      }
+    }
+    if (matchIdx === -1) {
+      return { success: false, message: 'No hay código pendiente para este contrato. Solicítalo de nuevo.' };
+    }
+
+    var row = values[matchIdx];
+    var rowNum = matchIdx + 1;
+    var intentos = Number(row[12] || 0);
+
+    // Expiración
+    var fechaGen = row[7] instanceof Date ? row[7] : new Date(row[7]);
+    if (now.getTime() - fechaGen.getTime() > vigenciaMs) {
+      otpSheet.getRange(rowNum, 7).setValue('EXPIRADO');
+      return { success: false, message: 'El código expiró (vigencia de ' + OTP_VIGENCIA_MIN + ' minutos). Solicita uno nuevo.' };
+    }
+
+    // Comparación estricta (6 dígitos)
+    var stored = String(row[5] || '').replace(/\s+/g, '');
+    var provided = String(codigo || '').replace(/\s+/g, '');
+    if (stored !== provided) {
+      intentos++;
+      otpSheet.getRange(rowNum, 13).setValue(intentos);
+      if (intentos >= OTP_MAX_INTENTOS) {
+        otpSheet.getRange(rowNum, 7).setValue('CANCELADO');
+        return { success: false, message: 'Demasiados intentos fallidos. Solicita un código nuevo.' };
+      }
+      return { success: false, message: 'Código incorrecto. Te quedan ' + (OTP_MAX_INTENTOS - intentos) + ' intento(s).' };
+    }
+
+    // OK: marcar como USADO
+    otpSheet.getRange(rowNum, 7).setValue('USADO');
+    otpSheet.getRange(rowNum, 10).setValue(now);
+    otpSheet.getRange(rowNum, 12).setValue(clientIP || 'No disponible');
+
+    try {
+      logAction(token, row[4] || '', 'Código de firma usado para ' + docId + ' (v' + version + ') — Folio ' + row[0], 'OTP_Uso', '', row[0], 'Profesional');
+    } catch(e) {}
+
+    return { success: true, folioOtp: row[0] };
+  } catch (error) {
+    Logger.log('Error consumirCodigoFirma: ' + error);
+    return { success: false, message: 'Error al validar el código: ' + error.toString() };
+  }
+}
+
+/**
+ * Envía el código de firma por correo usando Brevo.
+ */
+function sendCodigoFirmaEmail_(email, nombre, doc, codigo, folioOtp) {
+  try {
+    if (!email) return { success: false, message: 'Correo vacío' };
+    var subject = 'Tu código de firma para ' + doc.titulo;
+    var primerNombre = (nombre || '').split(' ')[0] || 'Profesional';
+    var html =
+      '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f8f9fc;padding:20px;">' +
+        '<div style="background:#001A55;color:white;padding:28px;text-align:center;border-radius:12px 12px 0 0;">' +
+          '<h1 style="margin:0;font-size:22px;">Código de firma</h1>' +
+          '<p style="margin:6px 0 0;opacity:0.85;font-size:13px;">Catholizare Pro — Onboarding</p>' +
+        '</div>' +
+        '<div style="padding:32px 28px;background:white;border:1px solid #eef0f5;">' +
+          '<p style="margin:0 0 12px;font-size:15px;color:#001A55;">Hola <strong>' + primerNombre + '</strong>,</p>' +
+          '<p style="margin:0 0 20px;font-size:14px;color:#5A6275;line-height:1.6;">' +
+            'Este es el código de firma que necesitas para confirmar la aceptación de <strong>' + doc.titulo + '</strong> (versión ' + doc.version + ').' +
+          '</p>' +
+          '<div style="background:#f0f7ff;border:2px dashed #003ABA;border-radius:12px;padding:28px;text-align:center;margin:24px 0;">' +
+            '<div style="font-size:12px;color:#5A6275;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Tu código</div>' +
+            '<div style="font-size:42px;font-weight:800;color:#001A55;letter-spacing:12px;font-family:monospace;">' + codigo + '</div>' +
+            '<div style="font-size:12px;color:#9CA3B4;margin-top:10px;">Vigencia: ' + OTP_VIGENCIA_MIN + ' minutos</div>' +
+          '</div>' +
+          '<p style="margin:16px 0;font-size:13px;color:#5A6275;line-height:1.6;">' +
+            'Regresa a la pantalla del contrato, escribe estos 6 dígitos y pulsa <strong>Firmar y aceptar</strong>. El código es de <strong>un solo uso</strong> y solo sirve para este contrato.' +
+          '</p>' +
+          '<div style="background:#fef2f2;border-left:4px solid #DC3545;padding:12px 16px;border-radius:0 8px 8px 0;margin-top:20px;">' +
+            '<p style="margin:0;font-size:12px;color:#991b1b;"><strong>¿No solicitaste este código?</strong> Ignora este correo y repórtalo al equipo de coordinación.</p>' +
+          '</div>' +
+          '<p style="margin-top:20px;font-size:11px;color:#9CA3B4;">Folio de emisión: ' + folioOtp + '</p>' +
+        '</div>' +
+        '<div style="padding:16px;text-align:center;font-size:11px;color:#9CA3B4;">Catholizare Pro — Red de Psicólogos Católicos</div>' +
+      '</div>';
+    return sendEmailViaBrevo(email, subject, html);
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+function maskEmail_(email) {
+  if (!email || email.indexOf('@') === -1) return email;
+  var parts = email.split('@');
+  var user = parts[0];
+  var dom = parts[1];
+  if (user.length <= 2) return user[0] + '***@' + dom;
+  return user.substring(0, 2) + '***' + user.charAt(user.length - 1) + '@' + dom;
+}
+
+// ============================================================================
+// ENDPOINTS ADMIN — Legales (pestaña del super admin)
+// ============================================================================
+
+/**
+ * Lista todas las aceptaciones legales. query: { search, docId, from, to }
+ * Requiere adminToken con rol superadmin.
+ */
+function listLegalAcceptances(query, adminToken) {
+  try {
+    var admin = validateAdminToken(adminToken);
+    if (!admin) return { success: false, message: 'No autorizado.' };
+
+    var sheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (!sheet || sheet.getLastRow() < 2) {
+      return { success: true, data: [] };
+    }
+    var values = sheet.getDataRange().getValues();
+    var rows = [];
+    var search = String((query && query.search) || '').trim().toLowerCase();
+    var filterDoc = String((query && query.docId) || '').trim();
+
+    for (var i = 1; i < values.length; i++) {
+      var r = values[i];
+      var fecha = r[3] instanceof Date ? r[3] : new Date(r[3]);
+      var item = {
+        folio: String(r[0] || ''),
+        docId: String(r[1] || ''),
+        version: String(r[2] || ''),
+        fecha: fecha && !isNaN(fecha.getTime()) ? fecha.toISOString() : '',
+        token: String(r[4] || ''),
+        nombre: String(r[5] || ''),
+        correo: String(r[6] || ''),
+        telefono: String(r[7] || ''),
+        rfc: String(r[8] || ''),
+        ip: String(r[9] || ''),
+        copiaEnviada: String(r[14] || '')
+      };
+      if (filterDoc && item.docId !== filterDoc) continue;
+      if (search) {
+        var hay = (item.folio + ' ' + item.nombre + ' ' + item.correo + ' ' + item.token + ' ' + item.docId).toLowerCase();
+        if (hay.indexOf(search) === -1) continue;
+      }
+      rows.push(item);
+    }
+    // Orden desc por fecha
+    rows.sort(function(a, b) { return (b.fecha || '').localeCompare(a.fecha || ''); });
+    return { success: true, data: rows };
+  } catch (error) {
+    return { success: false, message: error.toString() };
+  }
+}
+
+/**
+ * Devuelve el detalle completo (los 14 campos legales) de una aceptación.
+ */
+function getLegalAcceptanceDetail(folio, adminToken) {
+  try {
+    var admin = validateAdminToken(adminToken);
+    if (!admin) return { success: false, message: 'No autorizado.' };
+
+    var sheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (!sheet || sheet.getLastRow() < 2) return { success: false, message: 'No hay registros.' };
+    var values = sheet.getDataRange().getValues();
+    for (var i = 1; i < values.length; i++) {
+      if (String(values[i][0]) === String(folio)) {
+        var r = values[i];
+        var fecha = r[3] instanceof Date ? r[3] : new Date(r[3]);
+        var fechaEnvio = r[15] instanceof Date ? r[15] : (r[15] ? new Date(r[15]) : null);
+
+        // Buscar datos del OTP asociado
+        var otpInfo = null;
+        try {
+          var otpSheet = getSS().getSheetByName("OTP_Firma");
+          if (otpSheet && otpSheet.getLastRow() > 1) {
+            var otpValues = otpSheet.getDataRange().getValues();
+            for (var j = 1; j < otpValues.length; j++) {
+              if (String(otpValues[j][0]) === String(r[11])) {
+                var fgen = otpValues[j][7] instanceof Date ? otpValues[j][7] : new Date(otpValues[j][7]);
+                var fenv = otpValues[j][8] instanceof Date ? otpValues[j][8] : (otpValues[j][8] ? new Date(otpValues[j][8]) : null);
+                var fuso = otpValues[j][9] instanceof Date ? otpValues[j][9] : (otpValues[j][9] ? new Date(otpValues[j][9]) : null);
+                otpInfo = {
+                  folio: String(otpValues[j][0] || ''),
+                  estado: String(otpValues[j][6] || ''),
+                  emailDestino: maskEmail_(String(otpValues[j][4] || '')),
+                  fechaGeneracion: fgen && !isNaN(fgen.getTime()) ? fgen.toISOString() : '',
+                  fechaEnvio: fenv && !isNaN(fenv.getTime()) ? fenv.toISOString() : '',
+                  fechaUso: fuso && !isNaN(fuso.getTime()) ? fuso.toISOString() : ''
+                };
+                break;
+              }
+            }
+          }
+        } catch (e) { Logger.log('otpInfo lookup error: ' + e); }
+
+        // Título legible del documento
+        var docTitulo = String(r[1] || '');
+        try {
+          var dr = getDocumentoLegal(String(r[1] || ''));
+          if (dr && dr.success) docTitulo = dr.documento.titulo;
+        } catch(e) {}
+
+        return {
+          success: true,
+          detail: {
+            folio: String(r[0] || ''),
+            docId: String(r[1] || ''),
+            docTitulo: docTitulo,
+            version: String(r[2] || ''),
+            fecha: fecha && !isNaN(fecha.getTime()) ? fecha.toISOString() : '',
+            token: String(r[4] || ''),
+            nombre: String(r[5] || ''),
+            correo: String(r[6] || ''),
+            telefono: String(r[7] || ''),
+            rfc: String(r[8] || ''),
+            ip: String(r[9] || ''),
+            metodo: String(r[10] || ''),
+            tokenOtp: String(r[11] || ''),
+            hash: String(r[12] || ''),
+            refSesion: String(r[13] || ''),
+            copiaEnviada: String(r[14] || ''),
+            fechaEnvioCopia: fechaEnvio && !isNaN(fechaEnvio.getTime()) ? fechaEnvio.toISOString() : '',
+            otp: otpInfo
+          }
+        };
+      }
+    }
+    return { success: false, message: 'Folio no encontrado.' };
+  } catch (error) {
     return { success: false, message: error.toString() };
   }
 }

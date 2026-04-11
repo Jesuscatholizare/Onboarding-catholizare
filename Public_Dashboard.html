@@ -532,14 +532,42 @@
           <!-- Tab: Información -->
           <div class="tab-content active" data-tab-content="informacion">
             <div class="grid">
-              
-              <!-- Progreso -->
+
+              <!-- Acciones Pendientes (primario, 2fr) -->
+              <div>
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">🎯 Acciones Pendientes</h3>
+                  </div>
+
+                  <div class="action-list">
+                    ${renderLegalDocs()}
+                    ${renderActionItem(
+                      '👤',
+                      'Perfil Profesional',
+                      'Completa tu información',
+                      status.perfil,
+                      `${BASE}/Public_Perfil.html`
+                    )}
+                    ${renderActionItem(
+                      '📎',
+                      'Subir Documentos',
+                      'CV, cédula, foto, carta',
+                      Object.values(status.documentos).every(v => v),
+                      null,
+                      true
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              <!-- Progreso (secundario, 1fr) -->
               <div>
                 <div class="card">
                   <div class="card-header">
                     <h3 class="card-title">📊 Tu Progreso</h3>
                   </div>
-                  
+
                   <div class="progress-container">
                     <div class="progress-percent">${progreso}%</div>
                     <div class="progress-bar">
@@ -564,34 +592,6 @@
                       <span class="stat-number">${status.fase.replace('Fase ', '')}</span>
                       <span class="stat-label">Fase Actual</span>
                     </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Acciones Pendientes -->
-              <div>
-                <div class="card">
-                  <div class="card-header">
-                    <h3 class="card-title">🎯 Acciones Pendientes</h3>
-                  </div>
-                  
-                  <div class="action-list">
-                    ${renderLegalDocs()}
-                    ${renderActionItem(
-                      '👤',
-                      'Perfil Profesional',
-                      'Completa tu información',
-                      status.perfil,
-                      `${BASE}/Public_Perfil.html`
-                    )}
-                    ${renderActionItem(
-                      '📎',
-                      'Subir Documentos',
-                      'CV, cédula, foto, carta',
-                      Object.values(status.documentos).every(v => v),
-                      null,
-                      true
-                    )}
                   </div>
                 </div>
               </div>

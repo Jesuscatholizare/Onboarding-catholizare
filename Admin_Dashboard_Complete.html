@@ -242,7 +242,7 @@
     </div>
     <div class="sidebar-link" id="navLegal">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
-      Legal
+      Legales
     </div>
     <div class="sidebar-link" id="navAnalitica">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
@@ -415,7 +415,7 @@
     // Sidebar navigation
     document.getElementById('navDashboard').addEventListener('click', function(){ setActive(this); showDashboard(); });
     document.getElementById('navProfesionales').addEventListener('click', function(){ setActive(this); showProfesionales(); });
-    document.getElementById('navLegal').addEventListener('click', function(){ setActive(this); showLegal(); });
+    document.getElementById('navLegal').addEventListener('click', function(){ window.location.href = BASE + '/Admin_legal.html'; });
     document.getElementById('navAnalitica').addEventListener('click', function(){ setActive(this); showAnalitica(); });
     document.getElementById('navUsuarios').addEventListener('click', function(){ setActive(this); showUsuarios(); });
     document.getElementById('navSuperAdmin').addEventListener('click', function(){ setActive(this); showSuperAdmin(); });
