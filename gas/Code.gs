@@ -39,7 +39,7 @@ function setupConfiguration() {
     'BREVO_LIST_FASE2': '15',
     'BREVO_LIST_FASE3': '16',
     'BREVO_LIST_FASE4': '17',
-    'PARENT_FOLDER_ID': '1v6yjl3fCbHhOXDmURItXkqJxpVOjh0nl',
+    'PARENT_FOLDER_ID': '1KNS---a_KVRrmvvjQ-rp7tWSmyooKVPE',
     'ZOOM_LINK': 'https://us06web.zoom.us/j/TU-LINK-ZOOM',
     'ADMIN_EMAIL': 'sistemascatholizare@gmail.com',
     'SELECCION_URL': ''
@@ -546,7 +546,7 @@ function buildLegalAcceptanceMap_() {
       for (var i = 1; i < data.length; i++) {
         var tk = data[i][4]; // token
         var docId = data[i][1]; // doc_id
-        if (!map[tk]) map[tk] = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false, count: 0 };
+        if (!map[tk]) map[tk] = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false, ETICA: false, count: 0 };
         if (map[tk][docId] !== undefined && !map[tk][docId]) {
           map[tk][docId] = true;
           map[tk].count++;
@@ -575,7 +575,7 @@ function calcularProgreso(row, legalCount) {
   if (row[5] !== "" && row[5] !== null) puntos++;
   if (row[6] !== "" && row[6] !== null) puntos++;
   if (row[7] !== "" && row[7] !== null) puntos++;
-  var total = (legalCount !== undefined && legalCount !== null) ? 8 : 6;
+  var total = (legalCount !== undefined && legalCount !== null) ? 9 : 6;
   return Math.round((puntos / total) * 100);
 }
 
@@ -585,7 +585,7 @@ function calcularProgreso(row, legalCount) {
 function calcularPendientes(row, legalCount) {
   var pendientes = 0;
   if (legalCount !== undefined && legalCount !== null) {
-    pendientes += (3 - legalCount);
+    pendientes += (4 - legalCount);
   } else {
     if (!row[11] || row[11].toString().indexOf("ACEPTADO") !== 0) pendientes++;
   }
@@ -1070,7 +1070,7 @@ function buildPendingChecklistHtml_(token) {
   var gray = '#9CA3B4';
 
   // Contratos firmados
-  var contratos = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false };
+  var contratos = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false, ETICA: false };
   try {
     var aSheet = getSS().getSheetByName("Aceptaciones_Legales");
     if (aSheet && aSheet.getLastRow() > 1) {
@@ -1111,6 +1111,7 @@ function buildPendingChecklistHtml_(token) {
     item(contratos.CONTRATO, 'Contrato de Intermediación'),
     item(contratos.TERMINOS, 'Términos y Condiciones'),
     item(contratos.PRIVACIDAD, 'Aviso de Privacidad'),
+    item(contratos.ETICA, 'Código de Ética'),
     item(hasCV, 'CV'),
     item(hasCedula, 'Cédula Profesional'),
     item(hasFoto, 'Foto de Perfil'),
@@ -1118,8 +1119,8 @@ function buildPendingChecklistHtml_(token) {
     item(hasPerfil, 'Perfil Profesional completo')
   ];
 
-  var total = 8;
-  var done = [contratos.CONTRATO, contratos.TERMINOS, contratos.PRIVACIDAD, hasCV, hasCedula, hasFoto, hasCarta, hasPerfil].filter(function(x){ return x; }).length;
+  var total = 9;
+  var done = [contratos.CONTRATO, contratos.TERMINOS, contratos.PRIVACIDAD, contratos.ETICA, hasCV, hasCedula, hasFoto, hasCarta, hasPerfil].filter(function(x){ return x; }).length;
   var pending = total - done;
 
   var html = '<table role="presentation" style="width:100%;border-collapse:collapse;margin:16px 0;">' +

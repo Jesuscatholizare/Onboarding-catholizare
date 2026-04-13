@@ -304,11 +304,42 @@
 
     /* Print styles */
     @media print {
-      .top-bar, .toolbar, .accept-panel, .status-bar { display: none !important; }
+      .top-bar, .toolbar, .accept-panel, .status-bar, .doc-nav { display: none !important; }
       .container { max-width: 100%; padding: 0; }
       .doc-panel { box-shadow: none; border: none; padding: 20px; }
       body { background: white; }
     }
+
+    /* Document navigation */
+    .doc-nav {
+      display: flex;
+      gap: 6px;
+      padding: 10px 24px;
+      background: white;
+      border-bottom: 1px solid var(--gray-100);
+      overflow-x: auto;
+      flex-wrap: wrap;
+    }
+    .doc-nav a {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-decoration: none;
+      border: 1px solid var(--gray-100);
+      white-space: nowrap;
+      transition: all 0.2s;
+    }
+    .doc-nav a:hover { background: var(--gray-50); border-color: var(--blue); color: var(--blue); }
+    .doc-nav a.active { background: var(--navy); color: white; border-color: var(--navy); }
+    .doc-nav .nav-home {
+      margin-right: auto;
+      border: none;
+      color: var(--blue);
+      font-weight: 500;
+    }
+    .doc-nav .nav-home:hover { background: var(--gray-50); }
   </style>
 </head>
 <body>
@@ -317,9 +348,15 @@
     <a href="#" onclick="goBack()">Volver al dashboard</a>
   </div>
 
-  <div class="container">
-    <div id="alertBox" class="alert"></div>
+  <div class="doc-nav" id="docNav">
+    <a class="nav-home" href="#" onclick="goBack(); return false;">← Dashboard</a>
+    <a href="?doc=CONTRATO" id="navCONTRATO">Contrato de Intermediación</a>
+    <a href="?doc=TERMINOS" id="navTERMINOS">Términos y Condiciones</a>
+    <a href="?doc=PRIVACIDAD" id="navPRIVACIDAD">Aviso de Privacidad</a>
+    <a href="?doc=ETICA" id="navETICA">Código de Ética</a>
+  </div>
 
+  <div class="container">
     <div id="loadingArea" class="loading">
       <div class="spinner"></div>
       <p>Cargando documento...</p>
@@ -397,6 +434,8 @@
         <button class="btn-accept" id="btnAccept" disabled onclick="firmarDocumento()">
           Firmar y aceptar
         </button>
+
+        <div id="alertBox" class="alert" style="margin-top:16px;margin-bottom:0;"></div>
       </div>
     </div>
   </div>
@@ -426,11 +465,17 @@
       window.location.href = BASE + '/Public_Dashboard.html';
     }
 
+    // Highlight current doc in nav
+    if (DOC_ID) {
+      var navEl = document.getElementById('nav' + DOC_ID);
+      if (navEl) navEl.classList.add('active');
+    }
+
     function showAlert(msg, type) {
       var el = document.getElementById('alertBox');
       el.textContent = msg;
       el.className = 'alert alert-' + type + ' show';
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     // Load document and status

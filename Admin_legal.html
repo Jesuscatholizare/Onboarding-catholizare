@@ -40,7 +40,7 @@
     .btn-back:hover { background: var(--navy-dark); transform: translateY(-1px); }
 
     /* STATS ROW */
-    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
     .mini-stat { background: white; padding: 16px 20px; border-radius: 10px; border: 1px solid var(--gray-200); }
     .mini-stat .num { font-size: 28px; font-weight: 700; color: var(--navy); }
     .mini-stat .label { font-size: 12px; color: var(--gray-600); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
@@ -71,6 +71,7 @@
     .doc-CONTRATO { background: #dbeafe; color: #1e40af; }
     .doc-TERMINOS { background: #d1fae5; color: #065f46; }
     .doc-PRIVACIDAD { background: #fef3c7; color: #92400e; }
+    .doc-ETICA { background: #f3e8ff; color: #6b21a8; }
 
     .empty { padding: 60px 20px; text-align: center; color: var(--gray-400); }
     .loading { padding: 60px 20px; text-align: center; color: var(--gray-600); }
@@ -133,6 +134,7 @@
       <div class="mini-stat"><div class="num" id="statContrato">—</div><div class="label">Contrato Intermediación</div></div>
       <div class="mini-stat"><div class="num" id="statTerminos">—</div><div class="label">Términos y Condiciones</div></div>
       <div class="mini-stat"><div class="num" id="statPrivacidad">—</div><div class="label">Aviso de Privacidad</div></div>
+      <div class="mini-stat"><div class="num" id="statEtica">—</div><div class="label">Código de Ética</div></div>
     </div>
 
     <div class="toolbar">
@@ -144,6 +146,7 @@
         <option value="CONTRATO">Contrato de Intermediación</option>
         <option value="TERMINOS">Términos y Condiciones</option>
         <option value="PRIVACIDAD">Aviso de Privacidad</option>
+        <option value="ETICA">Código de Ética</option>
       </select>
       <span class="result-count" id="resultCount">—</span>
     </div>
@@ -209,7 +212,7 @@
     }
 
     function docBadge(id) {
-      var labels = { CONTRATO: 'Contrato Intermediación', TERMINOS: 'Términos y Cond.', PRIVACIDAD: 'Aviso de Privacidad' };
+      var labels = { CONTRATO: 'Contrato Intermediación', TERMINOS: 'Términos y Cond.', PRIVACIDAD: 'Aviso de Privacidad', ETICA: 'Código de Ética' };
       var label = labels[id] || id;
       return '<span class="doc-badge doc-' + escapeHtml(id) + '">' + escapeHtml(label) + '</span>';
     }
@@ -244,12 +247,13 @@
 
     function updateStats(rows) {
       var total = rows.length;
-      var c = { CONTRATO: 0, TERMINOS: 0, PRIVACIDAD: 0 };
+      var c = { CONTRATO: 0, TERMINOS: 0, PRIVACIDAD: 0, ETICA: 0 };
       rows.forEach(function(r) { if (c[r.docId] !== undefined) c[r.docId]++; });
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statContrato').textContent = c.CONTRATO;
       document.getElementById('statTerminos').textContent = c.TERMINOS;
       document.getElementById('statPrivacidad').textContent = c.PRIVACIDAD;
+      document.getElementById('statEtica').textContent = c.ETICA;
     }
 
     function renderTable(rows) {
