@@ -533,20 +533,62 @@ function checkAndAdvancePhase(rowNum, rowData) {
   }
 }
 
-function calcularProgreso(row) {
+/**
+ * Pre-carga el mapa de aceptaciones legales por token.
+ * Devuelve { "ONB-xxx": { CONTRATO: true, TERMINOS: false, PRIVACIDAD: true, count: 2 }, ... }
+ */
+function buildLegalAcceptanceMap_() {
+  var map = {};
+  try {
+    var sheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (sheet && sheet.getLastRow() > 1) {
+      var data = sheet.getDataRange().getValues();
+      for (var i = 1; i < data.length; i++) {
+        var tk = data[i][4]; // token
+        var docId = data[i][1]; // doc_id
+        if (!map[tk]) map[tk] = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false, count: 0 };
+        if (map[tk][docId] !== undefined && !map[tk][docId]) {
+          map[tk][docId] = true;
+          map[tk].count++;
+        }
+      }
+    }
+  } catch(e) { Logger.log('buildLegalAcceptanceMap_ error: ' + e); }
+  return map;
+}
+
+/**
+ * Calcula el progreso del onboarding (0-100%).
+ * 8 ítems totales: 3 contratos + 4 documentos + 1 perfil.
+ * legalCount (0-3) es opcional; si no se pasa usa el campo legacy row[11].
+ */
+function calcularProgreso(row, legalCount) {
   var puntos = 0;
-  if (row[11] && row[11].toString().indexOf("ACEPTADO") === 0) puntos++;
+  if (legalCount !== undefined && legalCount !== null) {
+    puntos += legalCount;
+  } else {
+    // Fallback legacy: 1 punto si ACEPTADO (compatibilidad)
+    if (row[11] && row[11].toString().indexOf("ACEPTADO") === 0) puntos++;
+  }
   if (row[13] !== "" && row[13] !== null) puntos++;
   if (row[4] !== "" && row[4] !== null) puntos++;
   if (row[5] !== "" && row[5] !== null) puntos++;
   if (row[6] !== "" && row[6] !== null) puntos++;
   if (row[7] !== "" && row[7] !== null) puntos++;
-  return Math.round((puntos / 6) * 100);
+  var total = (legalCount !== undefined && legalCount !== null) ? 8 : 6;
+  return Math.round((puntos / total) * 100);
 }
 
-function calcularPendientes(row) {
+/**
+ * Cuenta los pendientes. legalCount (0-3) opcional.
+ */
+function calcularPendientes(row, legalCount) {
   var pendientes = 0;
-  if (!row[11] || row[11].toString().indexOf("ACEPTADO") !== 0) pendientes++;
+  if (legalCount !== undefined && legalCount !== null) {
+    pendientes += (3 - legalCount);
+  } else {
+    if (!row[11] || row[11].toString().indexOf("ACEPTADO") !== 0) pendientes++;
+  }
   if (!row[13] || row[13] === "") pendientes++;
   if (!row[4] || row[4] === "") pendientes++;
   if (!row[5] || row[5] === "") pendientes++;
@@ -1016,12 +1058,80 @@ function sendEmailViaBrevo(to, subject, htmlContent) {
 // EMAIL #1: Bienvenida (Día 0)
 // ============================================================================
 
+/**
+ * Genera el HTML de un checklist visual con el estado real de pendientes.
+ * Consulta Aceptaciones_Legales para los 3 contratos y la hoja principal
+ * para archivos y perfil. Devuelve { html, pendingCount, totalCount }.
+ */
+function buildPendingChecklistHtml_(token) {
+  var check = '&#9745;';    // ☑
+  var uncheck = '&#9744;';  // ☐
+  var green = '#28a745';
+  var gray = '#9CA3B4';
+
+  // Contratos firmados
+  var contratos = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false };
+  try {
+    var aSheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (aSheet && aSheet.getLastRow() > 1) {
+      var aData = aSheet.getDataRange().getValues();
+      for (var a = 1; a < aData.length; a++) {
+        if (aData[a][4] === token && contratos[aData[a][1]] !== undefined) {
+          contratos[aData[a][1]] = true;
+        }
+      }
+    }
+  } catch(e) {}
+
+  // Row data for files + profile
+  var row = null;
+  try {
+    var sData = getSHEET().getDataRange().getValues();
+    for (var s = 1; s < sData.length; s++) {
+      if (sData[s][0] === token) { row = sData[s]; break; }
+    }
+  } catch(e) {}
+
+  var hasCV = !!(row && row[4] && row[4] !== '');
+  var hasCedula = !!(row && row[5] && row[5] !== '');
+  var hasFoto = !!(row && row[6] && row[6] !== '');
+  var hasCarta = !!(row && row[7] && row[7] !== '');
+  var hasPerfil = !!(row && row[13] && row[13] !== '');
+
+  function item(done, label) {
+    var ic = done ? check : uncheck;
+    var col = done ? green : gray;
+    var strike = done ? 'text-decoration:line-through;color:#999;' : 'color:#333;';
+    return '<tr><td style="padding:8px 12px;border-bottom:1px solid #f0f0f0;">' +
+      '<span style="color:' + col + ';font-size:17px;margin-right:8px;">' + ic + '</span>' +
+      '<span style="font-size:14px;' + strike + '">' + label + '</span></td></tr>';
+  }
+
+  var items = [
+    item(contratos.CONTRATO, 'Contrato de Intermediación'),
+    item(contratos.TERMINOS, 'Términos y Condiciones'),
+    item(contratos.PRIVACIDAD, 'Aviso de Privacidad'),
+    item(hasCV, 'CV'),
+    item(hasCedula, 'Cédula Profesional'),
+    item(hasFoto, 'Foto de Perfil'),
+    item(hasCarta, 'Carta de Sacerdote'),
+    item(hasPerfil, 'Perfil Profesional completo')
+  ];
+
+  var total = 8;
+  var done = [contratos.CONTRATO, contratos.TERMINOS, contratos.PRIVACIDAD, hasCV, hasCedula, hasFoto, hasCarta, hasPerfil].filter(function(x){ return x; }).length;
+  var pending = total - done;
+
+  var html = '<table role="presentation" style="width:100%;border-collapse:collapse;margin:16px 0;">' +
+    items.join('') + '</table>';
+
+  return { html: html, pendingCount: pending, totalCount: total, doneCount: done, contratos: contratos };
+}
+
 function sendWelcomeEmail(email, nombre, token) {
   var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
-  var legalFormUrl = SERVER_BASE + '/index.html?token=' + token;
-  var profileFormUrl = SERVER_BASE + '/index.html?token=' + token;
   var subject = "¡Bienvenido a Catholizare Pro! - Inicia tu Onboarding";
-  
+
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
     '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
@@ -1032,31 +1142,25 @@ function sendWelcomeEmail(email, nombre, token) {
     '<tr><td style="padding:40px 30px;">' +
     '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:24px;">Hola ' + nombre + ',</h2>' +
     '<p style="margin:0 0 20px 0;color:#333333;font-size:16px;line-height:1.6;">Es un <strong>honor y alegría</strong> darte la bienvenida a nuestra red de profesionales católicos de la salud mental.</p>' +
-    
+
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#fff3cd 0%,#fffaeb 100%);border-radius:12px;border-left:5px solid #D4AF37;margin-bottom:30px;">' +
-    '<tr><td style="padding:20px;"><p style="margin:0 0 10px 0;color:#001A55;font-size:18px;font-weight:700;">⏰ Tienes 3 semanas para completar la Fase 1</p>' +
+    '<tr><td style="padding:20px;"><p style="margin:0 0 10px 0;color:#001A55;font-size:18px;font-weight:700;">Tienes 3 semanas para completar la Fase 1</p>' +
     '<p style="margin:0;color:#666666;font-size:14px;">Te enviaremos recordatorios para ayudarte en el proceso.</p></td></tr></table>' +
-    
-    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;">📋 Pasos a completar:</h3>' +
+
+    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;">Pasos a completar:</h3>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:20px;">' +
-    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">1.</span><span style="color:#333;font-size:15px;"><strong>Subir documentos:</strong> CV, Cédula Profesional + RFC, Foto de Perfil, Carta de Sacerdote</span></td></tr>' +
-    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#28a745;font-size:18px;margin-right:10px;">2.</span><span style="color:#333;font-size:15px;"><strong>Aceptar documentos legales:</strong> Contrato de Intermediación, Términos y Condiciones, Aviso de Privacidad</span></td></tr>' +
-    '<tr><td style="padding:12px;"><span style="color:#28a745;font-size:18px;margin-right:10px;">3.</span><span style="color:#333;font-size:15px;"><strong>Completar tu perfil:</strong> Servicios, modalidad, horarios, enfoque terapéutico</span></td></tr></table>' +
-    
-    '<h3 style="margin:30px 0 15px 0;color:#001A55;font-size:18px;">🔗 Tus enlaces personales:</h3>' +
-    '<table role="presentation" style="width:100%;border-collapse:collapse;margin-bottom:20px;">' +
-    '<tr><td style="text-align:center;padding:10px;">' +
-    '<a href="' + legalFormUrl + '" style="display:inline-block;background:#ffffff;border:2px solid #001A55;color:#001A55;text-decoration:none;padding:14px 30px;border-radius:50px;font-size:15px;font-weight:700;width:80%;box-sizing:border-box;">📜 Aceptar Términos y Condiciones</a></td></tr>' +
-    '<tr><td style="text-align:center;padding:10px;">' +
-    '<a href="' + profileFormUrl + '" style="display:inline-block;background:#ffffff;border:2px solid #001A55;color:#001A55;text-decoration:none;padding:14px 30px;border-radius:50px;font-size:15px;font-weight:700;width:80%;box-sizing:border-box;">📝 Completar Información de Perfil</a></td></tr>' +
-    '<tr><td style="text-align:center;padding:10px;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#ffffff;text-decoration:none;padding:16px 30px;border-radius:50px;font-size:16px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);width:80%;box-sizing:border-box;">🚀 IR A MI DASHBOARD</a></td></tr></table>' +
-    
+    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#9CA3B4;font-size:16px;margin-right:8px;">&#9744;</span><span style="color:#333;font-size:15px;"><strong>Firmar contratos:</strong> Contrato de Intermediación, Términos y Condiciones, Aviso de Privacidad</span></td></tr>' +
+    '<tr><td style="padding:12px;border-bottom:1px solid #e9ecef;"><span style="color:#9CA3B4;font-size:16px;margin-right:8px;">&#9744;</span><span style="color:#333;font-size:15px;"><strong>Subir documentos:</strong> CV, Cédula Profesional, Foto de Perfil, Carta de Sacerdote</span></td></tr>' +
+    '<tr><td style="padding:12px;"><span style="color:#9CA3B4;font-size:16px;margin-right:8px;">&#9744;</span><span style="color:#333;font-size:15px;"><strong>Completar tu perfil:</strong> Servicios, modalidad, horarios, enfoque terapéutico</span></td></tr></table>' +
+
+    '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#ffffff;text-decoration:none;padding:18px 40px;border-radius:50px;font-size:17px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">Entrar a mi Dashboard</a></td></tr></table>' +
+
     '<p style="margin:30px 0 0 0;color:#333;font-size:16px;">Con gratitud y en Cristo,<br><strong style="color:#001A55;">Equipo de Catholizare Pro</strong></p>' +
     '</td></tr>' +
     getEmailFooter(nombre) +
     '</table></td></tr></table></body></html>';
-  
+
   var result = sendEmailViaBrevo(email, subject, htmlContent);
   logEmailSent(token, email, 'WELCOME', subject, result.success);
   return result;
@@ -1069,31 +1173,32 @@ function sendWelcomeEmail(email, nombre, token) {
 function sendReminder1(email, nombre, progreso, token) {
   var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
   var subject = "Recordatorio amigable - Completa tu onboarding en Catholizare Pro";
-  
+  var checklist = buildPendingChecklistHtml_(token);
+
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
     '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
     '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
     '<tr><td style="background:linear-gradient(135deg,#20c997 0%,#28a745 100%);padding:30px;text-align:center;">' +
-    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">👋 Un recordatorio amigable</h1></td></tr>' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">Un recordatorio amigable</h1></td></tr>' +
     '<tr><td style="padding:40px 30px;">' +
     '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;">Hola ' + nombre + ',</h2>' +
     '<p style="margin:0 0 15px 0;color:#333;font-size:16px;line-height:1.6;">Ha pasado <strong>1 semana</strong> desde tu registro en Catholizare Pro.</p>' +
-    '<p style="margin:0 0 30px 0;color:#333;font-size:16px;">Te quedan <strong style="color:#28a745;">2 semanas</strong> para completar la Fase 1.</p>' +
-    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f0f9ff;border-radius:12px;margin-bottom:30px;"><tr><td style="padding:25px;">' +
-    '<p style="margin:0 0 10px 0;color:#001A55;font-size:18px;font-weight:600;">Tu progreso actual:</p>' +
-    '<div style="width:100%;height:30px;background:#e0e0e0;border-radius:15px;overflow:hidden;margin:10px 0;">' +
-    '<div style="width:' + progreso + '%;height:100%;background:linear-gradient(90deg,#28a745 0%,#20c997 100%);"></div></div>' +
-    '<p style="margin:10px 0 0 0;text-align:center;color:#001A55;font-size:20px;font-weight:700;">' + progreso + '% completado</p>' +
+    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;">Te quedan <strong style="color:#28a745;">2 semanas</strong> para completar la Fase 1.</p>' +
+
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f8f9fc;border-radius:12px;margin-bottom:30px;"><tr><td style="padding:20px;">' +
+    '<p style="margin:0 0 6px 0;color:#001A55;font-size:16px;font-weight:700;">Tu checklist (' + checklist.doneCount + ' de ' + checklist.totalCount + '):</p>' +
+    checklist.html +
     '</td></tr></table>' +
+
     '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 45px;border-radius:50px;font-size:17px;font-weight:700;">📊 VER MI PROGRESO</a>' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:16px 45px;border-radius:50px;font-size:17px;font-weight:700;">Entrar a mi Dashboard</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr>' +
     getEmailFooter(nombre) +
     '</table></td></tr></table></body></html>';
-  
+
   var result = sendEmailViaBrevo(email, subject, htmlContent);
   logEmailSent(token, email, 'REMINDER_1', subject, result.success);
   return result;
@@ -1105,35 +1210,36 @@ function sendReminder1(email, nombre, progreso, token) {
 
 function sendReminder2(email, nombre, progreso, token) {
   var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
-  var subject = "⚠️ URGENTE - Solo quedan 20 días para completar tu onboarding";
-  
-  var progColor = progreso >= 50 ? '#28a745' : '#dc3545';
-  var progGrad = progreso >= 50 ? 'linear-gradient(90deg,#28a745 0%,#20c997 100%)' : 'linear-gradient(90deg,#dc3545 0%,#c82333 100%)';
-  
+  var subject = "Atención - Solo quedan 7 días para completar tu onboarding";
+  var checklist = buildPendingChecklistHtml_(token);
+
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
     '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
     '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(220,53,69,0.15);border:3px solid #dc3545;">' +
     '<tr><td style="background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);padding:35px;text-align:center;">' +
-    '<h1 style="margin:0 0 10px 0;color:#fff;font-size:32px;font-weight:800;">⚠️ ATENCIÓN URGENTE</h1>' +
-    '<p style="margin:0;color:rgba(255,255,255,0.95);font-size:17px;font-weight:600;">Tiempo crítico para completar tu onboarding</p></td></tr>' +
+    '<h1 style="margin:0 0 10px 0;color:#fff;font-size:28px;font-weight:800;">Atención urgente</h1>' +
+    '<p style="margin:0;color:rgba(255,255,255,0.95);font-size:16px;font-weight:600;">Tiempo crítico para completar tu onboarding</p></td></tr>' +
     '<tr><td style="padding:40px 30px;">' +
     '<h2 style="margin:0 0 20px 0;color:#dc3545;font-size:24px;font-weight:700;">Hola ' + nombre + ',</h2>' +
-    '<p style="margin:0 0 15px 0;color:#333;font-size:17px;line-height:1.6;">Han pasado <strong style="color:#dc3545;">40 días</strong> y aún no has completado tu proceso.</p>' +
+    '<p style="margin:0 0 15px 0;color:#333;font-size:17px;line-height:1.6;">Han pasado <strong style="color:#dc3545;">14 días</strong> y aún tienes pendientes.</p>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#fff3cd 0%,#ffe8a1 100%);border-radius:12px;border-left:6px solid #ffc107;margin:25px 0;">' +
-    '<tr><td style="padding:25px;"><p style="margin:0 0 10px 0;color:#001A55;font-size:22px;font-weight:800;">⏰ TE QUEDAN SOLO 20 DÍAS</p>' +
-    '<p style="margin:0;color:#666;font-size:15px;">Si no completas antes del día 60, tu registro será marcado como <strong style="color:#dc3545;">"Incompleto"</strong>.</p></td></tr></table>' +
-    '<p style="margin:25px 0 10px 0;color:#001A55;font-size:18px;font-weight:700;">Progreso actual: <span style="color:' + progColor + ';">' + progreso + '%</span></p>' +
-    '<div style="width:100%;height:30px;background:#e0e0e0;border-radius:15px;overflow:hidden;margin-bottom:30px;">' +
-    '<div style="width:' + progreso + '%;height:100%;background:' + progGrad + ';"></div></div>' +
-    '<table role="presentation" style="width:100%;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#c82333;background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:#fff;text-decoration:none;padding:20px 55px;border-radius:50px;font-size:19px;font-weight:800;text-transform:uppercase;">⚡ COMPLETAR AHORA</a>' +
+    '<tr><td style="padding:20px;"><p style="margin:0 0 10px 0;color:#001A55;font-size:20px;font-weight:800;">Te quedan 7 días</p>' +
+    '<p style="margin:0;color:#666;font-size:14px;">Si no completas antes del día 21, tu registro será marcado como <strong style="color:#dc3545;">"Incompleto"</strong>.</p></td></tr></table>' +
+
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#f8f9fc;border-radius:12px;margin-bottom:30px;"><tr><td style="padding:20px;">' +
+    '<p style="margin:0 0 6px 0;color:#001A55;font-size:16px;font-weight:700;">Tu checklist (' + checklist.doneCount + ' de ' + checklist.totalCount + '):</p>' +
+    checklist.html +
+    '</td></tr></table>' +
+
+    '<table role="presentation" style="width:100%;margin:30px 0;"><tr><td style="text-align:center;">' +
+    '<a href="' + dashboardLink + '" style="display:inline-block;background-color:#c82333;background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:800;">Completar ahora</a>' +
     '</td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Estamos aquí para ayudarte,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
     '</td></tr>' +
     getEmailFooter(nombre) +
     '</table></td></tr></table></body></html>';
-  
+
   var result = sendEmailViaBrevo(email, subject, htmlContent);
   logEmailSent(token, email, 'REMINDER_2', subject, result.success);
   return result;
@@ -1352,7 +1458,10 @@ function checkAndSendReminders() {
     var ahora = new Date();
     var recordatoriosEnviados = 0;
     var marcadosIncompletos = 0;
-    
+
+    // Pre-cargar mapa de aceptaciones legales (3 contratos)
+    var legalMap = buildLegalAcceptanceMap_();
+
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
       var rowNum = i + 1;
@@ -1362,45 +1471,49 @@ function checkAndSendReminders() {
       var estado = row[9];
       var fechaInicio = row[17];
       var fase1Completada = row[21];
-      
+
       if (estado !== "Activo" || fase1Completada) continue;
       if (!fechaInicio) continue;
-      
+
       var diasDesdeInicio = Math.floor((ahora - new Date(fechaInicio)) / (1000 * 60 * 60 * 24));
       getSHEET().getRange(rowNum, 21).setValue(diasDesdeInicio);
-      
-      var tareasCompletadas = 6 - calcularPendientes(row);
-      var porcentajeProgreso = Math.round((tareasCompletadas / 6) * 100);
-      
-      if (diasDesdeInicio === 7 && !row[18]) {
-        if (tareasCompletadas < 3) {
+
+      var lc = (legalMap[token] && legalMap[token].count) || 0;
+      var pendientes = calcularPendientes(row, lc);
+      var porcentajeProgreso = calcularProgreso(row, lc);
+
+      // Recordatorio 1 (día 7): si falta al menos 1 contrato o tiene pendientes
+      if (diasDesdeInicio >= 7 && !row[18]) {
+        if (pendientes > 0) {
           sendReminder1(email, nombre, porcentajeProgreso, token);
           getSHEET().getRange(rowNum, 19).setValue(ahora);
-          logAction(token, email, 'Recordatorio 1 enviado (Día 7)', 'Fecha_Recordatorio_1', '', ahora, 'Sistema');
+          logAction(token, email, 'Recordatorio 1 enviado (Día ' + diasDesdeInicio + ', pendientes: ' + pendientes + ')', 'Fecha_Recordatorio_1', '', ahora, 'Sistema');
           recordatoriosEnviados++;
         }
       }
-      
-      if (diasDesdeInicio === 14 && !row[19]) {
-        if (tareasCompletadas < 6) {
+
+      // Recordatorio 2 (día 14): si aún tiene pendientes
+      if (diasDesdeInicio >= 14 && !row[19]) {
+        if (pendientes > 0) {
           sendReminder2(email, nombre, porcentajeProgreso, token);
           getSHEET().getRange(rowNum, 20).setValue(ahora);
-          logAction(token, email, 'Recordatorio 2 URGENTE (Día 14)', 'Fecha_Recordatorio_2', '', ahora, 'Sistema');
+          logAction(token, email, 'Recordatorio 2 URGENTE (Día ' + diasDesdeInicio + ', pendientes: ' + pendientes + ')', 'Fecha_Recordatorio_2', '', ahora, 'Sistema');
           recordatoriosEnviados++;
         }
       }
-      
-      if (diasDesdeInicio >= 21 && tareasCompletadas < 6) {
+
+      // Incompleto (día 21): si no completó todo
+      if (diasDesdeInicio >= 21 && pendientes > 0) {
         getSHEET().getRange(rowNum, 10).setValue("Incompleto");
         sendIncompleteNotification(email, nombre);
-        logAction(token, email, 'Marcado Incompleto (21 días)', 'Estado', 'Activo', 'Incompleto', 'Sistema');
+        logAction(token, email, 'Marcado Incompleto (' + diasDesdeInicio + ' días, pendientes: ' + pendientes + ')', 'Estado', 'Activo', 'Incompleto', 'Sistema');
         marcadosIncompletos++;
       }
     }
-    
-    Logger.log('✅ Revisión: ' + recordatoriosEnviados + ' recordatorios, ' + marcadosIncompletos + ' incompletos');
+
+    Logger.log('Revisión: ' + recordatoriosEnviados + ' recordatorios, ' + marcadosIncompletos + ' incompletos');
   } catch (error) {
-    Logger.log('❌ Error en checkAndSendReminders: ' + error);
+    Logger.log('Error en checkAndSendReminders: ' + error);
   }
 }
 
@@ -2736,7 +2849,7 @@ function sendAcceptanceEmails(folio, doc, nombre, correo, telefono, rfc, ip, met
 
     var profResult = sendEmailViaBrevo(correo, 'Confirmación: ' + doc.titulo + ' — Folio ' + folio, profHtml);
 
-    // Email al admin
+    // Email al admin (incluye copia del documento igual que el del profesional)
     var adminHtml =
       '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
         '<div style="background:#D4AF37;color:#001A55;padding:20px;text-align:center;border-radius:12px 12px 0 0;">' +
@@ -2750,6 +2863,11 @@ function sendAcceptanceEmails(folio, doc, nombre, correo, telefono, rfc, ip, met
           '</div>' +
           '<h3>Datos del Registro</h3>' +
           auditHtml +
+          '<hr style="border:none;border-top:1px solid #eee;margin:24px 0;">' +
+          '<h3 style="color:#001A55;">Copia del Documento Aceptado</h3>' +
+          '<div style="background:#fafafa;padding:20px;border:1px solid #eee;border-radius:8px;margin-top:12px;font-size:13px;">' +
+            doc.contenido +
+          '</div>' +
         '</div>' +
       '</div>';
 
