@@ -381,12 +381,12 @@
 
       <!-- Acceptance form -->
       <div class="accept-panel" id="acceptPanel">
-        <h2>Datos de Aceptación</h2>
-        <p style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">
+        <h2 id="acceptPanelTitle">Datos de Aceptación</h2>
+        <p id="acceptPanelSubtitle" style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">
           Confirma tus datos para registrar la aceptación legal de este documento.
         </p>
 
-        <div class="form-grid">
+        <div class="form-grid" id="formGrid">
           <div class="form-group">
             <label>Nombre completo</label>
             <input type="text" id="inputNombre" placeholder="Tu nombre completo">
@@ -432,7 +432,7 @@
         </div>
 
         <button class="btn-accept" id="btnAccept" disabled onclick="firmarDocumento()">
-          Firmar y aceptar
+          <span id="btnAcceptLabel">Firmar y aceptar</span>
         </button>
 
         <div id="alertBox" class="alert" style="margin-top:16px;margin-bottom:0;"></div>
@@ -449,6 +449,7 @@
     // Obtener doc_id de la URL
     var urlParams = new URLSearchParams(window.location.search);
     var DOC_ID = urlParams.get('doc') || '';
+    var IS_ETICA = String(DOC_ID).toUpperCase() === 'ETICA';
 
     var currentDoc = null;
     var currentProf = null;
@@ -515,6 +516,21 @@
         document.getElementById('inputNombre').value = currentProf.nombre || '';
         document.getElementById('inputCorreo').value = currentProf.email || '';
 
+        // Flujo simplificado para Código de Ética (no es documento legal):
+        // ocultar captura de datos y OTP; solo checklist de aceptación.
+        if (IS_ETICA) {
+          var fg = document.getElementById('formGrid');
+          if (fg) fg.style.display = 'none';
+          var cs = document.getElementById('codigoSection');
+          if (cs) cs.style.display = 'none';
+          var st = document.getElementById('acceptPanelTitle');
+          if (st) st.textContent = 'Aceptación del Código de Ética';
+          var sb = document.getElementById('acceptPanelSubtitle');
+          if (sb) sb.textContent = 'Marca la casilla para confirmar que lees y aceptas el Código de Ética. Se registrará la fecha, hora y versión, y enviaremos una copia a tu correo.';
+          var bl = document.getElementById('btnAcceptLabel');
+          if (bl) bl.textContent = 'Aceptar Código de Ética';
+        }
+
         // Check if already accepted
         var isAccepted = false;
         if (statusResult.success && statusResult.documentos) {
@@ -557,6 +573,11 @@
 
     function updateBtnAcceptState() {
       var checked = document.getElementById('checkAccept').checked;
+      if (IS_ETICA) {
+        // Código de Ética: solo requiere la casilla de aceptación
+        document.getElementById('btnAccept').disabled = !checked;
+        return;
+      }
       var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
       document.getElementById('btnAccept').disabled = !(checked && codigoSolicitado && codigo.length === 6);
     }
@@ -628,55 +649,67 @@
     }
 
     function firmarDocumento() {
-      var nombre = document.getElementById('inputNombre').value.trim();
-      var correo = document.getElementById('inputCorreo').value.trim();
-      var telefono = document.getElementById('inputTelefono').value.trim();
-      var rfc = document.getElementById('inputRFC').value.trim().toUpperCase();
-      var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
+      var payload = { token: TOKEN, docId: DOC_ID };
 
-      if (!nombre) { showAlert('Ingresa tu nombre completo.', 'error'); return; }
-      if (!correo || !correo.includes('@')) { showAlert('Ingresa un correo válido.', 'error'); return; }
-      if (!telefono) { showAlert('Ingresa tu número de teléfono.', 'error'); return; }
-      if (!codigoSolicitado || codigo.length !== 6) {
-        showAlert('Necesitas solicitar y escribir el código de firma de 6 dígitos.', 'error');
-        return;
+      if (IS_ETICA) {
+        if (!document.getElementById('checkAccept').checked) {
+          showAlert('Marca la casilla de aceptación del Código de Ética.', 'error');
+          return;
+        }
+        // No se pide nombre, correo, teléfono, RFC ni OTP para el Código de Ética.
+      } else {
+        var nombre = document.getElementById('inputNombre').value.trim();
+        var correo = document.getElementById('inputCorreo').value.trim();
+        var telefono = document.getElementById('inputTelefono').value.trim();
+        var rfc = document.getElementById('inputRFC').value.trim().toUpperCase();
+        var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
+
+        if (!nombre) { showAlert('Ingresa tu nombre completo.', 'error'); return; }
+        if (!correo || !correo.includes('@')) { showAlert('Ingresa un correo válido.', 'error'); return; }
+        if (!telefono) { showAlert('Ingresa tu número de teléfono.', 'error'); return; }
+        if (!codigoSolicitado || codigo.length !== 6) {
+          showAlert('Necesitas solicitar y escribir el código de firma de 6 dígitos.', 'error');
+          return;
+        }
+        payload.nombreCompleto = nombre;
+        payload.correo = correo;
+        payload.telefono = telefono;
+        payload.rfc = rfc;
+        payload.otp = codigo;
       }
 
       var btn = document.getElementById('btnAccept');
+      var originalLabel = IS_ETICA ? 'Aceptar Código de Ética' : 'Firmar y aceptar';
       btn.disabled = true;
-      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:3px;margin:0;"></div> Procesando firma...';
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:3px;margin:0;"></div> Procesando...';
 
-      callProxy('aceptarDocumento', {
-        token: TOKEN,
-        docId: DOC_ID,
-        nombreCompleto: nombre,
-        correo: correo,
-        telefono: telefono,
-        rfc: rfc,
-        otp: codigo
-      })
+      callProxy('aceptarDocumento', payload)
       .then(function(r) {
         if (r.success) {
-          showAlert('Documento firmado exitosamente. Folio: ' + r.folio + '. Se envió una copia a tu correo.', 'success');
+          var msg = IS_ETICA
+            ? 'Código de Ética aceptado. Folio: ' + r.folio + '. Se envió una copia a tu correo.'
+            : 'Documento firmado exitosamente. Folio: ' + r.folio + '. Se envió una copia a tu correo.';
+          var badgeTitle = IS_ETICA ? 'Código de Ética aceptado.' : 'Documento firmado exitosamente.';
+          showAlert(msg, 'success');
           document.getElementById('acceptPanel').classList.add('already-accepted');
           document.getElementById('acceptPanel').innerHTML =
             '<div class="accepted-badge">' +
-              'Documento firmado exitosamente.<br>' +
+              badgeTitle + '<br>' +
               '<strong style="font-size:18px;">' + r.folio + '</strong><br>' +
               '<span style="font-size:13px;color:var(--gray-400);">La constancia fue enviada a tu correo electrónico.</span>' +
             '</div>';
           document.getElementById('docAccepted').textContent = 'Aceptado (Folio: ' + r.folio + ')';
           document.getElementById('docAccepted').style.display = 'inline';
         } else {
-          showAlert(r.message || 'Error al firmar el documento.', 'error');
+          showAlert(r.message || 'Error al registrar la aceptación.', 'error');
           btn.disabled = false;
-          btn.innerHTML = 'Firmar y aceptar';
+          btn.innerHTML = originalLabel;
         }
       })
       .catch(function(e) {
         showAlert('Error de conexión: ' + e.message, 'error');
         btn.disabled = false;
-        btn.innerHTML = 'Firmar y aceptar';
+        btn.innerHTML = originalLabel;
       });
     }
 

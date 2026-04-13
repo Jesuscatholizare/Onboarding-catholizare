@@ -2272,11 +2272,13 @@ function getDocumentosStatus(token) {
 
     var sheet = getSS().getSheetByName("Aceptaciones_Legales");
     var aceptados = {};
+    var tokenNorm = String(token || '').trim().toLowerCase();
 
     if (sheet && sheet.getLastRow() > 1) {
       var data = sheet.getDataRange().getValues();
       for (var i = 1; i < data.length; i++) {
-        if (data[i][4] === token) { // col E = token
+        var rowToken = String(data[i][4] || '').trim().toLowerCase();
+        if (rowToken === tokenNorm) { // col E = token
           aceptados[data[i][1]] = { // col B = doc_id
             folio: data[i][0],
             version: String(data[i][2]),
@@ -2321,8 +2323,9 @@ function getDocumentosStatus(token) {
 function getProfessionalByToken(token) {
   var sheet = getSHEET();
   var data = sheet.getDataRange().getValues();
+  var tokenNorm = String(token || '').trim().toLowerCase();
   for (var i = 1; i < data.length; i++) {
-    if (data[i][0] === token) {
+    if (String(data[i][0] || '').trim().toLowerCase() === tokenNorm) {
       return {
         nombre: data[i][1],
         email: data[i][2],
@@ -2366,22 +2369,31 @@ function aceptarDocumento(data) {
     }
 
     var existingData = aceptSheet.getDataRange().getValues();
+    var tokenNormAcc = String(token || '').trim().toLowerCase();
     for (var i = 1; i < existingData.length; i++) {
-      if (existingData[i][4] === token && existingData[i][1] === docId && String(existingData[i][2]) === doc.version) {
+      var rowTokenAcc = String(existingData[i][4] || '').trim().toLowerCase();
+      if (rowTokenAcc === tokenNormAcc && existingData[i][1] === docId && String(existingData[i][2]) === doc.version) {
         return { success: false, message: "Ya aceptaste este documento (versión " + doc.version + ")" };
       }
     }
 
-    // === Validación obligatoria del código de firma (OTP) ===
-    var codigoIngresado = String(data.otp || '').replace(/\s+/g, '');
-    if (!codigoIngresado) {
-      return { success: false, message: "Falta el código de firma. Solicítalo y escribe los 6 dígitos que llegaron a tu correo." };
+    // === Código de Ética: flujo simplificado (no es documento legal) ===
+    // Solo requiere checkbox de aceptación. No pide OTP, ni nombre/correo/teléfono/RFC.
+    var esEtica = String(docId).toUpperCase() === 'ETICA';
+    var folioOtp = '';
+
+    if (!esEtica) {
+      // === Validación obligatoria del código de firma (OTP) solo para documentos legales ===
+      var codigoIngresado = String(data.otp || '').replace(/\s+/g, '');
+      if (!codigoIngresado) {
+        return { success: false, message: "Falta el código de firma. Solicítalo y escribe los 6 dígitos que llegaron a tu correo." };
+      }
+      var otpCheck = consumirCodigoFirma(token, docId, doc.version, codigoIngresado, data.clientIP);
+      if (!otpCheck.success) {
+        return { success: false, message: otpCheck.message };
+      }
+      folioOtp = otpCheck.folioOtp;
     }
-    var otpCheck = consumirCodigoFirma(token, docId, doc.version, codigoIngresado, data.clientIP);
-    if (!otpCheck.success) {
-      return { success: false, message: otpCheck.message };
-    }
-    var folioOtp = otpCheck.folioOtp;
 
     // Generar folio
     var now = new Date();
@@ -2397,14 +2409,24 @@ function aceptarDocumento(data) {
     // Referencia de sesión
     var refSesion = 'SES-' + Math.floor(now.getTime() / 1000) + '-' + token.replace('ONB-', '').substring(0, 4);
 
-    // Datos del profesional (confirmados o capturados)
-    var nombreCompleto = data.nombreCompleto || prof.nombre;
-    var correo = data.correo || prof.email;
-    var telefono = data.telefono || '';
-    var rfc = data.rfc || '';
+    // Datos del profesional (para ETICA se usan los del perfil; para legales los que captura el formulario)
+    var nombreCompleto, correo, telefono, rfc, metodo, tokenOtp;
+    if (esEtica) {
+      nombreCompleto = prof.nombre || '';
+      correo = prof.email || '';
+      telefono = '';
+      rfc = '';
+      metodo = 'Checkbox de aceptación — Código de Ética (documento interno, no legal)';
+      tokenOtp = '';
+    } else {
+      nombreCompleto = data.nombreCompleto || prof.nombre;
+      correo = data.correo || prof.email;
+      telefono = data.telefono || '';
+      rfc = data.rfc || '';
+      metodo = 'Checkbox + botón "Firmar y aceptar" + código de firma (6 dígitos) enviado por correo';
+      tokenOtp = folioOtp;
+    }
     var ip = data.clientIP || 'No disponible';
-    var metodo = 'Checkbox + botón "Firmar y aceptar" + código de firma (6 dígitos) enviado por correo';
-    var tokenOtp = folioOtp;
 
     // Registrar la aceptación
     aceptSheet.appendRow([
