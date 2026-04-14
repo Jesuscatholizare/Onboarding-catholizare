@@ -521,27 +521,40 @@ function checkAndAdvancePhase(rowNum, rowData) {
     var token = rowData[0];
     var nombre = rowData[1];
     var email = rowData[2];
-    
+
+    // Contar legales aceptados desde la hoja Aceptaciones_Legales (nuevo sistema).
+    // Requerimos los 3 documentos legales (CONTRATO, TERMINOS, PRIVACIDAD). ETICA
+    // no se considera bloqueante para el avance de fase porque no es documento legal.
+    var legalMap = buildLegalAcceptanceMap_();
+    var tk = String(token || '').trim().toLowerCase();
+    var entry = legalMap[tk] || { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false };
+    var legalOk = !!(entry.CONTRATO && entry.TERMINOS && entry.PRIVACIDAD);
+
+    // Fallback: si el campo legacy (col 12) dice ACEPTADO, también cuenta
+    if (!legalOk && rowData[11] && rowData[11].toString().indexOf("ACEPTADO") === 0) {
+      legalOk = true;
+    }
+
     var required = {
-      legal: rowData[11] && rowData[11].toString().indexOf("ACEPTADO") === 0,
+      legal: legalOk,
       perfil: rowData[13] !== "" && rowData[13] !== null,
       cv: rowData[4] !== "" && rowData[4] !== null,
       cedula: rowData[5] !== "" && rowData[5] !== null,
       foto: rowData[6] !== "" && rowData[6] !== null,
       carta: rowData[7] !== "" && rowData[7] !== null
     };
-    
+
     var allComplete = Object.values(required).every(function(v) { return v === true; });
-    
+
     if (allComplete && rowData[8] === "Fase 1") {
       getSHEET().getRange(rowNum, 9).setValue("Fase 2");
       getSHEET().getRange(rowNum, 22).setValue(true);
       getSHEET().getRange(rowNum, 23).setValue(new Date());
-      
+
       sendPhase2WelcomeEmail(email, nombre);
       moveContactToBrevoPhase(email, nombre, "Fase 2", token);
       notifyAdminForZoomScheduling(email, nombre, token);
-      
+
       logAction(token, email, 'Avance a Fase 2', 'Fase_Actual', 'Fase 1', 'Fase 2', 'Sistema');
       Logger.log('✅ ' + nombre + ' avanzó a Fase 2');
     }
@@ -561,8 +574,9 @@ function buildLegalAcceptanceMap_() {
     if (sheet && sheet.getLastRow() > 1) {
       var data = sheet.getDataRange().getValues();
       for (var i = 1; i < data.length; i++) {
-        var tk = data[i][4]; // token
-        var docId = data[i][1]; // doc_id
+        var tk = String(data[i][4] || '').trim().toLowerCase(); // token normalizado
+        var docId = String(data[i][1] || '').trim().toUpperCase(); // doc_id normalizado
+        if (!tk) continue;
         if (!map[tk]) map[tk] = { CONTRATO: false, TERMINOS: false, PRIVACIDAD: false, ETICA: false, count: 0 };
         if (map[tk][docId] !== undefined && !map[tk][docId]) {
           map[tk][docId] = true;
@@ -572,6 +586,16 @@ function buildLegalAcceptanceMap_() {
     }
   } catch(e) { Logger.log('buildLegalAcceptanceMap_ error: ' + e); }
   return map;
+}
+
+/**
+ * Devuelve el conteo de documentos legales aceptados por un token
+ * (usando la hoja Aceptaciones_Legales, con comparación case-insensitive).
+ */
+function getLegalCountForToken_(token) {
+  var map = buildLegalAcceptanceMap_();
+  var tk = String(token || '').trim().toLowerCase();
+  return (map[tk] && map[tk].count) ? map[tk].count : 0;
 }
 
 /**
@@ -1760,6 +1784,17 @@ function getProfessionalStatus(token, expectedEmail) {
             return { success: false, message: 'El correo no coincide con la clave proporcionada.' };
           }
         }
+
+        // Auto-check: si está en Fase 1 y ya cumplió todo, avanzarlo ahora.
+        if (String(row[8] || '').trim() === 'Fase 1') {
+          try {
+            checkAndAdvancePhase(i + 1, row);
+            // Releer la fila por si la fase cambió
+            row = getSHEET().getRange(i + 1, 1, 1, getSHEET().getLastColumn()).getValues()[0];
+          } catch (phErr) {
+            Logger.log('Auto-check fase falló: ' + phErr);
+          }
+        }
         var diasDesdeInicio = null;
         var diasRestantes = null;
         var diasEnRed = null;
@@ -1805,7 +1840,17 @@ function getProfessionalStatus(token, expectedEmail) {
           fase: String(row[8] || 'Fase 1'), 
           estado: String(row[9] || 'Activo'), 
           categoria: String(row[10] || ''),
-          legal: !!(row[11] && row[11].toString().indexOf("ACEPTADO") === 0), 
+          legal: (function(){
+            // Considera "legal" verdadero si tiene los 3 documentos legales
+            // aceptados en Aceptaciones_Legales, o si el campo legacy dice ACEPTADO.
+            try {
+              var map = buildLegalAcceptanceMap_();
+              var tkLC = String(row[0] || '').trim().toLowerCase();
+              var e = map[tkLC];
+              if (e && e.CONTRATO && e.TERMINOS && e.PRIVACIDAD) return true;
+            } catch(_){}
+            return !!(row[11] && row[11].toString().indexOf("ACEPTADO") === 0);
+          })(),
           legalInfo: row[11] ? row[11].toString() : '',
           legalFecha: legalFechaStr,
           perfil: !!(row[13] && row[13] !== ""),
@@ -2296,7 +2341,8 @@ function getDocumentosStatus(token) {
       for (var i = 1; i < data.length; i++) {
         var rowToken = String(data[i][4] || '').trim().toLowerCase();
         if (rowToken === tokenNorm) { // col E = token
-          aceptados[data[i][1]] = { // col B = doc_id
+          var accDocIdKey = String(data[i][1] || '').trim().toUpperCase(); // col B = doc_id (normalizado)
+          aceptados[accDocIdKey] = {
             folio: data[i][0],
             version: String(data[i][2]),
             fecha: data[i][3],
@@ -2313,12 +2359,14 @@ function getDocumentosStatus(token) {
       var docsData = docsSheet.getDataRange().getValues();
       for (var j = 1; j < docsData.length; j++) {
         if (docsData[j][5] === 'activo') {
+          var docId = String(docsData[j][0] || '').trim();
+          var docIdKey = docId.toUpperCase();
           documentos.push({
-            id: docsData[j][0],
+            id: docId,
             titulo: docsData[j][1],
             version: String(docsData[j][2]),
-            aceptado: !!aceptados[docsData[j][0]],
-            datosAceptacion: aceptados[docsData[j][0]] || null
+            aceptado: !!aceptados[docIdKey],
+            datosAceptacion: aceptados[docIdKey] || null
           });
         }
       }
@@ -2460,6 +2508,21 @@ function aceptarDocumento(data) {
       var lastRow = aceptSheet.getLastRow();
       aceptSheet.getRange(lastRow, 15).setValue('Sí');
       aceptSheet.getRange(lastRow, 16).setValue(new Date());
+    }
+
+    // Disparar avance automático de fase si ya completó todos los requisitos
+    try {
+      var sheet = getSHEET();
+      var allRows = sheet.getDataRange().getValues();
+      var tokenLC = String(token).trim().toLowerCase();
+      for (var r = 1; r < allRows.length; r++) {
+        if (String(allRows[r][0] || '').trim().toLowerCase() === tokenLC) {
+          checkAndAdvancePhase(r + 1, allRows[r]);
+          break;
+        }
+      }
+    } catch (advErr) {
+      Logger.log('No se pudo verificar avance de fase: ' + advErr);
     }
 
     return {

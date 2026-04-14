@@ -524,6 +524,65 @@
       word-break: break-all;
     }
 
+    /* Meetings card */
+    .meetings-card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      border-left: 4px solid var(--gold-accent);
+    }
+    .meeting-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid #eef0f5;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: #fcfcfd;
+      transition: all 0.2s;
+    }
+    .meeting-item:hover { background: #fafbff; border-color: #cbd5e1; }
+    .meeting-item .m-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      background: linear-gradient(135deg, var(--navy-primary), var(--blue-accent));
+      color: white; flex-shrink: 0;
+    }
+    .meeting-item.done .m-icon {
+      background: linear-gradient(135deg, var(--success-green), #22c55e);
+    }
+    .meeting-item .m-body { flex: 1; min-width: 0; }
+    .meeting-item h4 {
+      color: var(--navy-primary); font-size: 14px;
+      font-weight: 700; margin-bottom: 2px;
+    }
+    .meeting-item p { font-size: 12px; color: var(--gray-medium); margin: 0; }
+    .btn-wa {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px; border-radius: 8px;
+      background: #25D366; color: white;
+      text-decoration: none; font-size: 13px; font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(37,211,102,0.3);
+      transition: all 0.2s;
+    }
+    .btn-wa:hover { background: #1ebe5a; transform: translateY(-1px); }
+    .meetings-card .phase-pill {
+      display: inline-block; margin-left: 8px;
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(212,175,55,0.2); color: #92400e;
+      font-size: 11px; font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .meeting-item { flex-direction: column; align-items: flex-start; }
+      .meeting-item .m-icon { width: 40px; height: 40px; font-size: 20px; }
+      .btn-wa { width: 100%; justify-content: center; }
+    }
+
     .toast {
       position: fixed; bottom: 24px; right: 24px;
       background: var(--success-green); color: white;
@@ -577,6 +636,7 @@
   <script>
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
+    const WA_NUMBER = '5215510223883';
     // Leer token de sessionStorage (ya no de URL)
     const TOKEN = sessionStorage.getItem('onb_token') || '';
     if (!TOKEN) { window.location.href = BASE + '/index.html'; }
@@ -744,6 +804,8 @@
                     )}
                   </div>
                 </div>
+
+                ${renderMeetingsCard(status)}
               </div>
 
               <!-- Progreso (secundario, 1fr) -->
@@ -817,6 +879,91 @@
 
     // Variable global para docs legales
     var legalDocsData = [];
+
+    // Reuniones por fase con botón WhatsApp prellenado
+    function renderMeetingsCard(status) {
+      var faseNum = parseInt(String(status.fase || '').replace(/[^0-9]/g, ''), 10) || 1;
+      // Fase 1 no tiene reuniones programadas aún
+      if (faseNum < 2) return '';
+
+      var nombre = (status && status.nombre) ? status.nombre : 'Profesional';
+
+      function waLink(msg) {
+        return 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
+      }
+
+      var meetings = [];
+
+      // Fase 2
+      if (faseNum >= 2) {
+        meetings.push({
+          phase: 2,
+          icon: '📅',
+          title: 'Sincronización de agenda / calendario',
+          desc: 'Cita Zoom para configurar tu calendario y disponibilidad en la plataforma.',
+          done: faseNum > 2,
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la cita Zoom de *Sincronización de agenda / calendario* (Fase 2 del onboarding Catholizare Pro). ¿Qué horario tienen disponible?'
+        });
+        meetings.push({
+          phase: 2,
+          icon: '💬',
+          title: 'Reunión Zoom de bienvenida e inducción',
+          desc: 'Sesión de 60 min con el equipo de Catholizare Pro.',
+          done: faseNum > 2,
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la *Reunión Zoom de bienvenida e inducción (60 min)* de mi onboarding en Catholizare Pro. ¿Qué horario tienen disponible?'
+        });
+      }
+
+      // Fase 3
+      if (faseNum >= 3) {
+        meetings.push({
+          phase: 3,
+          icon: '🙏',
+          title: 'Supervisión fe y espiritualidad',
+          desc: 'Agenda tu cita de acompañamiento espiritual por WhatsApp.',
+          done: faseNum > 3,
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar mi cita de *Supervisión de fe y espiritualidad* (Fase 3 del onboarding Catholizare Pro).'
+        });
+      }
+
+      // Fase 4
+      if (faseNum >= 4) {
+        meetings.push({
+          phase: 4,
+          icon: '📋',
+          title: 'Actualización anual de CV',
+          desc: 'Agenda la fecha para la actualización anual de tu Curriculum.',
+          done: false,
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la fecha para la *actualización anual de mi CV* (Fase 4 del onboarding Catholizare Pro).'
+        });
+      }
+
+      if (!meetings.length) return '';
+
+      var html = ''
+        + '<div class="meetings-card">'
+        +   '<div style="margin-bottom: 16px;">'
+        +     '<h3 class="card-title" style="margin-bottom: 4px;">📆 Reuniones y Citas</h3>'
+        +     '<p style="font-size: 13px; color: var(--gray-medium); margin: 0;">Agenda tus sesiones vía WhatsApp con el equipo Catholizare Pro</p>'
+        +   '</div>';
+
+      meetings.forEach(function(m) {
+        html += ''
+          + '<div class="meeting-item' + (m.done ? ' done' : '') + '">'
+          +   '<div class="m-icon">' + m.icon + '</div>'
+          +   '<div class="m-body">'
+          +     '<h4>' + m.title + ' <span class="phase-pill">Fase ' + m.phase + '</span></h4>'
+          +     '<p>' + m.desc + (m.done ? ' · <strong style="color:var(--success-green)">Completada</strong>' : '') + '</p>'
+          +   '</div>'
+          +   '<a class="btn-wa" target="_blank" rel="noopener" href="' + waLink(m.waMsg) + '">'
+          +     '<span>💬</span><span>WhatsApp</span>'
+          +   '</a>'
+          + '</div>';
+      });
+
+      html += '</div>';
+      return html;
+    }
 
     function renderLegalDocs() {
       if (!legalDocsData.length) {

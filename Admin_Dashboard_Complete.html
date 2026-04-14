@@ -962,18 +962,6 @@
 
     tHtml += '</div>'; // close timeline
 
-    // Formularios públicos
-    tHtml += '<div style="margin-top:20px;padding:16px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;">' +
-      '<h4 style="font-size:14px;color:#1d4ed8;margin-bottom:10px;">&#x1F517; URLs de Formularios Públicos</h4>' +
-      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
-        '<div style="padding:10px;background:white;border-radius:6px;border:1px solid #bfdbfe;">' +
-          '<div style="font-size:12px;font-weight:600;color:var(--gray-700);">Aceptación de Términos</div>' +
-          '<code style="font-size:10px;color:var(--blue);word-break:break-all;">/onboarding/aceptacion_terminos/' + (d.token||'[token]') + '</code></div>' +
-        '<div style="padding:10px;background:white;border-radius:6px;border:1px solid #bfdbfe;">' +
-          '<div style="font-size:12px;font-weight:600;color:var(--gray-700);">Información de Perfil</div>' +
-          '<code style="font-size:10px;color:var(--blue);word-break:break-all;">/onboarding/informacion_perfil/' + (d.token||'[token]') + '</code></div>' +
-      '</div></div>';
-
     // Email history at bottom
     if (d.emailHistory && d.emailHistory.length > 0) {
       tHtml += '<div style="margin-top:20px;border-top:1px solid var(--gray-200);padding-top:16px;">' +
