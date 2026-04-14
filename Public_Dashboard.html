@@ -7,7 +7,7 @@
   <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
-  <title>Dashboard - Catholizare Pro</title>
+  <title>Dashboard del Profesional · Catholizare Pro</title>
   <style>
     * {
       margin: 0;
@@ -422,14 +422,131 @@
     .fase-dot.completed {
       background: var(--success-green);
     }
+
+    /* Global top nav */
+    .global-nav {
+      background: linear-gradient(135deg, var(--navy-primary) 0%, var(--blue-accent) 100%);
+      color: white;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,26,85,0.15);
+    }
+    .global-nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 20px; overflow-x: auto;
+    }
+    .global-nav .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px; letter-spacing: 0.3px;
+      padding-right: 14px; margin-right: 6px;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+    }
+    .global-nav .brand-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--gold-accent); color: var(--navy-primary);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 14px;
+    }
+    .global-nav a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .global-nav a .icon { font-size: 16px; }
+    .global-nav a:hover { background: rgba(255,255,255,0.12); color: white; }
+    .global-nav a.active {
+      background: white; color: var(--navy-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .global-nav .spacer { flex: 1; }
+    .global-nav .logout { background: rgba(220,53,69,0.2); color: #fff; }
+    .global-nav .logout:hover { background: rgba(220,53,69,0.5); }
+    @media (max-width: 768px) {
+      .global-nav .brand { font-size: 13px; padding-right: 10px; }
+      .global-nav a { padding: 8px 10px; font-size: 12px; }
+      .global-nav a .label-long { display: none; }
+    }
+
+    /* Hero header */
+    .hero-header {
+      background: linear-gradient(135deg, #001A55 0%, #003ABA 100%);
+      color: white; border-radius: var(--border-radius);
+      padding: 28px 32px; margin: 20px 0 24px;
+      box-shadow: 0 8px 24px rgba(0,26,85,0.18);
+      position: relative; overflow: hidden;
+    }
+    .hero-header::before {
+      content: ""; position: absolute; right: -80px; top: -80px;
+      width: 240px; height: 240px; border-radius: 50%;
+      background: rgba(212,175,55,0.18);
+    }
+    .hero-header h1 {
+      color: white; font-size: 26px; font-weight: 700;
+      margin-bottom: 6px; position: relative;
+    }
+    .hero-header .subtitle {
+      color: rgba(255,255,255,0.85); font-size: 14px; margin-bottom: 14px;
+      position: relative;
+    }
+    .hero-header .header-meta {
+      color: rgba(255,255,255,0.9); position: relative;
+    }
+    .hero-header .badge { background: rgba(255,255,255,0.15); color: white; }
+    .hero-header .badge.completed { background: rgba(40,167,69,0.25); color: #bbf7d0; }
+    .hero-header .badge.in-progress { background: rgba(212,175,55,0.25); color: #fde68a; }
+    .hero-header .badge.warning { background: rgba(255,193,7,0.25); color: #fde68a; }
+    .hero-header .fase-dot { background: rgba(255,255,255,0.25); }
+    .hero-header .fase-dot.active { background: var(--gold-accent); }
+    .hero-header .fase-dot.completed { background: #bbf7d0; }
+
+    /* Upload overlay */
+    .upload-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .upload-overlay.show { display: flex; }
+    .upload-overlay .card {
+      background: white; border-radius: 16px; padding: 32px 40px;
+      text-align: center; max-width: 340px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .upload-overlay .card h4 { color: var(--navy-primary); margin-bottom: 6px; }
+    .upload-overlay .card p { color: var(--gray-medium); font-size: 13px; }
+    .upload-overlay .card .spinner {
+      width: 44px; height: 44px; border-width: 5px; margin: 0 auto 16px;
+    }
+    .upload-overlay .card .file-name {
+      margin-top: 10px; font-size: 12px; color: var(--gray-medium);
+      word-break: break-all;
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--success-green); color: white;
+      padding: 14px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      z-index: 10000; opacity: 0; transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--danger-red); }
   </style>
 </head>
 <body>
+  <!-- Global Nav -->
+  <nav class="global-nav" id="globalNav"></nav>
+
   <div class="container">
-    
-    <!-- Header -->
-    <div class="header">
-      <h1 id="userName">Cargando...</h1>
+
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <h1 id="userName">Cargando…</h1>
+      <div class="subtitle">Dashboard del Profesional · Proceso de Onboarding Catholizare</div>
       <div class="header-meta">
         <span id="faseActual"></span>
         <span id="estadoActual"></span>
@@ -445,6 +562,18 @@
 
   </div>
 
+  <!-- Upload overlay -->
+  <div class="upload-overlay" id="uploadOverlay">
+    <div class="card">
+      <div class="spinner"></div>
+      <h4 id="uploadTitle">Subiendo documento…</h4>
+      <p>Por favor espera. No cierres esta ventana.</p>
+      <div class="file-name" id="uploadFileName"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
   <script>
     const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     const PROXY = BASE + '/api.php';
@@ -459,6 +588,62 @@
         body: JSON.stringify(data || {})
       }).then(function(r) { return r.json(); });
     }
+
+    // ====== GLOBAL NAV ======
+    function renderGlobalNav(active) {
+      var items = [
+        { id: 'dashboard', icon: '🏠', label: 'Dashboard',       href: BASE + '/Public_Dashboard.html' },
+        { id: 'perfil',    icon: '👤', label: 'Mi Perfil',        href: BASE + '/Public_Perfil.html' },
+        { id: 'docs',      icon: '📎', label: 'Mis Documentos',   href: BASE + '/Public_Dashboard.html?tab=documentos' },
+        { id: 'legales',   icon: '⚖️', label: 'Legales',          href: BASE + '/Public_Legal_Viewer.html?doc=CONTRATO' }
+      ];
+      var nav = document.getElementById('globalNav');
+      if (!nav) return;
+      var html = '<div class="global-nav-inner">';
+      html += '<div class="brand"><span class="brand-badge">CP</span><span class="label-long">Catholizare Pro · Onboarding</span></div>';
+      items.forEach(function(it) {
+        var cls = (it.id === active) ? ' class="active"' : '';
+        html += '<a href="' + it.href + '"' + cls + '><span class="icon">' + it.icon + '</span><span class="label-long">' + it.label + '</span></a>';
+      });
+      html += '<div class="spacer"></div>';
+      html += '<a href="#" onclick="onLogout(); return false;" class="logout"><span class="icon">🚪</span><span class="label-long">Cerrar sesión</span></a>';
+      html += '</div>';
+      nav.innerHTML = html;
+    }
+    function onLogout() {
+      try { sessionStorage.removeItem('onb_token'); } catch(_){}
+      window.location.href = BASE + '/index.html';
+    }
+
+    // ====== HELPERS ======
+    // Normaliza version (por si en la spreadsheet quedó como fecha)
+    function normalizeVersion(raw) {
+      var v = String(raw == null ? '' : raw).trim();
+      if (!v) return '1.0';
+      if (/GMT|UTC|\b\d{4}-\d{2}-\d{2}T/.test(v) ||
+          /(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d+/.test(v)) {
+        var d = new Date(v);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      }
+      return v;
+    }
+
+    function showToast(msg, isError) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(function() { t.classList.remove('show'); }, 3200);
+    }
+    function showUploadOverlay(fileName, title) {
+      document.getElementById('uploadFileName').textContent = fileName || '';
+      document.getElementById('uploadTitle').textContent = title || 'Subiendo documento…';
+      document.getElementById('uploadOverlay').classList.add('show');
+    }
+    function hideUploadOverlay() {
+      document.getElementById('uploadOverlay').classList.remove('show');
+    }
+
+    renderGlobalNav('dashboard');
 
     // Cargar datos
     async function loadDashboard() {
@@ -612,15 +797,22 @@
       // Event listeners para tabs
       document.querySelectorAll('.tab').forEach(tab => {
         tab.addEventListener('click', () => {
-          const targetTab = tab.dataset.tab;
-          
-          document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-          document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
-          
-          tab.classList.add('active');
-          document.querySelector(`[data-tab-content="${targetTab}"]`).classList.add('active');
+          activateTab(tab.dataset.tab);
         });
       });
+
+      // Si la URL pide ?tab=documentos, abrir esa pestaña
+      var urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab) activateTab(urlTab);
+    }
+
+    function activateTab(targetTab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+      var tabEl = document.querySelector('[data-tab="' + targetTab + '"]');
+      var contentEl = document.querySelector('[data-tab-content="' + targetTab + '"]');
+      if (tabEl) tabEl.classList.add('active');
+      if (contentEl) contentEl.classList.add('active');
     }
 
     // Variable global para docs legales
@@ -630,12 +822,16 @@
       if (!legalDocsData.length) {
         return '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>Documentos Legales</h4><p>Cargando...</p></div></div></div>';
       }
+      var iconByDoc = { CONTRATO: '📄', TERMINOS: '📋', PRIVACIDAD: '🔒', ETICA: '⚖️' };
       var html = '';
       legalDocsData.forEach(function(d) {
+        var icon = iconByDoc[String(d.id).toUpperCase()] || '📄';
+        var labelBtn = (String(d.id).toUpperCase() === 'ETICA') ? 'Aceptar' : 'Firmar';
+        var vlegible = normalizeVersion(d.version);
         if (d.aceptado) {
-          html += '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + d.version + '</p></div></div><span class="action-status completed">✓ Firmado</span></div>';
+          html += '<div class="action-item"><div class="action-info"><div class="action-icon">' + icon + '</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + vlegible + '</p></div></div><span class="action-status completed">✓ Firmado</span></div>';
         } else {
-          html += '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + d.version + ' — Pendiente de firma</p></div></div><a href="' + BASE + '/Public_Legal_Viewer.html?doc=' + d.id + '" class="btn btn-primary">Firmar</a></div>';
+          html += '<div class="action-item"><div class="action-info"><div class="action-icon">' + icon + '</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + vlegible + ' — Pendiente</p></div></div><a href="' + BASE + '/Public_Legal_Viewer.html?doc=' + d.id + '" class="btn btn-primary">' + labelBtn + '</a></div>';
         }
       });
       return html;
@@ -756,14 +952,15 @@
     function uploadDocument(type) {
       const input = document.createElement('input');
       input.type = 'file';
-      
+
       const limits = {
-        foto: { maxMB: 1, accept: 'image/jpeg,image/jpg,image/png' },
-        cv: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
+        foto:   { maxMB: 1, accept: 'image/jpeg,image/jpg,image/png' },
+        cv:     { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
         cedula: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
-        carta: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' }
+        carta:  { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' }
       };
-      
+      var labels = { foto: 'Foto Profesional', cv: 'Curriculum Vitae', cedula: 'Cédula Profesional', carta: 'Carta de Sacerdote' };
+
       input.accept = limits[type].accept;
 
       input.onchange = function(e) {
@@ -772,29 +969,50 @@
 
         const maxSize = limits[type].maxMB * 1024 * 1024;
         if (file.size > maxSize) {
-          alert(`El archivo no debe superar los ${limits[type].maxMB}MB`);
+          showToast('El archivo no debe superar los ' + limits[type].maxMB + 'MB', true);
           return;
         }
+
+        showUploadOverlay(file.name, 'Subiendo ' + (labels[type] || 'documento') + '…');
 
         const reader = new FileReader();
         reader.onload = function(event) {
           callProxy('uploadFile', { token: TOKEN, base64Data: event.target.result, fileName: file.name, fileType: type })
             .then(function(result) {
+              hideUploadOverlay();
               if (result.success) {
-                alert('¡Documento subido con éxito!');
-                loadDashboard();
+                showToast('¡' + (labels[type] || 'Documento') + ' subido con éxito!');
+                // Recargar datos PERO mantener al usuario en la pestaña de Documentos
+                reloadDashboardKeepingTab('documentos');
               } else {
-                alert('Error: ' + result.message);
+                showToast('Error: ' + (result.message || 'Sin respuesta'), true);
               }
             })
             .catch(function(error) {
-              alert('Error al subir: ' + error.message);
+              hideUploadOverlay();
+              showToast('Error al subir: ' + error.message, true);
             });
+        };
+        reader.onerror = function() {
+          hideUploadOverlay();
+          showToast('No se pudo leer el archivo.', true);
         };
         reader.readAsDataURL(file);
       };
 
       input.click();
+    }
+
+    // Recarga el dashboard manteniendo la pestaña activa
+    function reloadDashboardKeepingTab(tab) {
+      // Marcamos en la URL la pestaña para que al volver a renderizar se reactive.
+      // Usamos replaceState para no ensuciar el historial.
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+      } catch(_) {}
+      loadDashboard();
     }
 
     function showError(message) {

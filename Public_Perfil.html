@@ -4,26 +4,78 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Perfil Profesional - Catholizare Pro</title>
+  <title>Mi Perfil · Catholizare Pro</title>
   <style>
     * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
     }
-    
+
     :root {
       --navy-primary: #001A55;
       --navy-dark: #000F33;
       --blue-accent: #003ABA;
       --gold-accent: #D4AF37;
+      --gray-medium: #6c757d;
+      --danger-red: #dc3545;
+      --success-green: #28a745;
     }
-    
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #f5f7fa;
-      padding: 20px;
+      padding: 0 0 40px 0;
     }
+
+    /* Global top nav */
+    .global-nav {
+      background: linear-gradient(135deg, var(--navy-primary) 0%, var(--blue-accent) 100%);
+      color: white;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,26,85,0.15);
+    }
+    .global-nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 20px; overflow-x: auto;
+    }
+    .global-nav .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px; letter-spacing: 0.3px;
+      padding-right: 14px; margin-right: 6px;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+    }
+    .global-nav .brand-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--gold-accent); color: var(--navy-primary);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 14px;
+    }
+    .global-nav a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .global-nav a .icon { font-size: 16px; }
+    .global-nav a:hover { background: rgba(255,255,255,0.12); color: white; }
+    .global-nav a.active {
+      background: white; color: var(--navy-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .global-nav .spacer { flex: 1; }
+    .global-nav .logout { background: rgba(220,53,69,0.2); color: #fff; }
+    .global-nav .logout:hover { background: rgba(220,53,69,0.5); }
+    @media (max-width: 768px) {
+      .global-nav .brand { font-size: 13px; padding-right: 10px; }
+      .global-nav a { padding: 8px 10px; font-size: 12px; }
+      .global-nav a .label-long { display: none; }
+    }
+
+    .wrap { padding: 20px; }
     
     .container {
       max-width: 900px;
@@ -99,13 +151,47 @@
       box-shadow: 0 0 0 3px rgba(0, 58, 186, 0.1);
     }
     
-    select[multiple] {
-      height: 120px;
-    }
-    
     textarea {
       resize: vertical;
       min-height: 80px;
+    }
+
+    /* Checkbox grid para poblaciones */
+    .pob-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+    }
+    .pob-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 12px 14px;
+      border: 1.5px solid #e9ecef;
+      border-radius: 10px;
+      background: #fafbfc;
+      cursor: pointer;
+      transition: all 0.2s;
+      font-size: 14px; font-weight: 500; color: #374151;
+      user-select: none;
+    }
+    .pob-option:hover { border-color: var(--blue-accent); background: #eef4ff; }
+    .pob-option input[type="checkbox"] {
+      width: 18px; height: 18px; cursor: pointer; accent-color: var(--blue-accent);
+    }
+    .pob-option.checked {
+      background: #eef4ff;
+      border-color: var(--blue-accent);
+      color: var(--navy-primary);
+      font-weight: 600;
+    }
+    .pob-option.otros-row { grid-column: 1 / -1; }
+    .pob-otros-input {
+      display: none;
+      margin-top: 10px;
+      grid-column: 1 / -1;
+    }
+    .pob-otros-input.show { display: block; }
+    @media (max-width: 560px) {
+      .pob-grid { grid-template-columns: 1fr; }
     }
     
     .btn-submit {
@@ -154,57 +240,64 @@
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <h1>👤 Perfil Profesional</h1>
-      <p>Completa tu información para aparecer en el directorio</p>
-    </div>
+  <!-- Global Nav -->
+  <nav class="global-nav" id="globalNav"></nav>
 
-    <div class="content">
-      <form id="perfilForm">
-        <div class="grid">
-          
-          <div class="form-group">
-            <label>Poblaciones que atiende</label>
-            <select multiple name="poblaciones" required>
-              <option value="Niños">Niños</option>
-              <option value="Adolescentes">Adolescentes</option>
-              <option value="Adultos">Adultos</option>
-              <option value="Parejas">Parejas</option>
-              <option value="Familias">Familias</option>
-              <option value="Ancianos">Ancianos</option>
-            </select>
-            <div class="helper-text">Mantén presionado Ctrl (Cmd en Mac) para seleccionar varios</div>
-          </div>
-          
-          <div class="form-group">
-            <label>Modalidad de Atención</label>
-            <select name="modalidad" required>
-              <option value="">Selecciona una opción</option>
-              <option value="Online">Online</option>
-              <option value="Presencial">Presencial</option>
-              <option value="Mixta">Mixta (Online y Presencial)</option>
-            </select>
-          </div>
-          
-          <div class="form-group full">
-            <label>Tipos de Terapia y Enfoque</label>
-            <input type="text" name="tipos" required placeholder="Ej: Terapia Cognitivo-Conductual, Logoterapia, Terapia Familiar...">
-            <div class="helper-text">Separa con comas los diferentes tipos de terapia que ofreces</div>
-          </div>
-          
-          <div class="form-group full">
-            <label>Horarios de Disponibilidad</label>
-            <textarea name="horarios" required placeholder="Ej: Lunes a Viernes de 9:00 a 18:00, Sábados de 10:00 a 14:00"></textarea>
-            <div class="helper-text">Describe tu disponibilidad horaria</div>
-          </div>
-          
-        </div>
+  <div class="wrap">
+    <div class="container">
+      <div class="header">
+        <h1>👤 Mi Perfil Profesional</h1>
+        <p>Completa tu información para aparecer en el directorio</p>
+      </div>
 
-        <button type="submit" id="btnGuardar" class="btn-submit">💾 Guardar y Continuar</button>
-      </form>
+      <div class="content">
+        <form id="perfilForm">
+          <div class="grid">
 
-      <a href="javascript:history.back()" class="back-link">← Volver al dashboard</a>
+            <div class="form-group full">
+              <label>Poblaciones que atiende</label>
+              <div class="pob-grid" id="pobGrid">
+                <label class="pob-option"><input type="checkbox" value="Niños"> Niños</label>
+                <label class="pob-option"><input type="checkbox" value="Adolescentes"> Adolescentes</label>
+                <label class="pob-option"><input type="checkbox" value="Adultos"> Adultos</label>
+                <label class="pob-option"><input type="checkbox" value="Parejas"> Parejas</label>
+                <label class="pob-option"><input type="checkbox" value="Familias"> Familias</label>
+                <label class="pob-option"><input type="checkbox" value="Adultos Mayores"> Adultos Mayores</label>
+                <label class="pob-option otros-row"><input type="checkbox" id="pobOtros" value="Otros"> Otros</label>
+                <div class="pob-otros-input" id="pobOtrosWrap">
+                  <input type="text" id="pobOtrosText" placeholder="Especifica otras poblaciones (separadas por comas)">
+                </div>
+              </div>
+              <div class="helper-text">Selecciona todas las que correspondan</div>
+            </div>
+
+            <div class="form-group">
+              <label>Modalidad de Atención</label>
+              <select name="modalidad" required>
+                <option value="">Selecciona una opción</option>
+                <option value="Online">Online</option>
+                <option value="Presencial">Presencial</option>
+                <option value="Mixta">Mixta (Online y Presencial)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Tipos de Terapia y Enfoque</label>
+              <input type="text" name="tipos" required placeholder="Ej: Terapia Cognitivo-Conductual, Logoterapia...">
+              <div class="helper-text">Separa con comas los diferentes tipos de terapia que ofreces</div>
+            </div>
+
+            <div class="form-group full">
+              <label>Horarios de Disponibilidad</label>
+              <textarea name="horarios" required placeholder="Ej: Lunes a Viernes de 9:00 a 18:00, Sábados de 10:00 a 14:00"></textarea>
+              <div class="helper-text">Describe tu disponibilidad horaria. Podrás editarlos más adelante en el panel del profesional.</div>
+            </div>
+
+          </div>
+
+          <button type="submit" id="btnGuardar" class="btn-submit">💾 Guardar y Continuar</button>
+        </form>
+      </div>
     </div>
   </div>
 
@@ -223,16 +316,75 @@
       }).then(function(r) { return r.json(); });
     }
 
+    // ====== GLOBAL NAV ======
+    function renderGlobalNav(active) {
+      var items = [
+        { id: 'dashboard', icon: '🏠', label: 'Dashboard',       href: BASE + '/Public_Dashboard.html' },
+        { id: 'perfil',    icon: '👤', label: 'Mi Perfil',        href: BASE + '/Public_Perfil.html' },
+        { id: 'docs',      icon: '📎', label: 'Mis Documentos',   href: BASE + '/Public_Dashboard.html?tab=documentos' },
+        { id: 'legales',   icon: '⚖️', label: 'Legales',          href: BASE + '/Public_Legal_Viewer.html?doc=CONTRATO' }
+      ];
+      var nav = document.getElementById('globalNav');
+      if (!nav) return;
+      var html = '<div class="global-nav-inner">';
+      html += '<div class="brand"><span class="brand-badge">CP</span><span class="label-long">Catholizare Pro · Onboarding</span></div>';
+      items.forEach(function(it) {
+        var cls = (it.id === active) ? ' class="active"' : '';
+        html += '<a href="' + it.href + '"' + cls + '><span class="icon">' + it.icon + '</span><span class="label-long">' + it.label + '</span></a>';
+      });
+      html += '<div class="spacer"></div>';
+      html += '<a href="#" onclick="onLogout(); return false;" class="logout"><span class="icon">🚪</span><span class="label-long">Cerrar sesión</span></a>';
+      html += '</div>';
+      nav.innerHTML = html;
+    }
+    function onLogout() {
+      try { sessionStorage.removeItem('onb_token'); } catch(_){}
+      window.location.href = BASE + '/index.html';
+    }
+    renderGlobalNav('perfil');
+
+    // ====== POBLACIONES (checkboxes con highlight) ======
+    var pobCheckboxes = document.querySelectorAll('#pobGrid .pob-option input[type="checkbox"]');
+    pobCheckboxes.forEach(function(cb) {
+      cb.addEventListener('change', function() {
+        cb.closest('.pob-option').classList.toggle('checked', cb.checked);
+        if (cb.id === 'pobOtros') {
+          document.getElementById('pobOtrosWrap').classList.toggle('show', cb.checked);
+          if (!cb.checked) document.getElementById('pobOtrosText').value = '';
+        }
+      });
+    });
+
+    function obtenerPoblaciones() {
+      var selected = [];
+      pobCheckboxes.forEach(function(cb) {
+        if (cb.checked && cb.id !== 'pobOtros') selected.push(cb.value);
+      });
+      var otrosCb = document.getElementById('pobOtros');
+      if (otrosCb && otrosCb.checked) {
+        var otrosText = (document.getElementById('pobOtrosText').value || '').trim();
+        if (otrosText) selected.push('Otros: ' + otrosText);
+        else selected.push('Otros');
+      }
+      return selected.join(', ');
+    }
+
     document.getElementById('perfilForm').onsubmit = function(e) {
       e.preventDefault();
 
-      if (!TOKEN) {
-        alert('Error: Falta el token');
-        return;
-      }
+      if (!TOKEN) { alert('Error: Falta el token'); return; }
 
-      const poblacionesSelect = document.getElementsByName('poblaciones')[0];
-      const poblaciones = Array.from(poblacionesSelect.selectedOptions).map(o => o.value).join(', ');
+      var poblaciones = obtenerPoblaciones();
+      if (!poblaciones) { alert('Selecciona al menos una población que atiendes.'); return; }
+
+      var otrosCb = document.getElementById('pobOtros');
+      if (otrosCb && otrosCb.checked) {
+        var otrosText = (document.getElementById('pobOtrosText').value || '').trim();
+        if (!otrosText) {
+          alert('Escribe qué otras poblaciones atiendes o desmarca "Otros".');
+          return;
+        }
+      }
 
       const formData = {
         poblaciones: poblaciones,
