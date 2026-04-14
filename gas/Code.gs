@@ -59,6 +59,23 @@ function actualizarListasBrevo() {
   Logger.log('✅ Listas Brevo actualizadas: Fase1=#14, Fase2=#15, Fase3=#16, Fase4=#17');
 }
 
+// Ejecutar esta función para actualizar SOLO la carpeta raíz de Drive
+// (donde se suben CV, cédula, foto, carta) sin tocar el resto de la configuración.
+function actualizarCarpetaDrive() {
+  const NUEVA_CARPETA_ID = '1KNS---a_KVRrmvvjQ-rp7tWSmyooKVPE';
+  const props = PropertiesService.getScriptProperties();
+  props.setProperty('PARENT_FOLDER_ID', NUEVA_CARPETA_ID);
+  Logger.log('✅ PARENT_FOLDER_ID actualizado a: ' + NUEVA_CARPETA_ID);
+
+  // Verificación opcional: intentar abrir la carpeta
+  try {
+    var folder = DriveApp.getFolderById(NUEVA_CARPETA_ID);
+    Logger.log('📁 Carpeta verificada: ' + folder.getName());
+  } catch (e) {
+    Logger.log('⚠️ No se pudo abrir la carpeta. Revisa permisos y que el ID sea correcto.');
+  }
+}
+
 function verificarConfiguracion() {
   const props = PropertiesService.getScriptProperties();
   const config = {
