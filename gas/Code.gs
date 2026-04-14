@@ -551,6 +551,19 @@ function checkAndAdvancePhase(rowNum, rowData) {
       getSHEET().getRange(rowNum, 22).setValue(true);
       getSHEET().getRange(rowNum, 23).setValue(new Date());
 
+      // Actualizar columnas legacy: col 12 (L = Legal info) y col 13 (M = Fecha legal)
+      // para que admin dashboard muestre "Ingreso a la red" y "Tiempo en la red".
+      var fechaLegalWrite = _ultimaFechaLegalDeToken_(token) || new Date();
+      try {
+        var existingLegalInfo = String(rowData[11] || '');
+        if (existingLegalInfo.indexOf('ACEPTADO') !== 0) {
+          getSHEET().getRange(rowNum, 12).setValue('ACEPTADO (3 docs legales)');
+        }
+        if (!rowData[12]) {
+          getSHEET().getRange(rowNum, 13).setValue(fechaLegalWrite);
+        }
+      } catch(legErr) { Logger.log('Error actualizando cols legacy legal: ' + legErr); }
+
       sendPhase2WelcomeEmail(email, nombre);
       moveContactToBrevoPhase(email, nombre, "Fase 2", token);
       notifyAdminForZoomScheduling(email, nombre, token);
@@ -561,6 +574,30 @@ function checkAndAdvancePhase(rowNum, rowData) {
   } catch (error) {
     Logger.log('Error en checkAndAdvancePhase: ' + error);
   }
+}
+
+/**
+ * Devuelve la fecha (Date) de la última aceptación legal (CONTRATO/TERMINOS/PRIVACIDAD)
+ * registrada en Aceptaciones_Legales para el token dado. Null si no hay.
+ */
+function _ultimaFechaLegalDeToken_(token) {
+  try {
+    var sheet = getSS().getSheetByName("Aceptaciones_Legales");
+    if (!sheet || sheet.getLastRow() < 2) return null;
+    var data = sheet.getDataRange().getValues();
+    var tk = String(token || '').trim().toLowerCase();
+    var legales = { CONTRATO: true, TERMINOS: true, PRIVACIDAD: true };
+    var maxFecha = null;
+    for (var i = 1; i < data.length; i++) {
+      var rowTk = String(data[i][4] || '').trim().toLowerCase();
+      var docId = String(data[i][1] || '').trim().toUpperCase();
+      if (rowTk === tk && legales[docId]) {
+        var f = new Date(data[i][3]);
+        if (!isNaN(f.getTime()) && (!maxFecha || f > maxFecha)) maxFecha = f;
+      }
+    }
+    return maxFecha;
+  } catch(e) { Logger.log('_ultimaFechaLegalDeToken_ error: ' + e); return null; }
 }
 
 /**
@@ -863,6 +900,29 @@ function adminMarkAction(token, actionId) {
         // Guardar
         getSHEET().getRange(rowNum, 24).setValue(JSON.stringify(marks));
         logAction(token, data[i][2], actionName + ' completado (manual)', 'Trigger_' + actionName, '', 'Completado', 'Admin');
+
+        // Auto-avance de fase según triggers completados
+        try {
+          var currentPhase = String(data[i][8] || 'Fase 1');
+          var nombreRow = data[i][1];
+          var emailRow = data[i][2];
+          // Fase 2 → Fase 3: sync + zoom ambos marcados
+          if (currentPhase === 'Fase 2' && marks['trigMarkSyncDone'] && marks['trigMarkZoomDone']) {
+            getSHEET().getRange(rowNum, 9).setValue('Fase 3');
+            logAction(token, emailRow, 'Avance automático a Fase 3', 'Fase_Actual', 'Fase 2', 'Fase 3', 'Sistema');
+            try { sendPhase3WelcomeEmail(emailRow, nombreRow, token); } catch(_){}
+            try { moveContactToBrevoPhase(emailRow, nombreRow, 'Fase 3', token); } catch(_){}
+            Logger.log('✅ ' + nombreRow + ' avanzó a Fase 3 (auto)');
+          }
+          // Fase 3 → Fase 4: supervisión realizada
+          else if (currentPhase === 'Fase 3' && marks['trigMarkSupervisionDone']) {
+            getSHEET().getRange(rowNum, 9).setValue('Fase 4');
+            logAction(token, emailRow, 'Avance automático a Fase 4', 'Fase_Actual', 'Fase 3', 'Fase 4', 'Sistema');
+            try { moveContactToBrevoPhase(emailRow, nombreRow, 'Fase 4', token); } catch(_){}
+            Logger.log('✅ ' + nombreRow + ' avanzó a Fase 4 (auto)');
+          }
+        } catch(advErr) { Logger.log('Error auto-avance por trigger: ' + advErr); }
+
         return { success: true, message: actionName + ' marcado como completado' };
       }
     }
@@ -1814,13 +1874,30 @@ function getProfessionalStatus(token, expectedEmail) {
         } catch(e) { Logger.log('Error fecha registro: ' + e); }
         
         // Tiempo en la Red: desde aceptación legal (row[12] = columna M = fecha legal)
+        // Si no está poblado pero ya aceptó los 3 legales en Aceptaciones_Legales,
+        // se usa la fecha de la última aceptación (y se backfillea la celda).
         try {
+          var fechaLegal = null;
           if (row[12]) {
-            var fechaLegal = new Date(row[12]);
-            if (!isNaN(fechaLegal.getTime())) {
-              diasEnRed = Math.floor((new Date() - fechaLegal) / 86400000);
-              legalFechaStr = fechaLegal.toLocaleDateString('es-MX');
+            var fL = new Date(row[12]);
+            if (!isNaN(fL.getTime())) fechaLegal = fL;
+          }
+          if (!fechaLegal) {
+            var maxF = _ultimaFechaLegalDeToken_(row[0]);
+            if (maxF) {
+              fechaLegal = maxF;
+              try { getSHEET().getRange(i + 1, 13).setValue(maxF); } catch(_){}
+              // También marcar legacy legal info si vacío
+              try {
+                if (!row[11] || String(row[11]).indexOf('ACEPTADO') !== 0) {
+                  getSHEET().getRange(i + 1, 12).setValue('ACEPTADO (3 docs legales)');
+                }
+              } catch(_){}
             }
+          }
+          if (fechaLegal) {
+            diasEnRed = Math.floor((new Date() - fechaLegal) / 86400000);
+            legalFechaStr = fechaLegal.toLocaleDateString('es-MX');
           }
         } catch(e) { Logger.log('Error fecha legal: ' + e); }
         

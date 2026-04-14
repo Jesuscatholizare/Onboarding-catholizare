@@ -555,6 +555,11 @@
     .meeting-item.done .m-icon {
       background: linear-gradient(135deg, var(--success-green), #22c55e);
     }
+    .meeting-item.upcoming { opacity: 0.72; }
+    .meeting-item.upcoming .m-icon {
+      background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+    }
+    .meeting-item.active { border-color: var(--blue-accent); background: #f0f7ff; }
     .meeting-item .m-body { flex: 1; min-width: 0; }
     .meeting-item h4 {
       color: var(--navy-primary); font-size: 14px;
@@ -892,51 +897,50 @@
         return 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
       }
 
-      var meetings = [];
+      // Estado de cada reunión según fase actual:
+      //   done: la fase ya quedó atrás → completada
+      //   active: pertenece a la fase actual → en curso
+      //   upcoming: fase futura → próxima
+      function estado(phase) {
+        if (phase < faseNum) return 'done';
+        if (phase === faseNum) return 'active';
+        return 'upcoming';
+      }
 
-      // Fase 2
-      if (faseNum >= 2) {
-        meetings.push({
+      var meetings = [
+        {
           phase: 2,
           icon: '📅',
           title: 'Sincronización de agenda / calendario',
           desc: 'Cita Zoom para configurar tu calendario y disponibilidad en la plataforma.',
-          done: faseNum > 2,
+          state: estado(2),
           waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la cita Zoom de *Sincronización de agenda / calendario* (Fase 2 del onboarding Catholizare Pro). ¿Qué horario tienen disponible?'
-        });
-        meetings.push({
+        },
+        {
           phase: 2,
           icon: '💬',
           title: 'Reunión Zoom de bienvenida e inducción',
           desc: 'Sesión de 60 min con el equipo de Catholizare Pro.',
-          done: faseNum > 2,
+          state: estado(2),
           waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la *Reunión Zoom de bienvenida e inducción (60 min)* de mi onboarding en Catholizare Pro. ¿Qué horario tienen disponible?'
-        });
-      }
-
-      // Fase 3
-      if (faseNum >= 3) {
-        meetings.push({
+        },
+        {
           phase: 3,
           icon: '🙏',
           title: 'Supervisión fe y espiritualidad',
           desc: 'Agenda tu cita de acompañamiento espiritual por WhatsApp.',
-          done: faseNum > 3,
+          state: estado(3),
           waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar mi cita de *Supervisión de fe y espiritualidad* (Fase 3 del onboarding Catholizare Pro).'
-        });
-      }
-
-      // Fase 4
-      if (faseNum >= 4) {
-        meetings.push({
+        },
+        {
           phase: 4,
           icon: '📋',
           title: 'Actualización anual de CV',
           desc: 'Agenda la fecha para la actualización anual de tu Curriculum.',
-          done: false,
+          state: estado(4),
           waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la fecha para la *actualización anual de mi CV* (Fase 4 del onboarding Catholizare Pro).'
-        });
-      }
+        }
+      ];
 
       if (!meetings.length) return '';
 
@@ -948,16 +952,31 @@
         +   '</div>';
 
       meetings.forEach(function(m) {
+        var stateClass = ' ' + m.state; // done | active | upcoming
+        var statusLabel = '';
+        if (m.state === 'done')    statusLabel = ' · <strong style="color:var(--success-green)">Completada</strong>';
+        if (m.state === 'active')  statusLabel = ' · <strong style="color:var(--blue-accent)">Por agendar</strong>';
+        if (m.state === 'upcoming') statusLabel = ' · <span style="color:var(--gray-medium)">Próximamente</span>';
+
+        var btn;
+        if (m.state === 'upcoming') {
+          btn = '<span class="btn-wa" style="background:#cbd5e1;box-shadow:none;cursor:not-allowed;opacity:0.75;">'
+              +   '<span>🔒</span><span>Fase ' + m.phase + '</span>'
+              + '</span>';
+        } else {
+          btn = '<a class="btn-wa" target="_blank" rel="noopener" href="' + waLink(m.waMsg) + '">'
+              +   '<span>💬</span><span>WhatsApp</span>'
+              + '</a>';
+        }
+
         html += ''
-          + '<div class="meeting-item' + (m.done ? ' done' : '') + '">'
+          + '<div class="meeting-item' + stateClass + '">'
           +   '<div class="m-icon">' + m.icon + '</div>'
           +   '<div class="m-body">'
           +     '<h4>' + m.title + ' <span class="phase-pill">Fase ' + m.phase + '</span></h4>'
-          +     '<p>' + m.desc + (m.done ? ' · <strong style="color:var(--success-green)">Completada</strong>' : '') + '</p>'
+          +     '<p>' + m.desc + statusLabel + '</p>'
           +   '</div>'
-          +   '<a class="btn-wa" target="_blank" rel="noopener" href="' + waLink(m.waMsg) + '">'
-          +     '<span>💬</span><span>WhatsApp</span>'
-          +   '</a>'
+          +   btn
           + '</div>';
       });
 
