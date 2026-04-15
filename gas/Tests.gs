@@ -92,7 +92,8 @@ function _runUnitSuite() {
   });
   _run('calcularProgreso 100% completo', function() {
     var row = ['tk','n','e','esp','cv','ced','foto','carta','Fase 2','','','ACEPTADO','', 'pob','mod','ter','hor','', null, null, '', null, null, null];
-    _assertEqual(calcularProgreso(row, 3), 100, '9/9');
+    // 4 legales (CONTRATO+TERMINOS+PRIVACIDAD+ETICA) + perfil + 4 docs = 9/9 = 100%
+    _assertEqual(calcularProgreso(row, 4), 100, '9/9');
   });
   _run('calcularProgreso parcial (1 legal + perfil)', function() {
     var row = ['tk','n','e','esp','','','','','Fase 1','','','','','pob','','','','', null, null, '', null, null, null];
@@ -113,11 +114,11 @@ function _runUnitSuite() {
 
   _run('validateProfessionalToken rechaza token inválido', function() {
     var r = validateProfessionalToken('ONB-NO-EXISTE-XYZ');
-    _assertEqual(r.valid, false, 'no debe validar');
+    _assertEqual(r, null, 'devuelve null para token inexistente');
   });
   _run('validateProfessionalToken rechaza vacío', function() {
     var r = validateProfessionalToken('');
-    _assertEqual(r.valid, false, 'vacío no válido');
+    _assertEqual(r, null, 'devuelve null para vacío');
   });
 
   _run('_ultimaFechaLegalDeToken_ devuelve null si no hay', function() {
