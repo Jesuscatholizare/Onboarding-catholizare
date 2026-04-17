@@ -407,7 +407,7 @@ function doPost(e) {
         result = { success: true, data: getAllAdminUsers() };
         break;
       case 'generateAdminToken':
-        result = generateAdminToken(data.email, data.role, data.nombre, data.currentUserToken);
+        result = generateAdminToken(data.email, data.role, data.nombre, data.currentUserToken, data.pin);
         break;
       case 'deactivateAdminToken':
         result = deactivateAdminToken(data.tokenToDeactivate, data.currentUserToken);
@@ -2180,22 +2180,48 @@ function getAllAdminUsers() {
   }
 }
 
-function generateAdminToken(email, role, nombre, currentUserToken) {
+function generateAdminToken(email, role, nombre, currentUserToken, pin) {
   try {
     var currentUser = validateAdminToken(currentUserToken);
     if (!currentUser || currentUser.role !== 'superadmin') throw new Error("Solo super admins pueden generar tokens");
-    
+
+    // Validar PIN de autorización (configurable en Script Properties: SUPERADMIN_PIN)
+    var expectedPin = PropertiesService.getScriptProperties().getProperty('SUPERADMIN_PIN');
+    if (!expectedPin) {
+      throw new Error("SUPERADMIN_PIN no configurado. Ve a Propiedades del script y define SUPERADMIN_PIN.");
+    }
+    if (!pin || String(pin).trim() !== String(expectedPin).trim()) {
+      throw new Error("PIN de autorización incorrecto");
+    }
+
     var sheet = getSS().getSheetByName("Admin_Users");
     if (!sheet) throw new Error("Hoja Admin_Users no existe");
-    
+
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (data[i][1] === email) throw new Error("Este email ya tiene un token");
     }
-    
-    var token = "ADMIN-" + Utilities.getUuid().substring(0, 8);
-    sheet.appendRow([token, email, role, nombre, true, new Date()]);
-    return { success: true, token: token, message: "Token generado exitosamente" };
+
+    // Token corto: ADMIN- + 6 caracteres alfanuméricos (ej: ADMIN-f67z9I)
+    var alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    var randomPart = '';
+    for (var j = 0; j < 6; j++) {
+      randomPart += alphabet.charAt(Math.floor(Math.random() * alphabet.length));
+    }
+    var token = "ADMIN-" + randomPart;
+
+    // Nombre = email si no se provee
+    var nombreFinal = (nombre && nombre.trim()) ? nombre.trim() : email.split('@')[0];
+    sheet.appendRow([token, email, role, nombreFinal, true, new Date()]);
+
+    var serverBase = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    var url = serverBase + '/admin-dashboard.html?adminToken=' + token;
+    return {
+      success: true,
+      token: token,
+      url: url,
+      message: "Admin creado correctamente"
+    };
   } catch (error) {
     Logger.log("❌ Error en generateAdminToken: " + error);
     return { success: false, message: error.toString() };

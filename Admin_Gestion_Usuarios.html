@@ -419,63 +419,49 @@
     
   </div>
   
-  <!-- Modal Nuevo Usuario -->
+  <!-- Modal Agregar Administrador -->
   <div class="modal" id="modalNuevoUsuario">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>➕ Crear Nuevo Usuario</h2>
-        <p>Genera un token de acceso para un nuevo administrador</p>
+    <div class="modal-content" style="max-width: 480px;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #6d28d9, #4c1d95); color: white; border: none; border-radius: 16px 16px 0 0; padding: 18px 22px;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+          <h2 style="color:white; font-size:17px; margin:0; display:flex; align-items:center; gap:8px;">
+            <span>👥</span> Agregar Administrador
+          </h2>
+          <button onclick="cerrarModal()" style="background:transparent; border:none; color:white; font-size:18px; cursor:pointer;">✕</button>
+        </div>
       </div>
       <div class="modal-body">
+        <div id="modalAlert" style="display:none;"></div>
+
         <form id="formNuevoUsuario">
           <div class="form-group">
-            <label>Nombre Completo *</label>
-            <input type="text" id="inputNombre" required placeholder="Ej: María García">
-          </div>
-          <div class="form-group">
-            <label>Email *</label>
+            <label>Email del nuevo admin <span style="color:var(--red)">*</span></label>
             <input type="email" id="inputEmail" required placeholder="email@catholizare.com">
           </div>
           <div class="form-group">
-            <label>Rol *</label>
+            <label>Rol <span style="color:var(--red)">*</span></label>
             <select id="inputRole" required>
-              <option value="">Selecciona un rol</option>
-              <option value="admin">Admin - Acceso dashboard y profesionales</option>
-              <option value="superadmin">Super Admin - Acceso total + gestión</option>
+              <option value="admin">Admin — acceso estándar</option>
+              <option value="superadmin">Super Admin — acceso total</option>
             </select>
           </div>
+          <div class="form-group">
+            <label>PIN de Autorización <span style="color:var(--red)">*</span></label>
+            <input type="password" id="inputPin" required placeholder="••••••••" autocomplete="off">
+          </div>
         </form>
+
+        <!-- Resultado después de crear -->
+        <div id="resultadoCreacion" style="display:none; margin-top:16px; padding:16px; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px;">
+          <div style="font-weight:700; color:#15803d; margin-bottom:8px;">Token de acceso:</div>
+          <div id="tokenGenerado" style="font-family: monospace; font-size:14px; font-weight:600; color:#065f46; word-break:break-all; padding:8px; background:white; border-radius:6px; border:1px solid #bbf7d0;"></div>
+          <div style="font-size:12px; color:#15803d; margin-top:10px;">Envía este link al nuevo admin:</div>
+          <a id="urlGenerada" style="font-size:12px; color:#1d4ed8; text-decoration:underline; word-break:break-all; display:block; margin-top:4px;"></a>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
-        <button class="btn-primary" onclick="crearUsuario()">Crear Usuario</button>
-      </div>
-    </div>
-  </div>
-  
-  <!-- Modal Token Generado -->
-  <div class="modal" id="modalTokenGenerado">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h2>✅ Token Generado</h2>
-        <p>Guarda este token en un lugar seguro</p>
-      </div>
-      <div class="modal-body">
-        <div class="alert warning">
-          ⚠️ Este token solo se mostrará una vez. Cópialo ahora.
-        </div>
-        <div class="form-group">
-          <label>Token de Acceso</label>
-          <input type="text" id="tokenGenerado" readonly style="font-family: monospace; font-size: 16px; font-weight: 600;">
-        </div>
-        <div class="form-group">
-          <label>URL de Acceso</label>
-          <input type="text" id="urlGenerada" readonly style="font-size: 12px;">
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-primary" onclick="copiarToken()">📋 Copiar Token</button>
-        <button class="btn-primary" onclick="cerrarModalToken()">Cerrar</button>
+        <button class="btn-primary" id="btnCrearUsuario" onclick="crearUsuario()" style="background:#6d28d9;">✓ Crear</button>
       </div>
     </div>
   </div>
@@ -610,77 +596,106 @@
         showAlert('Solo super admins pueden crear usuarios', 'error');
         return;
       }
+      // Reset estado del modal
+      document.getElementById('formNuevoUsuario').reset();
+      document.getElementById('formNuevoUsuario').style.display = '';
+      document.getElementById('resultadoCreacion').style.display = 'none';
+      document.getElementById('modalAlert').style.display = 'none';
+      var btn = document.getElementById('btnCrearUsuario');
+      btn.disabled = false;
+      btn.textContent = '✓ Crear';
       document.getElementById('modalNuevoUsuario').classList.add('open');
     }
-    
+
     // Cerrar modal
     function cerrarModal() {
       document.getElementById('modalNuevoUsuario').classList.remove('open');
       document.getElementById('formNuevoUsuario').reset();
+      document.getElementById('formNuevoUsuario').style.display = '';
+      document.getElementById('resultadoCreacion').style.display = 'none';
+      document.getElementById('modalAlert').style.display = 'none';
     }
-    
+
+    // Mostrar alerta dentro del modal
+    function showModalAlert(message, type) {
+      var alertEl = document.getElementById('modalAlert');
+      var bg = type === 'error' ? '#fee2e2' : '#d1fae5';
+      var color = type === 'error' ? '#991b1b' : '#065f46';
+      var border = type === 'error' ? '#fecaca' : '#a7f3d0';
+      alertEl.innerHTML = '<div style="background:' + bg + '; color:' + color + '; border:1px solid ' + border + '; padding:10px 12px; border-radius:8px; font-size:13px; margin-bottom:12px;">' + message + '</div>';
+      alertEl.style.display = 'block';
+    }
+
     // Crear usuario
     function crearUsuario() {
-      const nombre = document.getElementById('inputNombre').value.trim();
       const email = document.getElementById('inputEmail').value.trim();
       const role = document.getElementById('inputRole').value;
-      
-      if (!nombre || !email || !role) {
-        showAlert('Por favor completa todos los campos', 'error');
+      const pin = document.getElementById('inputPin').value.trim();
+
+      if (!email || !role || !pin) {
+        showModalAlert('Por favor completa todos los campos', 'error');
         return;
       }
-      
-      // Validar email
       if (!email.includes('@')) {
-        showAlert('Email inválido', 'error');
+        showModalAlert('Email inválido', 'error');
         return;
       }
-      
-      // Mostrar loading
-      const btn = event.target;
+
+      const btn = document.getElementById('btnCrearUsuario');
       btn.disabled = true;
       btn.textContent = 'Creando...';
-      
-      callProxy('generateAdminToken', { email: email, role: role, nombre: nombre, currentUserToken: currentAdminToken })
+      document.getElementById('modalAlert').style.display = 'none';
+
+      callProxy('generateAdminToken', {
+        email: email,
+        role: role,
+        nombre: email.split('@')[0],
+        currentUserToken: currentAdminToken,
+        pin: pin
+      })
         .then(function(result) {
-          btn.disabled = false;
-          btn.textContent = 'Crear Usuario';
           if (result.success) {
-            cerrarModal();
-            mostrarTokenGenerado(result.token, email);
+            // Ocultar formulario, mostrar resultado inline
+            document.getElementById('formNuevoUsuario').style.display = 'none';
+            var resultDiv = document.getElementById('resultadoCreacion');
+            resultDiv.style.display = 'block';
+            document.getElementById('tokenGenerado').textContent = result.token;
+            var link = document.getElementById('urlGenerada');
+            link.textContent = result.url;
+            link.href = result.url;
+            link.target = '_blank';
+            btn.textContent = '📋 Copiar token';
+            btn.disabled = false;
+            btn.onclick = function() { copiarToken(result.token); };
             loadUsers();
-            showAlert('Usuario creado exitosamente', 'success');
           } else {
-            showAlert(result.message, 'error');
+            btn.disabled = false;
+            btn.textContent = '✓ Crear';
+            showModalAlert(result.message || 'Error al crear usuario', 'error');
           }
         })
         .catch(function(error) {
           btn.disabled = false;
-          btn.textContent = 'Crear Usuario';
-          showAlert('Error: ' + error.message, 'error');
+          btn.textContent = '✓ Crear';
+          showModalAlert('Error: ' + error.message, 'error');
         });
     }
-    
-    // Mostrar token generado
-    function mostrarTokenGenerado(token, email) {
-      const url = BASE + '/index.html';
-      
-      document.getElementById('tokenGenerado').value = token;
-      document.getElementById('urlGenerada').value = url;
-      document.getElementById('modalTokenGenerado').classList.add('open');
-    }
-    
-    // Cerrar modal token
-    function cerrarModalToken() {
-      document.getElementById('modalTokenGenerado').classList.remove('open');
-    }
-    
-    // Copiar token
-    function copiarToken() {
-      const input = document.getElementById('tokenGenerado');
-      input.select();
-      document.execCommand('copy');
-      showAlert('Token copiado al portapapeles', 'success');
+
+    // Copiar token al portapapeles
+    function copiarToken(token) {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(token).then(function() {
+          showModalAlert('Token copiado al portapapeles ✓', 'success');
+        });
+      } else {
+        var tmp = document.createElement('textarea');
+        tmp.value = token;
+        document.body.appendChild(tmp);
+        tmp.select();
+        document.execCommand('copy');
+        document.body.removeChild(tmp);
+        showModalAlert('Token copiado al portapapeles ✓', 'success');
+      }
     }
     
     // Desactivar usuario
