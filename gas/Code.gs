@@ -19,7 +19,7 @@ var LEGAL_DOCS_FOLDER = '1ZoZdAj9xBXlbZQh07lJAwuNQNp9h4SUs';
 
 function getEmailFooter(nombre) {
   return '<tr><td style="padding:20px 30px;text-align:center;">' +
-    '<a href="' + WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + nombre + ' y necesito ayuda con mi onboarding en Catholizare Pro') + '" ' +
+    '<a href="' + WA_LINK + '?text=' + encodeURIComponent('Hola, soy ' + nombre + ' y necesito ayuda con mi integración en Catholizare Pro') + '" ' +
     'style="display:inline-block;background:#25D366;color:#ffffff;text-decoration:none;padding:14px 40px;border-radius:50px;font-size:15px;font-weight:700;">' +
     '💬 Atención al Profesional (WhatsApp)</a></td></tr>' +
     '<tr><td style="background-color:#f8f9fa;padding:25px 30px;text-align:center;border-top:1px solid #e9ecef;">' +
@@ -1120,7 +1120,7 @@ function sendEmailViaBrevo(to, subject, htmlContent) {
     }
     
     var payload = {
-      sender: { name: "Catholizare Pro", email: "onboarding@catholizare.com" },
+      sender: { name: "Catholizare Pro", email: "integracion@catholizare.com" },
       to: [{ email: to }],
       subject: subject,
       htmlContent: htmlContent
@@ -1232,7 +1232,7 @@ function buildPendingChecklistHtml_(token) {
 
 function sendWelcomeEmail(email, nombre, token) {
   var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
-  var subject = "¡Bienvenido a Catholizare Pro! - Inicia tu Onboarding";
+  var subject = "¡Bienvenido a Catholizare Pro! - Inicia tu Integración";
 
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
     '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
@@ -1274,7 +1274,7 @@ function sendWelcomeEmail(email, nombre, token) {
 
 function sendReminder1(email, nombre, progreso, token) {
   var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
-  var subject = "Recordatorio amigable - Completa tu onboarding en Catholizare Pro";
+  var subject = "Recordatorio amigable - Completa tu integración en Catholizare Pro";
   var checklist = buildPendingChecklistHtml_(token);
 
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
@@ -1312,7 +1312,7 @@ function sendReminder1(email, nombre, progreso, token) {
 
 function sendReminder2(email, nombre, progreso, token) {
   var dashboardLink = SERVER_BASE + '/index.html?token=' + token;
-  var subject = "Atención - Solo quedan 7 días para completar tu onboarding";
+  var subject = "Atención - Solo quedan 7 días para completar tu integración";
   var checklist = buildPendingChecklistHtml_(token);
 
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
@@ -1321,7 +1321,7 @@ function sendReminder2(email, nombre, progreso, token) {
     '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(220,53,69,0.15);border:3px solid #dc3545;">' +
     '<tr><td style="background:linear-gradient(135deg,#dc3545 0%,#c82333 100%);padding:35px;text-align:center;">' +
     '<h1 style="margin:0 0 10px 0;color:#fff;font-size:28px;font-weight:800;">Atención urgente</h1>' +
-    '<p style="margin:0;color:rgba(255,255,255,0.95);font-size:16px;font-weight:600;">Tiempo crítico para completar tu onboarding</p></td></tr>' +
+    '<p style="margin:0;color:rgba(255,255,255,0.95);font-size:16px;font-weight:600;">Tiempo crítico para completar tu integración</p></td></tr>' +
     '<tr><td style="padding:40px 30px;">' +
     '<h2 style="margin:0 0 20px 0;color:#dc3545;font-size:24px;font-weight:700;">Hola ' + nombre + ',</h2>' +
     '<p style="margin:0 0 15px 0;color:#333;font-size:17px;line-height:1.6;">Han pasado <strong style="color:#dc3545;">14 días</strong> y aún tienes pendientes.</p>' +
@@ -2805,7 +2805,7 @@ function sendCodigoFirmaEmail_(email, nombre, doc, codigo, folioOtp) {
       '<div style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;background:#f8f9fc;padding:20px;">' +
         '<div style="background:#001A55;color:white;padding:28px;text-align:center;border-radius:12px 12px 0 0;">' +
           '<h1 style="margin:0;font-size:22px;">Código de firma</h1>' +
-          '<p style="margin:6px 0 0;opacity:0.85;font-size:13px;">Catholizare Pro — Onboarding</p>' +
+          '<p style="margin:6px 0 0;opacity:0.85;font-size:13px;">Catholizare Pro — Integración</p>' +
         '</div>' +
         '<div style="padding:32px 28px;background:white;border:1px solid #eef0f5;">' +
           '<p style="margin:0 0 12px;font-size:15px;color:#001A55;">Hola <strong>' + primerNombre + '</strong>,</p>' +
@@ -3004,7 +3004,7 @@ function sendAcceptanceEmails(folio, doc, nombre, correo, telefono, rfc, ip, met
       '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
         '<div style="background:#001A55;color:white;padding:30px;text-align:center;border-radius:12px 12px 0 0;">' +
           '<h1 style="margin:0;font-size:22px;">Confirmación de Aceptación</h1>' +
-          '<p style="margin:8px 0 0;opacity:0.8;">Catholizare Pro — Onboarding</p>' +
+          '<p style="margin:8px 0 0;opacity:0.8;">Catholizare Pro — Integración</p>' +
         '</div>' +
         '<div style="padding:30px;background:white;border:1px solid #eee;">' +
           '<p>Estimado/a <strong>' + nombre + '</strong>,</p>' +
@@ -3069,7 +3069,7 @@ function sendTestEmail(email, adminToken) {
 
     if (!email) return { success: false, message: 'Email no proporcionado' };
 
-    var subject = 'Prueba de sistema — Catholizare Onboarding';
+    var subject = 'Prueba de sistema — Catholizare Pro Integración';
     var htmlContent = '<div style="font-family:Arial,sans-serif;max-width:500px;margin:0 auto;padding:30px;border:1px solid #eee;border-radius:12px;">' +
       '<h2 style="color:#001A55;margin-bottom:10px;">Prueba de Email Exitosa</h2>' +
       '<p style="color:#333;">Este es un correo de prueba enviado desde el módulo <strong>System Health</strong> del sistema de onboarding.</p>' +
