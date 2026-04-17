@@ -415,6 +415,12 @@ function doPost(e) {
       case 'activateAdminToken':
         result = activateAdminToken(data.tokenToActivate, data.currentUserToken);
         break;
+      case 'getSuperadminPin':
+        result = getSuperadminPin(data.currentUserToken);
+        break;
+      case 'setSuperadminPin':
+        result = setSuperadminPin(data.currentUserToken, data.newPin);
+        break;
 
       // === Timeline y estado ===
       case 'getTimeline':
@@ -2261,6 +2267,29 @@ function activateAdminToken(tokenToActivate, currentUserToken) {
     throw new Error("Token no encontrado");
   } catch (error) {
     return { success: false, message: error.toString() };
+  }
+}
+
+function getSuperadminPin(currentUserToken) {
+  try {
+    var user = validateAdminToken(currentUserToken);
+    if (!user || user.role !== 'superadmin') throw new Error('Solo super admins pueden ver el PIN');
+    var pin = PropertiesService.getScriptProperties().getProperty('SUPERADMIN_PIN') || '';
+    return { success: true, pin: pin };
+  } catch(e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+function setSuperadminPin(currentUserToken, newPin) {
+  try {
+    var user = validateAdminToken(currentUserToken);
+    if (!user || user.role !== 'superadmin') throw new Error('Solo super admins pueden cambiar el PIN');
+    if (!newPin || String(newPin).trim().length < 4) throw new Error('El PIN debe tener al menos 4 caracteres');
+    PropertiesService.getScriptProperties().setProperty('SUPERADMIN_PIN', String(newPin).trim());
+    return { success: true, message: 'PIN actualizado correctamente' };
+  } catch(e) {
+    return { success: false, message: e.toString() };
   }
 }
 

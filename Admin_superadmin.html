@@ -119,6 +119,29 @@
       </div>
     </div>
 
+    <!-- PIN de Autorización -->
+    <div class="section">
+      <div class="section-title"><span>🔑</span> PIN de Autorización</div>
+      <div class="session-card">
+        <p style="font-size:13px; color:var(--gray-600); margin-bottom:16px;">Este PIN se solicita al crear nuevos administradores. Se almacena en Script Properties del proyecto de Apps Script (no en la spreadsheet).</p>
+        <div class="session-row">
+          <div class="sr-label">PIN actual</div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <span class="sr-token" id="pinActual" style="min-width:80px;">Cargando...</span>
+            <button class="btn-copy" id="btnTogglePin" style="background:#6b7280;">👁 Mostrar</button>
+          </div>
+        </div>
+        <div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--gray-100);">
+          <div style="font-size:12px; font-weight:600; color:var(--gray-600); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:8px;">Cambiar PIN</div>
+          <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <input type="password" id="inputNewPin" placeholder="Nuevo PIN (mín. 4 caracteres)" style="padding:10px 14px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; font-family:inherit; flex:1; min-width:200px; outline:none;">
+            <button class="btn-copy" id="btnChangePin">💾 Guardar</button>
+          </div>
+          <div id="pinAlert" style="display:none; margin-top:10px; padding:10px 14px; border-radius:8px; font-size:13px;"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- Sesión Actual -->
     <div class="section">
       <div class="section-title"><span>🔐</span> Sesión Actual</div>
@@ -199,6 +222,83 @@
         setTimeout(function() { btn.textContent = '📋 Copiar'; }, 1500);
       }
     };
+
+    // === PIN Management ===
+    var PROXY = BASE + '/api.php';
+    var pinVisible = false;
+    var pinValue = '';
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    function showPinAlert(msg, type) {
+      var el = document.getElementById('pinAlert');
+      el.style.display = 'block';
+      el.style.background = type === 'error' ? '#fee2e2' : '#d1fae5';
+      el.style.color = type === 'error' ? '#991b1b' : '#065f46';
+      el.style.border = '1px solid ' + (type === 'error' ? '#fecaca' : '#a7f3d0');
+      el.textContent = msg;
+      setTimeout(function() { el.style.display = 'none'; }, 4000);
+    }
+
+    function loadPin() {
+      callProxy('getSuperadminPin', { currentUserToken: t }).then(function(r) {
+        if (r.success) {
+          pinValue = r.pin || '';
+          document.getElementById('pinActual').textContent = pinValue ? '••••••••' : '(no configurado)';
+        } else {
+          document.getElementById('pinActual').textContent = 'Error';
+        }
+      }).catch(function() {
+        document.getElementById('pinActual').textContent = 'Error de conexión';
+      });
+    }
+
+    document.getElementById('btnTogglePin').onclick = function() {
+      pinVisible = !pinVisible;
+      var el = document.getElementById('pinActual');
+      if (pinVisible) {
+        el.textContent = pinValue || '(no configurado)';
+        this.textContent = '🙈 Ocultar';
+      } else {
+        el.textContent = pinValue ? '••••••••' : '(no configurado)';
+        this.textContent = '👁 Mostrar';
+      }
+    };
+
+    document.getElementById('btnChangePin').onclick = function() {
+      var newPin = document.getElementById('inputNewPin').value.trim();
+      if (!newPin || newPin.length < 4) {
+        showPinAlert('El PIN debe tener al menos 4 caracteres', 'error');
+        return;
+      }
+      var btn = this;
+      btn.disabled = true;
+      btn.textContent = 'Guardando...';
+      callProxy('setSuperadminPin', { currentUserToken: t, newPin: newPin }).then(function(r) {
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar';
+        if (r.success) {
+          pinValue = newPin;
+          document.getElementById('pinActual').textContent = pinVisible ? pinValue : '••••••••';
+          document.getElementById('inputNewPin').value = '';
+          showPinAlert('PIN actualizado correctamente', 'success');
+        } else {
+          showPinAlert(r.message || 'Error al guardar', 'error');
+        }
+      }).catch(function(e) {
+        btn.disabled = false;
+        btn.textContent = '💾 Guardar';
+        showPinAlert('Error: ' + e.message, 'error');
+      });
+    };
+
+    loadPin();
 
     // Logout
     function doLogout(e) {
