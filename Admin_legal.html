@@ -7,126 +7,225 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <title>Legales - Catholizare Admin</title>
+  <title>Gestión Legal - Catholizare Admin</title>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --navy: #001A55; --navy-dark: #001238; --blue: #003ABA;
-      --gold: #D4AF37; --green: #28a745; --orange: #ff9800;
-      --red: #dc3545; --gray-50: #f8f9fa; --gray-100: #f1f3f5;
-      --gray-200: #e9ecef; --gray-400: #9CA3B4; --gray-600: #6c757d; --gray-700: #374151;
+      --navy: #0f1d3d;
+      --navy-light: #1a2d5a;
+      --navy-deep: #001A55;
+      --gold: #D4AF37;
+      --blue: #3b82f6;
+      --blue-accent: #003ABA;
+      --green: #22c55e;
+      --green-ok: #28a745;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-400: #9CA3B4;
+      --gray-500: #6b7280;
+      --gray-600: #6c757d;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --sidebar-w: 260px;
+      --header-h: 64px;
     }
-    body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); color: var(--gray-700); }
+    body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); color: var(--gray-900); }
 
-    /* TOP BAR */
-    .top-bar { height: 56px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 50; }
-    .top-bar-left { display: flex; align-items: center; gap: 16px; }
-    .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; cursor: pointer; }
-    .logo-icon { width: 30px; height: 30px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
-    .breadcrumb { color: var(--gray-600); font-size: 14px; }
-    .breadcrumb a { color: var(--blue); text-decoration: none; cursor: pointer; }
-    .breadcrumb a:hover { text-decoration: underline; }
-    .user-badge { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--gray-50); border-radius: 8px; font-size: 13px; color: var(--navy); }
-    .role-tag { background: var(--navy); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    /* === HEADER === */
+    .header {
+      position: fixed; top:0; left:0; right:0; height: var(--header-h); z-index:100;
+      background: white; border-bottom: 1px solid var(--gray-200);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+    }
+    .header-brand { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--navy); }
+    .header-brand svg { width:28px; height:28px; }
+    .header-nav { display:flex; gap:4px; margin-left:24px; }
+    .header-nav-btn { padding:8px 16px; border-radius:8px; border:1px solid var(--gray-200); background:white; font-size:13px; font-weight:500; color:var(--gray-700); cursor:pointer; display:flex; align-items:center; gap:6px; text-decoration:none; }
+    .header-nav-btn.active { background:var(--navy); color:white; border-color:var(--navy); }
+    .header-nav-btn:hover:not(.active) { background:var(--gray-100); }
+    .header-right { margin-left:auto; display:flex; align-items:center; gap:16px; }
+    .header-user { text-align:right; font-size:13px; color:var(--gray-500); }
+    .header-user strong { display:block; color:var(--gray-900); font-size:14px; }
+    .header-user small { color:var(--gold); font-weight:600; font-size:11px; }
+    .btn-logout { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:transparent; border:1px solid var(--gray-200); border-radius:8px; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:600; color:var(--gray-500); cursor:pointer; transition:all 0.2s; text-decoration:none; }
+    .btn-logout:hover { background:#fef2f2; border-color:#ef4444; color:#ef4444; }
+    .role-superadmin { background:linear-gradient(135deg, #D4AF37, #C4A030) !important; color:#001A55 !important; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:700; }
+    .role-administrador { background:#003ABA !important; color:white !important; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:700; }
+    .role-coordinador { background:#22c55e !important; color:white !important; padding:3px 10px; border-radius:4px; font-size:11px; font-weight:700; }
 
-    /* CONTAINER */
-    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+    /* === SIDEBAR === */
+    .sidebar {
+      position:fixed; top:var(--header-h); left:0; bottom:0; width:var(--sidebar-w); z-index:90;
+      background:var(--navy); padding:24px 0; overflow-y:auto;
+    }
+    .sidebar-section { padding:0 16px; margin-bottom:8px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.4); letter-spacing:1.5px; text-transform:uppercase; }
+    .sidebar-link {
+      display:flex; align-items:center; gap:12px; padding:10px 20px; margin:2px 8px; border-radius:8px;
+      color:rgba(255,255,255,0.7); font-size:14px; cursor:pointer; transition:all 0.15s;
+    }
+    .sidebar-link:hover { background:rgba(255,255,255,0.08); color:white; }
+    .sidebar-link.active { background:rgba(255,255,255,0.15); color:white; font-weight:600; }
+    .sidebar-link svg { width:18px; height:18px; opacity:0.7; }
+    .sidebar-link.active svg { opacity:1; }
 
-    /* HEADER */
-    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
-    .page-header h1 { font-size: 28px; color: var(--navy); margin-bottom: 4px; }
-    .page-header p { color: var(--gray-600); font-size: 14px; }
-    .btn-back { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
-    .btn-back:hover { background: var(--navy-dark); transform: translateY(-1px); }
+    /* === MAIN === */
+    .main { margin-left:var(--sidebar-w); margin-top:var(--header-h); padding:32px; min-height:calc(100vh - var(--header-h)); }
 
-    /* STATS ROW */
-    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
-    .mini-stat { background: white; padding: 16px 20px; border-radius: 10px; border: 1px solid var(--gray-200); }
-    .mini-stat .num { font-size: 28px; font-weight: 700; color: var(--navy); }
-    .mini-stat .label { font-size: 12px; color: var(--gray-600); margin-top: 2px; text-transform: uppercase; letter-spacing: 0.4px; }
+    /* === PAGE HEADER === */
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-header h1 { font-size:26px; color:var(--navy-deep); margin-bottom:4px; font-weight:700; }
+    .page-header p { color:var(--gray-600); font-size:14px; }
 
-    /* TOOLBAR */
-    .toolbar { background: white; padding: 16px 20px; border-radius: 12px 12px 0 0; border: 1px solid var(--gray-200); border-bottom: none; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
-    .search-box { flex: 1; min-width: 240px; position: relative; }
-    .search-box input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 14px; outline: none; }
-    .search-box input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,58,186,0.1); }
-    .search-box::before { content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; }
-    .filter-select { padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 14px; background: white; cursor: pointer; outline: none; }
-    .filter-select:focus { border-color: var(--blue); }
-    .result-count { font-size: 13px; color: var(--gray-600); white-space: nowrap; }
+    /* === STATS ROW === */
+    .stats-row { display:grid; grid-template-columns:repeat(5, 1fr); gap:16px; margin-bottom:24px; }
+    .mini-stat { background:white; padding:16px 20px; border-radius:12px; border:1px solid var(--gray-200); }
+    .mini-stat .num { font-size:28px; font-weight:700; color:var(--navy-deep); }
+    .mini-stat .label { font-size:12px; color:var(--gray-600); margin-top:2px; text-transform:uppercase; letter-spacing:0.4px; }
 
-    /* TABLE */
-    .table-wrap { background: white; border: 1px solid var(--gray-200); border-radius: 0 0 12px 12px; overflow: auto; }
-    table { width: 100%; border-collapse: collapse; min-width: 900px; }
-    thead th { background: var(--gray-50); padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--gray-200); white-space: nowrap; }
-    tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.15s; cursor: pointer; }
-    tbody tr:hover { background: #f0f4ff; }
-    tbody tr:last-child { border-bottom: none; }
-    td { padding: 14px 16px; font-size: 13px; vertical-align: middle; color: var(--gray-700); }
-    td.folio { font-family: 'Courier New', monospace; font-weight: 600; color: var(--navy); }
-    td.name { font-weight: 600; color: var(--navy); }
+    /* === TOOLBAR === */
+    .toolbar { background:white; padding:16px 20px; border-radius:12px 12px 0 0; border:1px solid var(--gray-200); border-bottom:none; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .search-box { flex:1; min-width:240px; position:relative; }
+    .search-box input { width:100%; padding:10px 12px 10px 36px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; outline:none; font-family:inherit; }
+    .search-box input:focus { border-color:var(--blue-accent); box-shadow:0 0 0 3px rgba(0,58,186,0.1); }
+    .search-box::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:14px; }
+    .filter-select { padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; background:white; cursor:pointer; outline:none; font-family:inherit; }
+    .filter-select:focus { border-color:var(--blue-accent); }
+    .result-count { font-size:13px; color:var(--gray-600); white-space:nowrap; }
 
-    /* DOC BADGES */
-    .doc-badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
-    .doc-CONTRATO { background: #dbeafe; color: #1e40af; }
-    .doc-TERMINOS { background: #d1fae5; color: #065f46; }
-    .doc-PRIVACIDAD { background: #fef3c7; color: #92400e; }
-    .doc-ETICA { background: #f3e8ff; color: #6b21a8; }
+    /* === TABLE === */
+    .table-wrap { background:white; border:1px solid var(--gray-200); border-radius:0 0 12px 12px; overflow:auto; }
+    table { width:100%; border-collapse:collapse; min-width:900px; }
+    thead th { background:var(--gray-50); padding:12px 16px; text-align:left; font-size:12px; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--gray-200); white-space:nowrap; }
+    tbody tr { border-bottom:1px solid var(--gray-100); transition:background 0.15s; cursor:pointer; }
+    tbody tr:hover { background:#f0f4ff; }
+    tbody tr:last-child { border-bottom:none; }
+    td { padding:14px 16px; font-size:13px; vertical-align:middle; color:var(--gray-700); }
+    td.folio { font-family:'Courier New', monospace; font-weight:600; color:var(--navy-deep); }
+    td.name { font-weight:600; color:var(--navy-deep); }
 
-    .empty { padding: 60px 20px; text-align: center; color: var(--gray-400); }
-    .loading { padding: 60px 20px; text-align: center; color: var(--gray-600); }
-    .loading .spinner { display: inline-block; width: 28px; height: 28px; border: 3px solid var(--gray-200); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 12px; }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* === DOC BADGES === */
+    .doc-badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .doc-CONTRATO { background:#dbeafe; color:#1e40af; }
+    .doc-TERMINOS { background:#d1fae5; color:#065f46; }
+    .doc-PRIVACIDAD { background:#fef3c7; color:#92400e; }
+    .doc-ETICA { background:#f3e8ff; color:#6b21a8; }
 
-    /* MODAL */
-    .modal-backdrop { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 100; align-items: center; justify-content: center; padding: 20px; }
-    .modal-backdrop.show { display: flex; }
+    .empty { padding:60px 20px; text-align:center; color:var(--gray-400); }
+    .loading { padding:60px 20px; text-align:center; color:var(--gray-600); }
+    .loading .spinner { display:inline-block; width:28px; height:28px; border:3px solid var(--gray-200); border-top-color:var(--navy-deep); border-radius:50%; animation:spin 0.8s linear infinite; margin-bottom:12px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* === MODAL === */
+    .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:300; align-items:center; justify-content:center; padding:20px; }
+    .modal-backdrop.show { display:flex; }
     .modal {
-      background: white; border-radius: 14px; width: 100%; max-width: 780px; max-height: 90vh;
-      overflow: hidden; display: flex; flex-direction: column;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.35);
+      background:white; border-radius:14px; width:100%; max-width:780px; max-height:90vh;
+      overflow:hidden; display:flex; flex-direction:column;
+      box-shadow:0 20px 60px rgba(0,0,0,0.35);
     }
-    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--gray-100); display: flex; justify-content: space-between; align-items: center; background: var(--navy); color: white; }
-    .modal-header h2 { font-size: 17px; font-weight: 700; }
-    .modal-header .folio-tag { font-family: 'Courier New', monospace; font-size: 12px; opacity: 0.85; margin-top: 2px; }
-    .modal-close { background: transparent; border: none; color: white; font-size: 24px; cursor: pointer; line-height: 1; padding: 4px 10px; border-radius: 6px; }
-    .modal-close:hover { background: rgba(255,255,255,0.15); }
-    .modal-body { padding: 24px; overflow-y: auto; }
+    .modal-header { padding:20px 24px; border-bottom:1px solid var(--gray-100); display:flex; justify-content:space-between; align-items:center; background:var(--navy-deep); color:white; }
+    .modal-header h2 { font-size:17px; font-weight:700; }
+    .modal-header .folio-tag { font-family:'Courier New', monospace; font-size:12px; opacity:0.85; margin-top:2px; }
+    .modal-close { background:transparent; border:none; color:white; font-size:24px; cursor:pointer; line-height:1; padding:4px 10px; border-radius:6px; }
+    .modal-close:hover { background:rgba(255,255,255,0.15); }
+    .modal-body { padding:24px; overflow-y:auto; }
 
-    .legal-row { display: grid; grid-template-columns: 220px 1fr; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
-    .legal-row:last-child { border-bottom: none; }
-    .legal-row .k { font-weight: 600; color: var(--gray-600); }
-    .legal-row .v { color: var(--navy); word-break: break-word; font-weight: 500; }
-    .legal-row .v.mono { font-family: 'Courier New', monospace; font-size: 11px; color: var(--gray-700); }
-    .legal-row .v.ok { color: var(--green); }
-    .legal-row .v.warn { color: var(--orange); }
+    .legal-row { display:grid; grid-template-columns:220px 1fr; gap:12px; padding:10px 0; border-bottom:1px solid var(--gray-100); font-size:13px; }
+    .legal-row:last-child { border-bottom:none; }
+    .legal-row .k { font-weight:600; color:var(--gray-600); }
+    .legal-row .v { color:var(--navy-deep); word-break:break-word; font-weight:500; }
+    .legal-row .v.mono { font-family:'Courier New', monospace; font-size:11px; color:var(--gray-700); }
+    .legal-row .v.ok { color:var(--green-ok); }
+    .legal-row .v.warn { color:var(--orange); }
 
-    .modal-section-title { font-size: 11px; font-weight: 700; color: var(--gray-400); text-transform: uppercase; letter-spacing: 1px; margin: 18px 0 4px; padding-top: 10px; border-top: 1px solid var(--gray-100); }
-    .modal-section-title:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+    .modal-section-title { font-size:11px; font-weight:700; color:var(--gray-400); text-transform:uppercase; letter-spacing:1px; margin:18px 0 4px; padding-top:10px; border-top:1px solid var(--gray-100); }
+    .modal-section-title:first-child { margin-top:0; padding-top:0; border-top:none; }
 
+    @media (max-width: 1100px) {
+      .stats-row { grid-template-columns:repeat(3, 1fr); }
+    }
     @media (max-width: 900px) {
-      .stats-row { grid-template-columns: repeat(2, 1fr); }
-      .legal-row { grid-template-columns: 1fr; gap: 2px; }
-      .legal-row .k { font-size: 11px; }
+      .stats-row { grid-template-columns:repeat(2, 1fr); }
+      .legal-row { grid-template-columns:1fr; gap:2px; }
+      .legal-row .k { font-size:11px; }
+      .main { margin-left:0; padding:20px; }
+      .sidebar { display:none; }
     }
   </style>
 </head>
 <body>
-  <div class="top-bar">
-    <div class="top-bar-left">
-      <a class="logo" id="lnkD"><div class="logo-icon">✝</div>Catholizare</a>
-      <span class="breadcrumb">/ <a id="lnkD2">Dashboard</a> / Legales</span>
-    </div>
-    <div class="user-badge">👤 <span id="uN"></span> <span class="role-tag" id="uR"></span></div>
-  </div>
 
-  <div class="container">
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" stroke="#dc2626" stroke-width="2"/><path d="M12 5v14M8 9l4-4 4 4" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Catholizare
+    </div>
+    <nav class="header-nav">
+      <a class="header-nav-btn" id="btnSeleccion">&#x1F4CB; Selección</a>
+      <a class="header-nav-btn active" id="btnOnboarding">&#x1F4C2; Onboarding</a>
+      <a class="header-nav-btn" id="btnSoporte">&#x1F3A7; Soporte</a>
+      <a class="header-nav-btn" id="btnConfig">&#x2699;&#xFE0F;</a>
+    </nav>
+    <div class="header-right">
+      <div class="header-user">
+        <strong id="hdrEmail">-</strong>
+        <small id="hdrRole">-</small>
+      </div>
+      <div style="width:36px;height:36px;border-radius:50%;background:var(--gray-200);display:flex;align-items:center;justify-content:center;font-size:16px;">&#x1F464;</div>
+      <a class="btn-logout" id="btnLogout" href="#">&#x1F6AA; Salir</a>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div style="padding:0 20px 20px;display:flex;align-items:center;gap:10px;color:white;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M3 9h18"/></svg>
+      <span style="font-size:15px;font-weight:600;">Onboarding</span>
+    </div>
+    <div class="sidebar-section">PRINCIPAL</div>
+    <div class="sidebar-link" id="navDashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="sidebar-link" id="navProfesionales">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Profesionales
+    </div>
+    <div class="sidebar-link active" id="navLegal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      Legales
+    </div>
+    <div class="sidebar-link" id="navAnalitica">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analítica
+    </div>
+    <div class="sidebar-section" style="margin-top:24px;">ADMIN</div>
+    <div class="sidebar-link" id="navUsuarios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Gestión de Usuarios
+    </div>
+    <div class="sidebar-link" id="navSuperAdmin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Super Admin
+    </div>
+    <div class="sidebar-link" id="navHealth">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      System Health
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
     <div class="page-header">
       <div>
         <h1>⚖️ Gestión Legal</h1>
         <p>Aceptaciones de contratos, términos y avisos de privacidad con audit trail completo.</p>
       </div>
-      <a class="btn-back" id="btnB">← Volver</a>
     </div>
 
     <div class="stats-row" id="statsRow">
@@ -156,7 +255,7 @@
         <div class="loading"><div class="spinner"></div><p>Cargando registros legales…</p></div>
       </div>
     </div>
-  </div>
+  </main>
 
   <!-- Modal detalle -->
   <div class="modal-backdrop" id="modalBackdrop" onclick="if(event.target===this) closeModal()">
@@ -179,14 +278,47 @@
     var PROXY = BASE + '/api.php';
     var TOKEN = sessionStorage.getItem('onb_token') || '';
     var ROLE = sessionStorage.getItem('onb_userRole') || '';
+    var USER_EMAIL = sessionStorage.getItem('onb_userEmail') || '';
+    var USER_NAME = sessionStorage.getItem('onb_userName') || '';
     if (!TOKEN) { window.location.href = BASE + '/index.html'; }
 
-    document.getElementById('uN').textContent = sessionStorage.getItem('onb_userName') || '';
-    document.getElementById('uR').textContent = ROLE || '';
-    var dashboardHref = BASE + '/dashboard-admin.html';
-    document.getElementById('lnkD').href = dashboardHref;
-    document.getElementById('lnkD2').href = dashboardHref;
-    document.getElementById('btnB').href = dashboardHref;
+    // Header user info
+    document.getElementById('hdrEmail').textContent = USER_EMAIL || USER_NAME || '-';
+    var roleEl = document.getElementById('hdrRole');
+    roleEl.textContent = ROLE === 'superadmin' ? 'Super Admin' : (ROLE || '-');
+    if (ROLE === 'superadmin') roleEl.className = 'role-superadmin';
+    else if (ROLE === 'administrador') roleEl.className = 'role-administrador';
+    else roleEl.className = 'role-coordinador';
+
+    // Hide Super Admin & Health for non-superadmins
+    if (ROLE !== 'superadmin') {
+      var saNav = document.getElementById('navSuperAdmin');
+      if (saNav) saNav.style.display = 'none';
+      var healthNav = document.getElementById('navHealth');
+      if (healthNav) healthNav.style.display = 'none';
+    }
+
+    // Navigation — all sidebar items except Legal return to main dashboard
+    var DASH = BASE + '/Admin_Dashboard_Complete.html';
+    document.getElementById('navDashboard').addEventListener('click', function(){ window.location.href = DASH; });
+    document.getElementById('navProfesionales').addEventListener('click', function(){ window.location.href = DASH + '#profesionales'; });
+    document.getElementById('navAnalitica').addEventListener('click', function(){ window.location.href = DASH + '#analitica'; });
+    document.getElementById('navUsuarios').addEventListener('click', function(){ window.location.href = DASH + '#usuarios'; });
+    document.getElementById('navSuperAdmin').addEventListener('click', function(){ window.location.href = DASH + '#superadmin'; });
+    document.getElementById('navHealth').addEventListener('click', function(){ window.location.href = DASH + '#health'; });
+
+    // Top-bar buttons redirect to dashboard (Soporte/Config open help there)
+    document.getElementById('btnSeleccion').addEventListener('click', function(){ window.location.href = DASH; });
+    document.getElementById('btnOnboarding').addEventListener('click', function(){ window.location.href = DASH; });
+    document.getElementById('btnSoporte').addEventListener('click', function(){ window.location.href = DASH + '#help'; });
+    document.getElementById('btnConfig').addEventListener('click', function(){ window.location.href = DASH + '#help'; });
+
+    // Logout
+    document.getElementById('btnLogout').addEventListener('click', function(e){
+      e.preventDefault();
+      sessionStorage.clear();
+      window.location.href = BASE + '/index.html';
+    });
 
     function callProxy(action, data) {
       return fetch(PROXY + '?action=' + action, {
@@ -277,7 +409,7 @@
           '<td>' + docBadge(r.docId) + '</td>' +
           '<td>v' + escapeHtml(r.version) + '</td>' +
           '<td>' + fmtDate(r.fecha) + '</td>' +
-          '<td>' + (r.copiaEnviada === 'Sí' ? '<span style="color:var(--green);font-weight:600;">✓ Enviada</span>' : '<span style="color:var(--orange);">Pendiente</span>') + '</td>' +
+          '<td>' + (r.copiaEnviada === 'Sí' ? '<span style="color:var(--green-ok);font-weight:600;">✓ Enviada</span>' : '<span style="color:var(--orange);">Pendiente</span>') + '</td>' +
           '</tr>';
       });
       html += '</tbody></table>';
