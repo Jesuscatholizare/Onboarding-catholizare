@@ -604,6 +604,7 @@
       var btn = document.getElementById('btnCrearUsuario');
       btn.disabled = false;
       btn.textContent = '✓ Crear';
+      btn.onclick = crearUsuario;
       document.getElementById('modalNuevoUsuario').classList.add('open');
     }
 
