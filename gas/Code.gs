@@ -401,19 +401,30 @@ function doPost(e) {
       // === Admin: usuarios admin ===
       case 'validateAdminToken':
         var user = validateAdminToken(data.token, data.email);
+        if (user) { try { logAdminLogin(user.token, user.email, user.role, user.nombre, data.ip || '', data.userAgent || ''); } catch(_) {} }
         result = user ? { success: true, data: user } : { success: false, message: 'Clave o correo incorrectos' };
         break;
       case 'getAllAdminUsers':
         result = { success: true, data: getAllAdminUsers() };
         break;
       case 'generateAdminToken':
-        result = generateAdminToken(data.email, data.role, data.nombre, data.currentUserToken);
+        result = generateAdminToken(data.email, data.role, data.nombre, data.currentUserToken, data.superAdminPin);
         break;
       case 'deactivateAdminToken':
         result = deactivateAdminToken(data.tokenToDeactivate, data.currentUserToken);
         break;
       case 'activateAdminToken':
         result = activateAdminToken(data.tokenToActivate, data.currentUserToken);
+        break;
+      case 'getSuperAdminPinStatus':
+        result = { success: true, isSet: isSuperAdminPinSet() };
+        break;
+      case 'setSuperAdminPin':
+        result = setSuperAdminPin(data.newPin, data.currentPin, data.currentUserToken);
+        break;
+      case 'getAdminLoginLog':
+        try { result = { success: true, data: getAdminLoginLog(data.currentUserToken, data.limit) }; }
+        catch (e) { result = { success: false, message: e.toString() }; }
         break;
 
       // === Timeline y estado ===
@@ -2180,26 +2191,140 @@ function getAllAdminUsers() {
   }
 }
 
-function generateAdminToken(email, role, nombre, currentUserToken) {
+function generateAdminToken(email, role, nombre, currentUserToken, superAdminPin) {
   try {
     var currentUser = validateAdminToken(currentUserToken);
-    if (!currentUser || currentUser.role !== 'superadmin') throw new Error("Solo super admins pueden generar tokens");
-    
+    if (!currentUser) throw new Error("No autenticado");
+    if (currentUser.role !== 'superadmin') throw new Error("Solo super admins pueden generar tokens");
+    if (!validateSuperAdminPin(superAdminPin)) throw new Error("PIN de Super Administrador incorrecto");
+
+    var emailNorm = String(email || '').trim().toLowerCase();
+    var nombreNorm = String(nombre || '').trim();
+    var roleNorm = String(role || '').trim().toLowerCase();
+    if (!emailNorm || !nombreNorm) throw new Error("Email y nombre son obligatorios");
+    if (roleNorm !== 'administrador' && roleNorm !== 'superadmin') throw new Error("Rol inválido");
+
     var sheet = getSS().getSheetByName("Admin_Users");
     if (!sheet) throw new Error("Hoja Admin_Users no existe");
-    
+
     var data = sheet.getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
-      if (data[i][1] === email) throw new Error("Este email ya tiene un token");
+      if (String(data[i][1] || '').trim().toLowerCase() === emailNorm) throw new Error("Este email ya tiene un token");
     }
-    
+
     var token = "ADMIN-" + Utilities.getUuid().substring(0, 8);
-    sheet.appendRow([token, email, role, nombre, true, new Date()]);
-    return { success: true, token: token, message: "Token generado exitosamente" };
+    sheet.appendRow([token, emailNorm, roleNorm, nombreNorm, true, new Date()]);
+
+    var emailRes = sendAdminTokenEmail(emailNorm, nombreNorm, token, roleNorm);
+    return {
+      success: true,
+      token: token,
+      emailSent: !!emailRes.success,
+      message: emailRes.success
+        ? ('Token generado y enviado a ' + emailNorm)
+        : ('Token generado, pero falló el envío de correo: ' + (emailRes.message || 'desconocido'))
+    };
   } catch (error) {
     Logger.log("❌ Error en generateAdminToken: " + error);
     return { success: false, message: error.toString() };
   }
+}
+
+function sendAdminTokenEmail(email, nombre, token, role) {
+  try {
+    var loginUrl = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding/index.html';
+    var roleLabel = role === 'superadmin' ? 'Super Administrador' : 'Administrador';
+    var subject = '🔑 Acceso al Panel de Administración Catholizare Pro';
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+      '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background:#f4f7fa;">' +
+      '<table role="presentation" style="width:100%;background:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
+      '<table role="presentation" style="max-width:600px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
+      '<tr><td style="background:linear-gradient(135deg,#003ABA 0%,#001A55 100%);padding:30px;text-align:center;">' +
+      '<h1 style="margin:0;color:#fff;font-size:24px;font-weight:700;">🔑 Acceso al Panel de Administración</h1>' +
+      '<p style="margin:10px 0 0 0;color:rgba(255,255,255,0.9);font-size:14px;">' + roleLabel + '</p></td></tr>' +
+      '<tr><td style="padding:32px 30px;">' +
+      '<h2 style="margin:0 0 16px 0;color:#001A55;font-size:20px;">Hola ' + nombre + ',</h2>' +
+      '<p style="margin:0 0 20px 0;color:#333;font-size:15px;line-height:1.6;">Has sido dado de alta como <strong>' + roleLabel + '</strong> en Catholizare Pro. A continuación tu clave de acceso personal:</p>' +
+      '<div style="background:#f8f9fa;border:2px dashed #003ABA;border-radius:10px;padding:20px;text-align:center;margin:24px 0;">' +
+      '<p style="margin:0 0 8px 0;color:#5A6275;font-size:12px;text-transform:uppercase;letter-spacing:1px;">Tu clave de acceso</p>' +
+      '<p style="margin:0;font-family:monospace;font-size:22px;font-weight:700;color:#001A55;letter-spacing:2px;">' + token + '</p></div>' +
+      '<p style="margin:0 0 20px 0;color:#333;font-size:14px;">Para acceder, ingresa con tu correo y esta clave en:</p>' +
+      '<table role="presentation" style="width:100%;"><tr><td style="text-align:center;">' +
+      '<a href="' + loginUrl + '" style="display:inline-block;background:#001A55;color:#fff;text-decoration:none;padding:14px 32px;border-radius:50px;font-weight:700;">→ Ir al Login</a></td></tr></table>' +
+      '<p style="margin:24px 0 0 0;color:#dc3545;font-size:13px;line-height:1.5;">⚠️ <strong>Importante:</strong> No compartas esta clave con nadie. Es personal e intransferible.</p>' +
+      '</td></tr><tr><td style="background:#f8f9fa;padding:16px;text-align:center;color:#999;font-size:11px;">© 2026 Catholizare Pro — Integración</td></tr></table></td></tr></table></body></html>';
+    return sendEmailViaBrevo(email, subject, html);
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
+}
+
+// === SUPER ADMIN PIN (Script Properties) ===
+function getSuperAdminPin() {
+  return PropertiesService.getScriptProperties().getProperty('SUPERADMIN_PIN') || '';
+}
+function isSuperAdminPinSet() {
+  return !!getSuperAdminPin();
+}
+function validateSuperAdminPin(pin) {
+  var stored = getSuperAdminPin();
+  if (!stored) return false;
+  return String(pin || '').trim() === stored;
+}
+function setSuperAdminPin(newPin, currentPin, currentUserToken) {
+  try {
+    var user = validateAdminToken(currentUserToken);
+    if (!user) throw new Error('No autenticado');
+    if (user.role !== 'superadmin') throw new Error('Solo super admins pueden cambiar el PIN');
+    var clean = String(newPin || '').trim();
+    if (clean.length < 4) throw new Error('El PIN debe tener al menos 4 caracteres');
+    var stored = getSuperAdminPin();
+    if (stored) {
+      if (String(currentPin || '').trim() !== stored) throw new Error('PIN actual incorrecto');
+    }
+    PropertiesService.getScriptProperties().setProperty('SUPERADMIN_PIN', clean);
+    return { success: true, message: stored ? 'PIN actualizado correctamente' : 'PIN configurado correctamente' };
+  } catch (e) {
+    Logger.log('❌ setSuperAdminPin: ' + e);
+    return { success: false, message: e.toString() };
+  }
+}
+
+// === LOG DE SESIONES ADMIN ===
+function logAdminLogin(token, email, role, nombre, ip, userAgent) {
+  try {
+    var ss = getSS();
+    var sheet = ss.getSheetByName('Admin_Logins');
+    if (!sheet) {
+      sheet = ss.insertSheet('Admin_Logins');
+      sheet.appendRow(['Fecha', 'Email', 'Nombre', 'Rol', 'Token', 'IP', 'UserAgent']);
+    }
+    sheet.appendRow([new Date(), email || '', nombre || '', role || '', token || '', ip || '', userAgent || '']);
+  } catch (e) {
+    Logger.log('logAdminLogin error: ' + e);
+  }
+}
+function getAdminLoginLog(currentUserToken, limit) {
+  var user = validateAdminToken(currentUserToken);
+  if (!user) throw new Error('No autenticado');
+  if (user.role !== 'superadmin') throw new Error('Solo super admins pueden ver el log de sesiones');
+  var sheet = getSS().getSheetByName('Admin_Logins');
+  if (!sheet) return [];
+  var data = sheet.getDataRange().getValues();
+  var rows = [];
+  var max = limit && limit > 0 ? limit : 100;
+  for (var i = data.length - 1; i >= 1 && rows.length < max; i--) {
+    rows.push({
+      fecha: data[i][0] ? new Date(data[i][0]).toISOString() : '',
+      email: String(data[i][1] || ''),
+      nombre: String(data[i][2] || ''),
+      role: String(data[i][3] || ''),
+      token: String(data[i][4] || ''),
+      ip: String(data[i][5] || ''),
+      userAgent: String(data[i][6] || '')
+    });
+  }
+  return rows;
 }
 
 function deactivateAdminToken(tokenToDeactivate, currentUserToken) {

@@ -298,7 +298,7 @@
           btn.style.pointerEvents = 'auto';
           return;
         }
-        callProxy('validateAdminToken', { token: token, email: email })
+        callProxy('validateAdminToken', { token: token, email: email, userAgent: navigator.userAgent || '' })
           .then(function(r) {
             if (r && r.success && r.data) {
               // Guardar en sessionStorage
