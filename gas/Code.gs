@@ -813,36 +813,40 @@ function sendPhase3WelcomeEmail(email, firstName, token) {
 // EMAIL FASE 3: Invitación Blog (template real)
 // ============================================================================
 function sendBlogInviteEmail(email, firstName, token) {
-  var subject = '✍️ Comparte tu experiencia — Invitación al Blog';
+  var subject = '✍️ Obligatorio — 3 publicaciones o interacciones este mes en el Blog';
   var htmlContent = '<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>' +
     '<body style="margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,\'Segoe UI\',Roboto,sans-serif;background-color:#f4f7fa;">' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background-color:#f4f7fa;"><tr><td style="padding:40px 20px;">' +
     '<table role="presentation" style="max-width:600px;margin:0 auto;background-color:#fff;border-radius:16px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">' +
     '<tr><td style="background:linear-gradient(135deg,#003ABA 0%,#001A55 100%);padding:30px;text-align:center;">' +
-    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">✍️ Comparte tu experiencia</h1></td></tr>' +
+    '<h1 style="margin:0;color:#fff;font-size:26px;font-weight:700;">✍️ Participación mensual obligatoria</h1>' +
+    '<p style="margin:10px 0 0 0;color:rgba(255,255,255,0.9);font-size:14px;">Blog comunitario Catholizare Pro</p></td></tr>' +
     '<tr><td style="padding:40px 30px;">' +
     '<h2 style="margin:0 0 20px 0;color:#001A55;font-size:22px;font-weight:600;">Hola ' + firstName + ',</h2>' +
-    '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Como miembro de Catholizare Pro, te invitamos a <strong>colaborar en nuestro blog comunitario</strong> y compartir tu conocimiento con otros profesionales y el público general.</p>' +
-    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:20px;font-weight:600;">✍️ ¿Sobre qué puedes escribir?</h3>' +
-    '<ul style="margin:0 0 30px 0;padding-left:20px;color:#333;font-size:15px;line-height:1.8;">' +
-    '<li style="margin-bottom:10px;">Casos clínicos (debidamente anonimizados)</li>' +
-    '<li style="margin-bottom:10px;">Reflexiones sobre la integración de fe y psicología</li>' +
-    '<li style="margin-bottom:10px;">Artículos técnicos de tu especialidad</li>' +
-    '<li style="margin-bottom:10px;">Reseñas de libros o recursos</li>' +
-    '<li>Entrevistas o colaboraciones con otros profesionales</li></ul>' +
-    '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#fff3cd 0%,#fffaeb 100%);border-radius:12px;border-left:5px solid #D4AF37;margin:25px 0;"><tr><td style="padding:25px;">' +
-    '<p style="margin:0 0 15px 0;color:#001A55;font-size:18px;font-weight:700;">📝 Beneficios de participar:</p>' +
-    '<ul style="margin:0;padding-left:20px;color:#666;font-size:14px;line-height:1.7;">' +
-    '<li style="margin-bottom:8px;">Mayor visibilidad profesional</li>' +
-    '<li style="margin-bottom:8px;">Networking con otros profesionales católicos</li>' +
-    '<li style="margin-bottom:8px;">Contribuir al crecimiento de la comunidad</li>' +
-    '<li>Posicionamiento como experto en tu área</li></ul></td></tr></table>' +
-    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:35px 0;"><tr><td style="text-align:center;">' +
-    '<a href="https://wa.me/5215510223883?text=Quiero%20participar%20escribiendo%20un%20post" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:18px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">✍️ ENVIAR MI PRIMER ARTÍCULO</a></td></tr></table>' +
-    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#e3f2fd;border-radius:10px;margin:25px 0;"><tr><td style="padding:15px;">' +
-    '<p style="margin:0;color:#666;font-size:13px;line-height:1.6;">💡 <strong>Nota:</strong> No te preocupes por el formato perfecto. Nuestro equipo editorial te ayudará a pulir y dar formato a tu artículo antes de publicarlo.</p></td></tr></table>' +
+    '<p style="margin:0 0 20px 0;color:#333;font-size:16px;line-height:1.6;">Como parte de tu compromiso con la comunidad Catholizare Pro, te recordamos que <strong>es obligatorio escribir al menos 3 publicaciones o interacciones cada mes</strong> en nuestro blog comunitario.</p>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#fef2f2;border-radius:12px;border-left:5px solid #dc3545;margin:20px 0;"><tr><td style="padding:20px 22px;">' +
+    '<p style="margin:0 0 6px 0;color:#dc3545;font-size:16px;font-weight:700;">⚠️ Requisito mensual obligatorio</p>' +
+    '<p style="margin:0;color:#333;font-size:14px;line-height:1.6;">Mínimo <strong>3 publicaciones o interacciones</strong> al mes. Esto mantiene activa tu participación en la comunidad y es parte de los criterios de permanencia.</p></td></tr></table>' +
+    '<h3 style="margin:20px 0 15px 0;color:#001A55;font-size:19px;font-weight:600;">✍️ ¿Por qué es importante escribir cada mes?</h3>' +
+    '<ul style="margin:0 0 25px 0;padding-left:20px;color:#333;font-size:15px;line-height:1.7;">' +
+    '<li style="margin-bottom:8px;">Consolida tu conocimiento y reflexión profesional.</li>' +
+    '<li style="margin-bottom:8px;">Fortalece la presencia de la comunidad católica de salud mental.</li>' +
+    '<li style="margin-bottom:8px;">Ayuda a otros profesionales y al público que nos lee.</li>' +
+    '<li>Construye tu posicionamiento como experto en tu área.</li></ul>' +
+    '<h3 style="margin:0 0 15px 0;color:#001A55;font-size:19px;font-weight:600;">¿Qué cuenta como publicación o interacción?</h3>' +
+    '<ul style="margin:0 0 25px 0;padding-left:20px;color:#333;font-size:15px;line-height:1.7;">' +
+    '<li style="margin-bottom:8px;">Casos clínicos (debidamente anonimizados).</li>' +
+    '<li style="margin-bottom:8px;">Reflexiones sobre la integración de fe y psicología.</li>' +
+    '<li style="margin-bottom:8px;">Artículos técnicos de tu especialidad.</li>' +
+    '<li style="margin-bottom:8px;">Reseñas de libros o recursos.</li>' +
+    '<li style="margin-bottom:8px;">Comentarios sustanciales a posts de otros profesionales.</li>' +
+    '<li>Entrevistas o colaboraciones con otros profesionales.</li></ul>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;margin:30px 0;"><tr><td style="text-align:center;">' +
+    '<a href="https://wa.me/5215510223883?text=Quiero%20enviar%20mis%20publicaciones%20del%20mes" style="display:inline-block;background-color:#001A55;background:linear-gradient(135deg,#001A55 0%,#003ABA 100%);color:#fff;text-decoration:none;padding:18px 50px;border-radius:50px;font-size:17px;font-weight:700;box-shadow:0 4px 15px rgba(0,26,85,0.3);">✍️ ENVIAR MIS PUBLICACIONES DEL MES</a></td></tr></table>' +
+    '<table role="presentation" style="width:100%;border-collapse:collapse;background:#e3f2fd;border-radius:10px;margin:20px 0;"><tr><td style="padding:15px;">' +
+    '<p style="margin:0;color:#666;font-size:13px;line-height:1.6;">💡 <strong>Nota:</strong> No te preocupes por el formato perfecto. Nuestro equipo editorial te ayudará a pulir y dar formato antes de publicar.</p></td></tr></table>' +
     '<p style="margin:30px 0 0 0;color:#333;font-size:15px;">Saludos,<br><strong style="color:#001A55;">Equipo Catholizare Pro</strong></p>' +
-    '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro</p></td></tr>' +
+    '</td></tr><tr><td style="background-color:#f8f9fa;padding:20px;text-align:center;"><p style="margin:0;color:#999;font-size:12px;">© 2026 Catholizare Pro — Integración</p></td></tr>' +
     '</table></td></tr></table></body></html>';
   
   var result = sendEmailViaBrevo(email, subject, htmlContent);
@@ -867,7 +871,7 @@ function sendMonthlyMeetingEmail(email, firstName, token) {
     '<p style="margin:0 0 25px 0;color:#333;font-size:16px;line-height:1.6;">Como parte de la comunidad de Catholizare Pro, estás invitado a nuestras <strong>reuniones mensuales de profesionales</strong> donde nos reunimos para crecer juntos.</p>' +
     '<table role="presentation" style="width:100%;border-collapse:collapse;background:linear-gradient(135deg,#e3f2fd 0%,#bbdefb 100%);border-radius:12px;border-left:5px solid #003ABA;margin:25px 0;"><tr><td style="padding:25px;">' +
     '<h3 style="margin:0 0 20px 0;color:#001A55;font-size:20px;font-weight:700;">📅 Próxima reunión:</h3>' +
-    '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Fecha:</strong> Primer viernes de cada mes</p>' +
+    '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Fecha:</strong> El 15 de cada mes</p>' +
     '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Hora:</strong> 8:30 hrs (hora de México)</p>' +
     '<p style="margin:0 0 10px 0;color:#001A55;font-size:15px;"><strong>Modalidad:</strong> Zoom</p>' +
     '<p style="margin:0 0 8px 0;color:#001A55;font-size:15px;font-weight:700;">Link:</p>' +
