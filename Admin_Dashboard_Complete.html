@@ -300,14 +300,12 @@
         <input type="email" id="addEmail" placeholder="profesional@email.com" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;box-sizing:border-box;"></div>
         <div style="margin-bottom:16px;"><label style="font-size:12px;font-weight:600;color:var(--gray-500);display:block;margin-bottom:4px;">Especialidad</label>
         <select id="addEspecialidad" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;box-sizing:border-box;">
-          <option value="Psicología Clínica">Psicología Clínica</option>
-          <option value="Psicología Infantil">Psicología Infantil</option>
-          <option value="Psicología Educativa">Psicología Educativa</option>
-          <option value="Neuropsicología">Neuropsicología</option>
-          <option value="Psicología de Pareja y Familia">Psicología de Pareja y Familia</option>
-          <option value="Tanatología">Tanatología</option>
+          <option value="Psicólogo clínico">Psicólogo clínico</option>
+          <option value="Consultor Familiar">Consultor Familiar</option>
+          <option value="Tanatólogo">Tanatólogo</option>
           <option value="Otro">Otro</option>
-        </select></div>
+        </select>
+        <input type="text" id="addEspecialidadOtro" placeholder="Especifica la especialidad" style="display:none;width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;box-sizing:border-box;margin-top:8px;"></div>
         <div style="margin-bottom:20px;"><label style="font-size:12px;font-weight:600;color:var(--gray-500);display:block;margin-bottom:4px;">Categoría</label>
         <select id="addCategoria" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;box-sizing:border-box;">
           <option value="Junior">Junior</option>
@@ -472,18 +470,35 @@
     document.getElementById('addProfCloseBtn').addEventListener('click', function(){ document.getElementById('addProfModal').classList.remove('open'); document.body.style.overflow=''; });
     document.getElementById('btnCancelAdd').addEventListener('click', function(){ document.getElementById('addProfModal').classList.remove('open'); document.body.style.overflow=''; });
     document.getElementById('addProfModal').addEventListener('click', function(e){ if(e.target===this){ this.classList.remove('open'); document.body.style.overflow=''; } });
+    document.getElementById('addEspecialidad').addEventListener('change', function() {
+      var otro = document.getElementById('addEspecialidadOtro');
+      if (this.value === 'Otro') {
+        otro.style.display = 'block';
+        otro.focus();
+      } else {
+        otro.style.display = 'none';
+        otro.value = '';
+      }
+    });
+
     document.getElementById('btnConfirmAdd').addEventListener('click', function() {
       var nombre = document.getElementById('addNombre').value.trim();
       var email = document.getElementById('addEmail').value.trim();
-      var especialidad = document.getElementById('addEspecialidad').value;
+      var especialidadSel = document.getElementById('addEspecialidad').value;
+      var especialidadOtro = document.getElementById('addEspecialidadOtro').value.trim();
+      var especialidad = especialidadSel === 'Otro' ? especialidadOtro : especialidadSel;
       var categoria = document.getElementById('addCategoria').value;
-      
-      if (!nombre || !email) { 
-        document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Nombre y email son obligatorios</p>'; 
-        return; 
+
+      if (!nombre || !email) {
+        document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Nombre y email son obligatorios</p>';
+        return;
       }
       if (!email.includes('@')) {
         document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Email no válido</p>';
+        return;
+      }
+      if (especialidadSel === 'Otro' && !especialidadOtro) {
+        document.getElementById('addResult').innerHTML = '<p style="color:var(--red);font-size:13px;">&#x274C; Especifica la especialidad en el campo "Otro"</p>';
         return;
       }
       
@@ -507,6 +522,9 @@
               document.body.style.overflow='';
               document.getElementById('addNombre').value = '';
               document.getElementById('addEmail').value = '';
+              document.getElementById('addEspecialidadOtro').value = '';
+              document.getElementById('addEspecialidadOtro').style.display = 'none';
+              document.getElementById('addEspecialidad').selectedIndex = 0;
               document.getElementById('addResult').innerHTML = '';
               profData = []; detailCache = {};
               showProfesionales();
