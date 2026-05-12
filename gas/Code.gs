@@ -447,6 +447,11 @@ function doPost(e) {
       // === Documentos Legales ===
       case 'getDocumentoLegal':
         result = getDocumentoLegal(data.docId);
+        // Si es token VOL-, incluir datos del voluntario en la misma respuesta
+        if (result.success && String(data.token || '').toUpperCase().indexOf('VOL-') === 0) {
+          var _vi = getVolunteerByToken(data.token);
+          if (_vi) result.voluntario = { nombre: _vi.nombre || '', email: _vi.email || '', telefono: _vi.telefono || '', rfc: '' };
+        }
         break;
       case 'getDocumentosStatus':
         result = getDocumentosStatus(data.token);
