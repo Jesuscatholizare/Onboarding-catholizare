@@ -71,7 +71,12 @@
     .result-count { font-size:13px; color:var(--gray-600); white-space:nowrap; }
 
     /* TABLE */
-    .table-wrap { background:white; border:1px solid var(--gray-200); border-radius:0 0 12px 12px; overflow:auto; }
+    .table-wrap { background:white; border:1px solid var(--gray-200); border-radius:0 0 12px 12px; overflow:auto; max-height:calc(100vh - 320px); min-height:240px; }
+    .table-wrap::-webkit-scrollbar { width:10px; height:10px; }
+    .table-wrap::-webkit-scrollbar-track { background:var(--gray-50); }
+    .table-wrap::-webkit-scrollbar-thumb { background:var(--gray-300); border-radius:5px; }
+    .table-wrap::-webkit-scrollbar-thumb:hover { background:var(--gray-500); }
+    .table-wrap thead th { position:sticky; top:0; z-index:2; }
     table { width:100%; border-collapse:collapse; min-width:700px; }
     thead th { background:var(--gray-50); padding:12px 16px; text-align:left; font-size:12px; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--gray-200); white-space:nowrap; }
     tbody tr { border-bottom:1px solid var(--gray-100); transition:background .15s; }
@@ -86,6 +91,7 @@
     .badge-pendiente { background:#fef3c7; color:#92400e; }
     .badge-activo { background:#dbeafe; color:#1e40af; }
     .badge-inactivo { background:#f3f4f6; color:#6b7280; }
+    .badge-baja { background:#fee2e2; color:#991b1b; }
 
     /* ACTION BUTTONS */
     .btn-sm { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid; transition:all .15s; font-family:inherit; white-space:nowrap; }
@@ -350,6 +356,12 @@
           return;
         }
         allVoluntarios = r.data || [];
+        // Ordenar por fecha de registro DESC (nuevos primero)
+        allVoluntarios.sort(function(a, b) {
+          var ta = a.fechaRegistro ? new Date(a.fechaRegistro).getTime() : 0;
+          var tb = b.fechaRegistro ? new Date(b.fechaRegistro).getTime() : 0;
+          return tb - ta;
+        });
         updateStats(allVoluntarios);
         applyFilters();
       }).catch(function(e){
@@ -381,24 +393,28 @@
         document.getElementById('tableContent').innerHTML = '<div class="empty">Sin voluntarios para los filtros actuales.</div>';
         return;
       }
-      var html = '<table><thead><tr><th>Nombre</th><th>Correo</th><th>Tipo</th><th>Registro</th><th>Contrato</th><th>Acciones</th></tr></thead><tbody>';
+      var html = '<table><thead><tr><th>Nombre</th><th>Correo</th><th>Tipo</th><th>Estado</th><th>Registro</th><th>Contrato</th><th>Acciones</th></tr></thead><tbody>';
       rows.forEach(function(v) {
         var estadoBadge = v.contratoFirmado
           ? '<span class="badge badge-firmado">✓ Firmado</span>'
           : '<span class="badge badge-pendiente">⏳ Pendiente</span>';
         var fechaFirma = (v.contratoFirmado && v.contratoInfo) ? '<br><span style="font-size:11px;color:var(--gray-500);">' + fmtDate(v.contratoInfo.fecha) + '</span>' : '';
+        var colabBadge = (v.estado === 'baja')
+          ? '<span class="badge badge-baja">Baja</span>' + (v.fechaBaja ? '<br><span style="font-size:11px;color:var(--gray-500);">' + fmtDate(v.fechaBaja) + '</span>' : '')
+          : '<span class="badge badge-activo">Activo</span>';
         var actions = '<div class="actions-cell">';
         if (!v.contratoFirmado) {
           actions += '<button class="btn-sm btn-send" onclick="sendContrato(\'' + esc(v.token) + '\',event)">📧 Enviar contrato</button>';
         }
         if (v.contratoFirmado) {
-          actions += '<button class="btn-sm btn-view" onclick="viewDetail(\'' + esc(v.contratoInfo.folio) + '\',event)">🔍 Ver detalle</button>';
+          actions += '<button class="btn-sm btn-view" onclick="viewDetail(\'' + esc(v.contratoInfo.folio) + '\',\'' + esc(v.token) + '\',event)">🔍 Ver detalle</button>';
         }
         actions += '</div>';
         html += '<tr>' +
           '<td class="name">' + esc(v.nombre) + '</td>' +
           '<td style="color:var(--blue-accent);">' + esc(v.email) + '</td>' +
           '<td><span class="badge badge-activo">' + esc(v.tipo) + '</span></td>' +
+          '<td>' + colabBadge + '</td>' +
           '<td>' + fmtDate(v.fechaRegistro) + '</td>' +
           '<td>' + estadoBadge + fechaFirma + '</td>' +
           '<td>' + actions + '</td>' +
@@ -423,8 +439,10 @@
     }
 
     // ── DETAIL MODAL ───────────────────────────────────────
-    function viewDetail(folio, e) {
+    var currentDetailVolToken = '';
+    function viewDetail(folio, volToken, e) {
       if (e) e.stopPropagation();
+      currentDetailVolToken = volToken || '';
       document.getElementById('detailFolio').textContent = folio;
       document.getElementById('detailBody').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando detalle…</p></div>';
       document.getElementById('detailModal').classList.add('show');
@@ -435,8 +453,28 @@
           return;
         }
         var d = r.detail;
+        var vol = allVoluntarios.find(function(x){ return String(x.token).toLowerCase() === String(volToken||'').toLowerCase(); }) || {};
         document.getElementById('detailTitle').textContent = 'Contrato: ' + (d.docTitulo || 'Colaboración Voluntaria');
-        var html = '<div class="modal-section-title">Registro de aceptación (audit trail legal)</div>';
+
+        // Sección: Estado de colaboración
+        var estadoTxt = vol.estado === 'baja'
+          ? '<span class="badge badge-baja">Baja</span>'
+          : '<span class="badge badge-activo">Activo</span>';
+        var bajaBtn = '';
+        if (vol.estado !== 'baja' && ROLE === 'superadmin') {
+          bajaBtn = '<button class="btn-sm" style="background:#fee2e2;color:#991b1b;border:1px solid #fecaca;margin-top:10px;" onclick="darBaja()">⛔ Dar de baja (dejó de laborar)</button>';
+        } else if (vol.estado !== 'baja' && ROLE !== 'superadmin') {
+          bajaBtn = '<p style="font-size:11px;color:var(--gray-500);margin-top:8px;">Solo un super admin puede dar de baja a un voluntario.</p>';
+        }
+        var html = '<div class="modal-section-title">Estado de colaboración</div>';
+        html += '<div class="legal-row"><div class="k">Estado</div><div class="v">' + estadoTxt + '</div></div>';
+        html += '<div class="legal-row"><div class="k">Fecha de inicio (firma)</div><div class="v">' + fmtDate(d.fecha) + '</div></div>';
+        if (vol.estado === 'baja') {
+          html += '<div class="legal-row"><div class="k">Fecha de baja</div><div class="v" style="color:#991b1b;font-weight:600;">' + fmtDate(vol.fechaBaja) + '</div></div>';
+        }
+        if (bajaBtn) html += '<div style="margin-top:6px;">' + bajaBtn + '</div>';
+
+        html += '<div class="modal-section-title">Registro de aceptación (audit trail legal)</div>';
         [
           ['Folio de aceptación', d.folio, 'mono'],
           ['Versión del contrato', 'v' + d.version, ''],
@@ -466,6 +504,35 @@
       });
     }
     function closeDetailModal() { document.getElementById('detailModal').classList.remove('show'); }
+
+    // ── DAR DE BAJA ────────────────────────────────────────
+    function darBaja() {
+      if (ROLE !== 'superadmin') { alert('Solo un super admin puede dar de baja a un voluntario.'); return; }
+      if (!currentDetailVolToken) { alert('No se encontró el voluntario.'); return; }
+
+      if (!confirm('¿Confirmas que este voluntario dejó de laborar? Esta acción quedará registrada con la fecha de hoy.')) return;
+
+      var pin = prompt('Ingresa el PIN de super admin para confirmar la baja:');
+      if (pin === null) return;
+      pin = String(pin).trim();
+      if (!pin) { alert('PIN requerido.'); return; }
+
+      var motivo = prompt('(Opcional) Motivo de la baja:') || '';
+
+      callProxy('darBajaVoluntario', {
+        token: currentDetailVolToken,
+        pin: pin,
+        motivo: motivo
+      }).then(function(r) {
+        if (!r || !r.success) {
+          alert('Error: ' + ((r && r.message) || 'Sin respuesta'));
+          return;
+        }
+        alert('✅ ' + r.message);
+        closeDetailModal();
+        load();
+      }).catch(function(e){ alert('Error: ' + e.message); });
+    }
 
     // ── ADD MODAL ──────────────────────────────────────────
     function openAddModal() {

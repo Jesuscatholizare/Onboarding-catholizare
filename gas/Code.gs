@@ -482,6 +482,9 @@ function doPost(e) {
       case 'getVoluntarioInfo':
         result = getVoluntarioInfo(data);
         break;
+      case 'darBajaVoluntario':
+        result = darBajaVoluntario(data);
+        break;
 
       default:
         result = { success: false, message: 'Accion no reconocida: ' + action };
@@ -3338,6 +3341,52 @@ function getVoluntarioInfo(data) {
 }
 
 /**
+ * Da de baja a un voluntario. Requiere PIN de superadmin.
+ * Actualiza col 6 (Estado) a 'baja' y col 10 (Fecha_Baja) a hoy.
+ */
+function darBajaVoluntario(data) {
+  try {
+    var token = String(data.token || '').trim();
+    var pin = String(data.pin || '').trim();
+    var motivo = String(data.motivo || '').trim();
+    if (!token) return { success: false, message: 'Falta token de voluntario.' };
+    if (!pin) return { success: false, message: 'Falta PIN de super admin.' };
+    if (!validateSuperAdminPin(pin)) return { success: false, message: 'PIN de super admin incorrecto.' };
+
+    var sheet = getSS().getSheetByName(VOLUNTARIOS_SHEET);
+    if (!sheet) return { success: false, message: 'Hoja Voluntarios no encontrada.' };
+
+    // Asegurar encabezado de columna 10
+    var headers = sheet.getRange(1, 1, 1, Math.max(sheet.getLastColumn(), 11)).getValues()[0];
+    if (!headers[9]) sheet.getRange(1, 10).setValue('Fecha_Baja');
+    if (!headers[10]) sheet.getRange(1, 11).setValue('Motivo_Baja');
+
+    var allData = sheet.getDataRange().getValues();
+    var tokenNorm = token.toLowerCase();
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][0] || '').trim().toLowerCase() === tokenNorm) {
+        var ahora = new Date();
+        sheet.getRange(i + 1, 6).setValue('baja');
+        sheet.getRange(i + 1, 10).setValue(ahora);
+        if (motivo) sheet.getRange(i + 1, 11).setValue(motivo);
+
+        try { logAction(token, allData[i][2] || '', 'Voluntario dado de baja' + (motivo ? ': ' + motivo : ''), 'Voluntario_Baja', '', '', 'SuperAdmin'); } catch(e) {}
+
+        return {
+          success: true,
+          message: 'Voluntario dado de baja correctamente.',
+          fechaBaja: ahora.toISOString()
+        };
+      }
+    }
+    return { success: false, message: 'Voluntario no encontrado.' };
+  } catch (e) {
+    Logger.log('Error darBajaVoluntario: ' + e);
+    return { success: false, message: e.toString() };
+  }
+}
+
+/**
  * Devuelve todos los voluntarios con su estado de firma del contrato VOLUNTARIO.
  */
 function getAllVoluntarios() {
@@ -3355,7 +3404,8 @@ function getAllVoluntarios() {
             telefono: String(vData[i][3] || ''),
             tipo: String(vData[i][4] || 'voluntario'),
             estado: String(vData[i][5] || 'activo'),
-            fechaRegistro: vData[i][6] ? new Date(vData[i][6]).toISOString() : ''
+            fechaRegistro: vData[i][6] ? new Date(vData[i][6]).toISOString() : '',
+            fechaBaja: vData[i][9] ? new Date(vData[i][9]).toISOString() : ''
           });
         }
       }
