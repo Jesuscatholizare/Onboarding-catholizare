@@ -3426,11 +3426,9 @@ function sendContratoVoluntario(data) {
       '</div></div>';
 
     var result = sendEmailViaBrevo(
-      vol.email, vol.nombre,
+      vol.email,
       'Contrato de Colaboración Voluntaria – Catholizare',
-      html,
-      config.brevoFromEmail || 'noreply@catholizare.com',
-      config.brevoFromName || 'Catholizare'
+      html
     );
 
     try { logAction(token, vol.email, 'Contrato voluntario enviado por correo', 'Voluntario_Email', '', link, 'Admin'); } catch(e) {}

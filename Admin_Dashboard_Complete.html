@@ -406,12 +406,19 @@
     else if (USER_ROLE === 'administrador') roleEl.className = 'role-administrador';
     else roleEl.className = 'role-coordinador';
 
-    // Hide Super Admin and System Health nav for non-superadmins
+    // Hide Super Admin, System Health and Gestión de Usuarios nav for non-superadmins
+    // (Gestión de Usuarios expone tokens/credenciales de admins → solo superadmin)
     if (USER_ROLE !== 'superadmin') {
       var saNav = document.getElementById('navSuperAdmin');
       if (saNav) saNav.style.display = 'none';
       var healthNav = document.getElementById('navHealth');
       if (healthNav) healthNav.style.display = 'none';
+      var usuariosNav = document.getElementById('navUsuarios');
+      if (usuariosNav) usuariosNav.style.display = 'none';
+      var adminSection = document.querySelector('.sidebar-section');
+      // Ocultar el separador "ADMIN" si no hay nada que mostrar bajo él
+      var adminHeaders = document.querySelectorAll('.sidebar-section');
+      if (adminHeaders.length >= 2) adminHeaders[adminHeaders.length - 1].style.display = 'none';
     }
 
     // Sidebar navigation
@@ -1242,6 +1249,14 @@
   // === USUARIOS VIEW ===
   function showUsuarios() {
     var isSA = USER_ROLE === 'superadmin';
+    if (!isSA) {
+      document.getElementById('mainContent').innerHTML =
+        '<div class="panel" style="margin:40px auto;max-width:520px;text-align:center;">' +
+        '<h2 style="color:#c00;margin-bottom:8px;">Acceso restringido</h2>' +
+        '<p style="color:var(--gray-500);">Esta sección solo está disponible para Super Administradores.</p>' +
+        '</div>';
+      return;
+    }
     var generarPanel = isSA ? (
       '<div class="panel" style="margin-bottom:20px;">' +
         '<h3 style="margin-bottom:6px;">&#x1F511; Generar Token Admin</h3>' +
