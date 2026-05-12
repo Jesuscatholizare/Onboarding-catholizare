@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Profesionales - Catholizare Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --navy: #001A55; --navy-dark: #001238; --blue: #003ABA;
+      --gold: #D4AF37; --green: #28a745; --orange: #ff9800;
+      --red: #dc3545; --gray-50: #f8f9fa; --gray-100: #f1f3f5;
+      --gray-200: #e9ecef; --gray-600: #6c757d;
+    }
+    body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); }
+
+    /* TOP BAR */
+    .top-bar { height: 56px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 50; }
+    .top-bar-left { display: flex; align-items: center; gap: 16px; }
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; cursor: pointer; }
+    .logo-icon { width: 30px; height: 30px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+    .breadcrumb { color: var(--gray-600); font-size: 14px; }
+    .breadcrumb a { color: var(--blue); text-decoration: none; cursor: pointer; }
+    .breadcrumb a:hover { text-decoration: underline; }
+    .user-badge { display: flex; align-items: center; gap: 8px; padding: 6px 14px; background: var(--gray-50); border-radius: 8px; font-size: 13px; color: var(--navy); }
+    .role-tag { background: var(--navy); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+
+    /* CONTAINER */
+    .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 24px; }
+    .page-header h1 { font-size: 28px; color: var(--navy); margin-bottom: 4px; }
+    .page-header p { color: var(--gray-600); font-size: 14px; }
+    .btn-back { display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; text-decoration: none; transition: all 0.2s; }
+    .btn-back:hover { background: var(--navy-dark); transform: translateY(-1px); }
+
+    /* STATS ROW */
+    .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 16px; margin-bottom: 24px; }
+    .mini-stat { background: white; padding: 16px 20px; border-radius: 10px; border: 1px solid var(--gray-200); text-align: center; }
+    .mini-stat .num { font-size: 28px; font-weight: 700; color: var(--navy); }
+    .mini-stat .label { font-size: 12px; color: var(--gray-600); margin-top: 2px; }
+    .mini-stat.active .num { color: var(--green); }
+    .mini-stat.warning .num { color: var(--orange); }
+    .mini-stat.danger .num { color: var(--red); }
+
+    /* TOOLBAR */
+    .toolbar { background: white; padding: 16px 20px; border-radius: 12px 12px 0 0; border: 1px solid var(--gray-200); border-bottom: none; display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .search-box { flex: 1; min-width: 200px; position: relative; }
+    .search-box input { width: 100%; padding: 10px 12px 10px 36px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 14px; outline: none; transition: border 0.2s; }
+    .search-box input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,58,186,0.1); }
+    .search-box::before { content: '🔍'; position: absolute; left: 10px; top: 50%; transform: translateY(-50%); font-size: 14px; }
+    .filter-select { padding: 10px 12px; border: 1px solid var(--gray-200); border-radius: 8px; font-size: 14px; background: white; cursor: pointer; outline: none; }
+    .filter-select:focus { border-color: var(--blue); }
+    .result-count { font-size: 13px; color: var(--gray-600); white-space: nowrap; }
+
+    /* SEARCH BUTTON */
+    .btn-search { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; background: var(--navy); color: white; border: none; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all 0.2s; white-space: nowrap; font-family: 'Montserrat', sans-serif; }
+    .btn-search:hover { background: var(--navy-dark); }
+    .btn-search:disabled { opacity: 0.7; cursor: not-allowed; }
+    .search-spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: white; border-radius: 50%; animation: spin 0.7s linear infinite; display: none; }
+    .btn-search.loading .search-spinner { display: inline-block; }
+    .btn-search.loading .search-btn-icon { display: none; }
+
+    /* TABLE */
+    .table-wrap { background: white; border: 1px solid var(--gray-200); border-radius: 0 0 12px 12px; overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    thead th { background: var(--gray-50); padding: 12px 16px; text-align: left; font-size: 12px; font-weight: 600; color: var(--gray-600); text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid var(--gray-200); cursor: pointer; user-select: none; white-space: nowrap; }
+    thead th:hover { color: var(--navy); }
+    thead th .sort-icon { margin-left: 4px; opacity: 0.4; }
+    thead th.sorted .sort-icon { opacity: 1; color: var(--blue); }
+    tbody tr { border-bottom: 1px solid var(--gray-100); transition: background 0.15s; }
+    tbody tr:hover { background: #f0f4ff; }
+    tbody tr:last-child { border-bottom: none; }
+    td { padding: 14px 16px; font-size: 14px; vertical-align: middle; }
+
+    /* BADGES */
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; white-space: nowrap; }
+    .badge-fase1 { background: #dbeafe; color: #1e40af; }
+    .badge-fase2 { background: #d1fae5; color: #065f46; }
+    .badge-fase3 { background: #fef3c7; color: #92400e; }
+    .badge-fase4 { background: #f3e8ff; color: #6b21a8; }
+    .badge-activo { background: #d1fae5; color: #065f46; }
+    .badge-incompleto { background: #fee2e2; color: #991b1b; }
+    .badge-en-progreso { background: #dbeafe; color: #1e40af; }
+
+    /* PROGRESS BAR */
+    .progress-bar { width: 100%; max-width: 120px; height: 8px; background: var(--gray-200); border-radius: 4px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .progress-fill { height: 100%; border-radius: 4px; transition: width 0.3s; }
+    .progress-text { font-size: 12px; font-weight: 600; margin-left: 8px; }
+
+    /* EXPANDABLE ROW */
+    .detail-row { display: none; }
+    .detail-row.open { display: table-row; }
+    .detail-row td { padding: 0; background: #fafbff; }
+    .detail-content { padding: 20px 24px; }
+    .detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .detail-section { background: white; padding: 16px; border-radius: 10px; border: 1px solid var(--gray-200); }
+    .detail-section h4 { font-size: 13px; color: var(--navy); font-weight: 700; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.3px; }
+    .detail-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--gray-100); font-size: 13px; }
+    .detail-item:last-child { border-bottom: none; }
+    .detail-item .label { color: var(--gray-600); }
+    .detail-item .value { font-weight: 600; color: var(--navy); }
+    .doc-link { color: var(--blue); text-decoration: none; font-weight: 600; font-size: 13px; }
+    .doc-link:hover { text-decoration: underline; }
+    .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+    .status-dot.ok { background: var(--green); }
+    .status-dot.pending { background: var(--orange); }
+    .status-dot.missing { background: var(--red); }
+
+    /* TOGGLE BTN */
+    .btn-expand { background: none; border: 1px solid var(--gray-200); border-radius: 6px; width: 32px; height: 32px; cursor: pointer; font-size: 14px; transition: all 0.2s; display: flex; align-items: center; justify-content: center; }
+    .btn-expand:hover { background: var(--gray-100); border-color: var(--blue); }
+    .btn-expand.open { background: var(--navy); color: white; border-color: var(--navy); transform: rotate(180deg); }
+
+    /* ACTIONS */
+    .actions-cell { display: flex; gap: 6px; }
+    .btn-action { padding: 6px 12px; border: 1px solid var(--gray-200); background: white; border-radius: 6px; font-size: 12px; cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+    .btn-action:hover { border-color: var(--blue); background: #f0f4ff; }
+    .btn-action.primary { background: var(--navy); color: white; border-color: var(--navy); }
+    .btn-action.primary:hover { background: var(--navy-dark); }
+
+    /* EMPTY STATE */
+    .empty-state { text-align: center; padding: 60px 20px; }
+    .empty-state .icon { font-size: 48px; margin-bottom: 16px; }
+    .empty-state h3 { color: var(--navy); margin-bottom: 8px; }
+    .empty-state p { color: var(--gray-600); font-size: 14px; }
+
+    /* LOADING */
+    .loading { text-align: center; padding: 60px; }
+    .spinner { width: 36px; height: 36px; border: 3px solid var(--gray-200); border-top-color: var(--navy); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 16px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* RESPONSIVE */
+    @media (max-width: 1200px) {
+      .stats-row { grid-template-columns: repeat(3, 1fr); }
+      .detail-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media (max-width: 768px) {
+      .stats-row { grid-template-columns: repeat(2, 1fr); }
+      .detail-grid { grid-template-columns: 1fr; }
+      .toolbar { flex-direction: column; }
+      .top-bar { padding: 0 12px; }
+      .container { padding: 16px; }
+    }
+  
+    /* LOGOUT & ROLE */
+    .top-bar-right { display: flex; align-items: center; gap: 12px; }
+    .role-tag.superadmin { background: linear-gradient(135deg, #D4AF37, #C4A030); color: #001A55; }
+    .role-tag.administrador { background: #003ABA; color: white; }
+    .role-tag.coordinador { background: #28a745; color: white; }
+    .btn-logout { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: transparent; border: 1px solid #e5e7eb; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 600; color: #6c757d; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    .btn-logout:hover { background: #fee2e2; border-color: #dc3545; color: #dc3545; }
+
+  </style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <a class="logo" id="lnkHome"><div class="logo-icon">✝</div>Catholizare</a>
+      <span class="breadcrumb">/ <a id="lnkDash">Dashboard</a> / <strong>Profesionales</strong></span>
+    </div>
+    <div class="top-bar-right">
+      <div class="user-badge">👤 <span id="uName"></span> <span class="role-tag" id="uRole"></span></div>
+      <a class="btn-logout" id="btnLogout">🚪 Salir</a>
+    </div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="container">
+
+    <!-- HEADER -->
+    <div class="page-header">
+      <div>
+        <h1>👥 Gestión de Profesionales</h1>
+        <p>Visualiza el estado, documentos y progreso de cada profesional</p>
+      </div>
+      <a class="btn-back" id="btnBack">← Dashboard</a>
+    </div>
+
+    <!-- STATS -->
+    <div class="stats-row" id="statsRow">
+      <div class="mini-stat"><div class="num" id="sTotal">-</div><div class="label">Total</div></div>
+      <div class="mini-stat active"><div class="num" id="sFase1">-</div><div class="label">Fase 1</div></div>
+      <div class="mini-stat active"><div class="num" id="sFase2">-</div><div class="label">Fase 2+</div></div>
+      <div class="mini-stat warning"><div class="num" id="sPend">-</div><div class="label">Con pendientes</div></div>
+      <div class="mini-stat danger"><div class="num" id="sInc">-</div><div class="label">Incompletos</div></div>
+    </div>
+
+    <!-- TOOLBAR -->
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar por nombre, email o especialidad...">
+      </div>
+      <button class="btn-search" id="btnSearch" onclick="triggerSearch()">
+        <div class="search-spinner"></div>
+        <span class="search-btn-icon">🔍</span>
+        <span>Buscar</span>
+      </button>
+      <select class="filter-select" id="filterFase">
+        <option value="">Todas las fases</option>
+        <option value="Fase 1">Fase 1</option>
+        <option value="Fase 2">Fase 2</option>
+        <option value="Fase 3">Fase 3</option>
+        <option value="Fase 4">Fase 4</option>
+      </select>
+      <select class="filter-select" id="filterEstado">
+        <option value="">Todos los estados</option>
+        <option value="Activo">Activo</option>
+        <option value="En Progreso">En Progreso</option>
+        <option value="Incompleto">Incompleto</option>
+      </select>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+
+    <!-- TABLE -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px"></th>
+            <th onclick="sortBy('nombre')">Nombre <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('especialidad')">Especialidad <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('fase')">Fase <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('estado')">Estado <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('progreso')">Progreso <span class="sort-icon">↕</span></th>
+            <th onclick="sortBy('pendientes')">Pendientes <span class="sort-icon">↕</span></th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody">
+          <tr><td colspan="8"><div class="loading"><div class="spinner"></div><p>Cargando profesionales...</p></div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/api.php';
+    // Leer credenciales de sessionStorage (ya no de URL)
+    const adminToken = sessionStorage.getItem('onb_token') || '';
+    if (!adminToken) { window.location.href = BASE + '/index.html'; }
+    const dashUrl = BASE + '/dashboard-admin.html';
+
+    // INIT
+    document.getElementById('uName').textContent = sessionStorage.getItem('onb_userName') || '';
+    document.getElementById('uRole').textContent = sessionStorage.getItem('onb_userRole') || '';
+    document.getElementById('lnkHome').href = dashUrl;
+    document.getElementById('lnkDash').href = dashUrl;
+    document.getElementById('btnBack').href = dashUrl;
+
+    // DATA
+    let allData = [];
+    let filteredData = [];
+    let currentSort = { field: 'nombre', asc: true };
+    let expandedTokens = new Set();
+    let detailCache = {};
+
+    // Helper: llamar proxy
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    // LOAD
+    window.onload = function() {
+      callProxy('getAllProfesionales')
+        .then(function(r) { onDataLoaded(r.data || r); })
+        .catch(function(e) { onError(e.message); });
+    };
+
+    function onDataLoaded(data) {
+      if (!data || !Array.isArray(data)) { onError('No se pudieron cargar los datos'); return; }
+      allData = data;
+      updateStats();
+      applyFilters();
+    }
+
+    function onError(err) {
+      document.getElementById('tableBody').innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">⚠️</div><h3>Error</h3><p>' + err + '</p></div></td></tr>';
+    }
+
+    // STATS
+    function updateStats() {
+      document.getElementById('sTotal').textContent = allData.length;
+      document.getElementById('sFase1').textContent = allData.filter(p => p.fase === 'Fase 1').length;
+      document.getElementById('sFase2').textContent = allData.filter(p => p.fase !== 'Fase 1').length;
+      document.getElementById('sPend').textContent = allData.filter(p => p.pendientes >= 3).length;
+      document.getElementById('sInc').textContent = allData.filter(p => p.estado === 'Incompleto').length;
+    }
+
+    // SEARCH: solo se dispara al hacer clic en el botón o presionar Enter
+    document.getElementById('searchInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') triggerSearch();
+    });
+    document.getElementById('filterFase').addEventListener('change', applyFilters);
+    document.getElementById('filterEstado').addEventListener('change', applyFilters);
+
+    function triggerSearch() {
+      var btn = document.getElementById('btnSearch');
+      btn.disabled = true;
+      btn.classList.add('loading');
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          applyFilters();
+          btn.disabled = false;
+          btn.classList.remove('loading');
+        });
+      });
+    }
+
+    function applyFilters() {
+      const search = document.getElementById('searchInput').value.toLowerCase();
+      const fase = document.getElementById('filterFase').value;
+      const estado = document.getElementById('filterEstado').value;
+
+      filteredData = allData.filter(p => {
+        const matchSearch = !search || 
+          (p.nombre || '').toLowerCase().includes(search) || 
+          (p.email || '').toLowerCase().includes(search) || 
+          (p.especialidad || '').toLowerCase().includes(search);
+        const matchFase = !fase || p.fase === fase;
+        const matchEstado = !estado || p.estado === estado;
+        return matchSearch && matchFase && matchEstado;
+      });
+
+      sortData();
+      renderTable();
+      document.getElementById('resultCount').textContent = filteredData.length + ' de ' + allData.length;
+    }
+
+    // SORT
+    function sortBy(field) {
+      if (currentSort.field === field) {
+        currentSort.asc = !currentSort.asc;
+      } else {
+        currentSort.field = field;
+        currentSort.asc = true;
+      }
+      sortData();
+      renderTable();
+    }
+
+    function sortData() {
+      const f = currentSort.field;
+      const dir = currentSort.asc ? 1 : -1;
+      filteredData.sort((a, b) => {
+        let va = a[f] || '', vb = b[f] || '';
+        if (typeof va === 'number') return (va - vb) * dir;
+        return String(va).localeCompare(String(vb)) * dir;
+      });
+    }
+
+    // RENDER TABLE
+    function renderTable() {
+      if (filteredData.length === 0) {
+        document.getElementById('tableBody').innerHTML = '<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><h3>Sin resultados</h3><p>No se encontraron profesionales con estos filtros</p></div></td></tr>';
+        return;
+      }
+
+      let html = '';
+      filteredData.forEach(p => {
+        const isOpen = expandedTokens.has(p.token);
+        const faseClass = 'badge-' + (p.fase || '').toLowerCase().replace(' ', '');
+        const estadoClass = 'badge-' + (p.estado || '').toLowerCase().replace(' ', '-');
+        const progColor = p.progreso >= 80 ? 'var(--green)' : p.progreso >= 40 ? 'var(--orange)' : 'var(--red)';
+        const diasInfo = getDiasInfo(p);
+
+        html += `
+          <tr onclick="toggleDetail('${p.token}')" style="cursor:pointer">
+            <td><button class="btn-expand ${isOpen ? 'open' : ''}" id="btn-${p.token}">▼</button></td>
+            <td>
+              <div style="font-weight:600;color:var(--navy)">${esc(p.nombre)}</div>
+              <div style="font-size:12px;color:var(--gray-600)">${esc(p.email)}</div>
+            </td>
+            <td style="font-size:13px">${esc(p.especialidad) || '<span style="color:#ccc">Sin especificar</span>'}</td>
+            <td><span class="badge ${faseClass}">${esc(p.fase)}</span></td>
+            <td><span class="badge ${estadoClass}">${esc(p.estado)}</span></td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="progress-bar"><div class="progress-fill" style="width:${p.progreso}%;background:${progColor}"></div></div>
+                <span class="progress-text" style="color:${progColor}">${p.progreso}%</span>
+              </div>
+            </td>
+            <td>
+              <span style="font-size:20px;font-weight:700;color:${p.pendientes > 0 ? 'var(--orange)' : 'var(--green)'}">${p.pendientes}</span>
+              <span style="font-size:12px;color:var(--gray-600)"> de 6</span>
+            </td>
+            <td onclick="event.stopPropagation()">
+              <div class="actions-cell">
+                <button class="btn-action primary" onclick="toggleDetail('${p.token}')">👁 Ver</button>
+              </div>
+            </td>
+          </tr>
+          <tr class="detail-row ${isOpen ? 'open' : ''}" id="detail-${p.token}">
+            <td colspan="8">
+              <div class="detail-content" id="detail-content-${p.token}">
+                ${isOpen && detailCache[p.token] ? renderDetail(p, detailCache[p.token]) : '<div class="loading"><div class="spinner"></div><p>Cargando detalles...</p></div>'}
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+
+      document.getElementById('tableBody').innerHTML = html;
+    }
+
+    // TOGGLE DETAIL
+    function toggleDetail(token) {
+      if (expandedTokens.has(token)) {
+        expandedTokens.delete(token);
+        renderTable();
+      } else {
+        expandedTokens.add(token);
+        renderTable();
+        // Load detail if not cached
+        if (!detailCache[token]) {
+          callProxy('getProfessionalStatus', { token: token })
+            .then(function(status) {
+              detailCache[token] = status;
+              const prof = filteredData.find(p => p.token === token);
+              const el = document.getElementById('detail-content-' + token);
+              if (el && prof) el.innerHTML = renderDetail(prof, status);
+            })
+            .catch(function(err) {
+              const el = document.getElementById('detail-content-' + token);
+              if (el) el.innerHTML = '<p style="color:var(--red);padding:20px">Error al cargar: ' + err.message + '</p>';
+            });
+        }
+      }
+    }
+
+    // RENDER DETAIL
+    function renderDetail(prof, status) {
+      if (!status || !status.success) {
+        return '<p style="color:var(--red);padding:20px">No se encontraron detalles para este profesional</p>';
+      }
+
+      const docs = status.documentos || {};
+      const urls = status.documentosUrls || {};
+      const perfil = status.perfilData || {};
+      const plazos = status.plazos || {};
+      
+      let diasRestantes = plazos.diasRestantes != null ? plazos.diasRestantes : '-';
+      let diasDesde = plazos.diasDesdeInicio != null ? plazos.diasDesdeInicio : '-';
+      let fechaInicio = plazos.fechaInicio ? new Date(plazos.fechaInicio).toLocaleDateString('es-MX') : '-';
+
+      return `
+        <div class="detail-grid">
+          <!-- DOCUMENTOS -->
+          <div class="detail-section">
+            <h4>📎 Documentos</h4>
+            ${renderDocItem('Curriculum Vitae', docs.cv, urls.cv)}
+            ${renderDocItem('Cédula Profesional', docs.cedula, urls.cedula)}
+            ${renderDocItem('Foto de Perfil', docs.foto, urls.foto)}
+            ${renderDocItem('Carta de Sacerdote', docs.carta, urls.carta)}
+            <div class="detail-item" style="border-top:1px solid var(--gray-200);margin-top:8px;padding-top:12px">
+              <span class="label" style="font-weight:600">Legal</span>
+              <span class="value">${status.legal ? '<span style="color:var(--green)">✅ Aceptado</span>' : '<span style="color:var(--red)">❌ Pendiente</span>'}</span>
+            </div>
+            ${status.legalFecha ? '<div style="font-size:11px;color:var(--gray-600);text-align:right;margin-top:4px">Firmado: ' + new Date(status.legalFecha).toLocaleDateString('es-MX') + '</div>' : ''}
+          </div>
+
+          <!-- PERFIL -->
+          <div class="detail-section">
+            <h4>👤 Perfil Profesional</h4>
+            ${status.perfil ? `
+              <div class="detail-item"><span class="label">Poblaciones</span><span class="value">${esc(perfil.poblaciones) || '-'}</span></div>
+              <div class="detail-item"><span class="label">Modalidad</span><span class="value">${esc(perfil.modalidad) || '-'}</span></div>
+              <div class="detail-item"><span class="label">Terapias</span><span class="value" style="max-width:200px;font-size:12px">${esc(perfil.terapias) || '-'}</span></div>
+              <div class="detail-item"><span class="label">Horarios</span><span class="value" style="max-width:200px;font-size:12px">${esc(perfil.horarios) || '-'}</span></div>
+            ` : `
+              <div style="text-align:center;padding:20px;color:var(--gray-600)">
+                <div style="font-size:32px;margin-bottom:8px">📋</div>
+                <p style="font-size:13px">Perfil no completado aún</p>
+              </div>
+            `}
+          </div>
+
+          <!-- PLAZOS Y ESTADO -->
+          <div class="detail-section">
+            <h4>📅 Plazos y Estado</h4>
+            <div class="detail-item"><span class="label">Fecha de registro</span><span class="value">${fechaInicio}</span></div>
+            <div class="detail-item"><span class="label">Días transcurridos</span><span class="value">${diasDesde}</span></div>
+            <div class="detail-item">
+              <span class="label">Días restantes</span>
+              <span class="value" style="color:${diasRestantes <= 20 ? 'var(--red)' : diasRestantes <= 40 ? 'var(--orange)' : 'var(--green)'}">${diasRestantes}</span>
+            </div>
+            <div class="detail-item"><span class="label">Fase actual</span><span class="value">${esc(status.fase)}</span></div>
+            <div class="detail-item"><span class="label">Categoría</span><span class="value">${esc(status.categoria) || '-'}</span></div>
+            <div class="detail-item">
+              <span class="label">Fase 1 completada</span>
+              <span class="value">${plazos.fase1Completada ? '<span style="color:var(--green)">✅ Sí</span>' : '<span style="color:var(--orange)">⏳ En progreso</span>'}</span>
+            </div>
+
+            <!-- EMAILS -->
+            ${status.emailHistory && status.emailHistory.length > 0 ? `
+              <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--gray-200)">
+                <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:8px">📧 Emails enviados (${status.emailHistory.length})</div>
+                ${status.emailHistory.slice(0, 5).map(e => `
+                  <div style="font-size:11px;color:var(--gray-600);padding:3px 0;display:flex;justify-content:space-between">
+                    <span>${esc(e.tipo)}</span>
+                    <span>${e.estado === 'ENVIADO' ? '✅' : '❌'}</span>
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDocItem(name, exists, url) {
+      if (exists && url) {
+        return `<div class="detail-item">
+          <span class="label"><span class="status-dot ok"></span>${name}</span>
+          <a href="${url}" target="_blank" class="doc-link">📄 Ver archivo</a>
+        </div>`;
+      } else {
+        return `<div class="detail-item">
+          <span class="label"><span class="status-dot missing"></span>${name}</span>
+          <span style="color:var(--red);font-size:12px;font-weight:600">Pendiente</span>
+        </div>`;
+      }
+    }
+
+    // HELPERS
+    function getDiasInfo(p) {
+      if (!p.fechaRegistro) return '';
+      const dias = Math.floor((new Date() - new Date(p.fechaRegistro)) / (86400000));
+      return dias + ' días';
+    }
+
+    function esc(str) {
+      if (!str) return '';
+      const div = document.createElement('div');
+      div.textContent = String(str);
+      return div.innerHTML;
+    }
+  
+    // LOGOUT (limpiar sessionStorage)
+    var logoutBtn = document.getElementById('btnLogout');
+    if (logoutBtn) logoutBtn.onclick = function(e) { e.preventDefault(); sessionStorage.clear(); window.location.href = BASE + '/index.html'; };
+    
+    // ROLE COLOR
+    function applyRoleColor() {
+      var roleEls = document.querySelectorAll('.role-tag');
+      roleEls.forEach(function(el) {
+        var role = (el.textContent || '').toLowerCase().trim();
+        if (role === 'superadmin') el.classList.add('superadmin');
+        else if (role === 'administrador') el.classList.add('administrador');
+        else if (role.indexOf('coordinador') >= 0) el.classList.add('coordinador');
+      });
+    }
+    applyRoleColor();
+  </script>
+</body>
+</html>
