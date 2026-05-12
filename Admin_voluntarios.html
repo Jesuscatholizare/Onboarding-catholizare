@@ -1,1 +1,519 @@
-PLACEHOLDER_2
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Voluntarios - Catholizare Admin</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --navy: #0f1d3d; --navy-light: #1a2d5a; --navy-deep: #001A55;
+      --gold: #D4AF37; --blue: #3b82f6; --blue-accent: #003ABA;
+      --green: #22c55e; --green-ok: #28a745; --orange: #f59e0b; --red: #ef4444;
+      --gray-50: #f9fafb; --gray-100: #f3f4f6; --gray-200: #e5e7eb;
+      --gray-300: #d1d5db; --gray-500: #6b7280; --gray-600: #6c757d;
+      --gray-700: #374151; --gray-900: #111827;
+      --sidebar-w: 260px; --header-h: 64px;
+    }
+    body { font-family: 'Montserrat', -apple-system, sans-serif; background: var(--gray-50); color: var(--gray-900); }
+
+    /* HEADER */
+    .header { position:fixed; top:0; left:0; right:0; height:var(--header-h); z-index:100; background:white; border-bottom:1px solid var(--gray-200); display:flex; align-items:center; padding:0 24px; gap:16px; }
+    .header-brand { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--navy); }
+    .header-brand svg { width:28px; height:28px; }
+    .header-nav { display:flex; gap:4px; margin-left:24px; }
+    .header-nav-btn { padding:8px 16px; border-radius:8px; border:1px solid var(--gray-200); background:white; font-size:13px; font-weight:500; color:var(--gray-700); cursor:pointer; display:flex; align-items:center; gap:6px; text-decoration:none; }
+    .header-nav-btn.active { background:var(--navy); color:white; border-color:var(--navy); }
+    .header-nav-btn:hover:not(.active) { background:var(--gray-100); }
+    .header-right { margin-left:auto; display:flex; align-items:center; gap:16px; }
+    .header-user { text-align:right; font-size:13px; color:var(--gray-500); }
+    .header-user strong { display:block; color:var(--gray-900); font-size:14px; }
+    .header-user small { color:var(--gold); font-weight:600; font-size:11px; }
+    .btn-logout { display:inline-flex; align-items:center; gap:6px; padding:8px 16px; background:transparent; border:1px solid var(--gray-200); border-radius:8px; font-family:'Montserrat',sans-serif; font-size:13px; font-weight:600; color:var(--gray-500); cursor:pointer; transition:all .2s; text-decoration:none; }
+    .btn-logout:hover { background:#fef2f2; border-color:#ef4444; color:#ef4444; }
+
+    /* SIDEBAR */
+    .sidebar { position:fixed; top:var(--header-h); left:0; bottom:0; width:var(--sidebar-w); z-index:90; background:var(--navy); padding:24px 0; overflow-y:auto; }
+    .sidebar-section { padding:0 16px; margin-bottom:8px; font-size:10px; font-weight:700; color:rgba(255,255,255,.4); letter-spacing:1.5px; text-transform:uppercase; }
+    .sidebar-link { display:flex; align-items:center; gap:12px; padding:10px 20px; margin:2px 8px; border-radius:8px; color:rgba(255,255,255,.7); font-size:14px; cursor:pointer; transition:all .15s; }
+    .sidebar-link:hover { background:rgba(255,255,255,.08); color:white; }
+    .sidebar-link.active { background:rgba(255,255,255,.15); color:white; font-weight:600; }
+    .sidebar-link svg { width:18px; height:18px; opacity:.7; }
+    .sidebar-link.active svg { opacity:1; }
+
+    /* MAIN */
+    .main { margin-left:var(--sidebar-w); margin-top:var(--header-h); padding:32px; min-height:calc(100vh - var(--header-h)); }
+
+    /* PAGE HEADER */
+    .page-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:24px; flex-wrap:wrap; gap:12px; }
+    .page-header h1 { font-size:26px; color:var(--navy-deep); margin-bottom:4px; font-weight:700; }
+    .page-header p { color:var(--gray-600); font-size:14px; }
+    .btn-primary { display:inline-flex; align-items:center; gap:8px; padding:10px 20px; background:var(--navy-deep); color:white; border:none; border-radius:8px; font-family:'Montserrat',sans-serif; font-size:14px; font-weight:600; cursor:pointer; transition:all .2s; }
+    .btn-primary:hover { background:var(--navy-light); transform:translateY(-1px); }
+
+    /* STATS */
+    .stats-row { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:24px; }
+    .mini-stat { background:white; padding:16px 20px; border-radius:12px; border:1px solid var(--gray-200); }
+    .mini-stat .num { font-size:32px; font-weight:700; color:var(--navy-deep); }
+    .mini-stat .label { font-size:12px; color:var(--gray-600); margin-top:2px; text-transform:uppercase; letter-spacing:.4px; }
+    .mini-stat.ok .num { color:var(--green-ok); }
+    .mini-stat.warn .num { color:var(--orange); }
+
+    /* TOOLBAR */
+    .toolbar { background:white; padding:16px 20px; border-radius:12px 12px 0 0; border:1px solid var(--gray-200); border-bottom:none; display:flex; gap:12px; align-items:center; flex-wrap:wrap; }
+    .search-box { flex:1; min-width:240px; position:relative; }
+    .search-box input { width:100%; padding:10px 12px 10px 36px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; outline:none; font-family:inherit; }
+    .search-box input:focus { border-color:var(--blue-accent); box-shadow:0 0 0 3px rgba(0,58,186,.1); }
+    .search-box::before { content:'🔍'; position:absolute; left:10px; top:50%; transform:translateY(-50%); font-size:14px; }
+    .filter-select { padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; background:white; cursor:pointer; outline:none; font-family:inherit; }
+    .result-count { font-size:13px; color:var(--gray-600); white-space:nowrap; }
+
+    /* TABLE */
+    .table-wrap { background:white; border:1px solid var(--gray-200); border-radius:0 0 12px 12px; overflow:auto; }
+    table { width:100%; border-collapse:collapse; min-width:700px; }
+    thead th { background:var(--gray-50); padding:12px 16px; text-align:left; font-size:12px; font-weight:600; color:var(--gray-500); text-transform:uppercase; letter-spacing:.5px; border-bottom:1px solid var(--gray-200); white-space:nowrap; }
+    tbody tr { border-bottom:1px solid var(--gray-100); transition:background .15s; }
+    tbody tr:hover { background:#f0f4ff; }
+    tbody tr:last-child { border-bottom:none; }
+    td { padding:14px 16px; font-size:13px; vertical-align:middle; color:var(--gray-700); }
+    td.name { font-weight:600; color:var(--navy-deep); }
+
+    /* BADGES */
+    .badge { display:inline-block; padding:3px 10px; border-radius:12px; font-size:11px; font-weight:600; white-space:nowrap; }
+    .badge-firmado { background:#d1fae5; color:#065f46; }
+    .badge-pendiente { background:#fef3c7; color:#92400e; }
+    .badge-activo { background:#dbeafe; color:#1e40af; }
+    .badge-inactivo { background:#f3f4f6; color:#6b7280; }
+
+    /* ACTION BUTTONS */
+    .btn-sm { padding:5px 12px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid; transition:all .15s; font-family:inherit; white-space:nowrap; }
+    .btn-send { background:var(--navy-deep); color:white; border-color:var(--navy-deep); }
+    .btn-send:hover { background:var(--navy-light); }
+    .btn-view { background:white; color:var(--blue-accent); border-color:var(--blue-accent); }
+    .btn-view:hover { background:#eff6ff; }
+    .actions-cell { display:flex; gap:6px; align-items:center; }
+
+    /* EMPTY / LOADING */
+    .empty { padding:60px 20px; text-align:center; color:var(--gray-500); }
+    .loading { padding:60px 20px; text-align:center; color:var(--gray-600); }
+    .loading .spinner { display:inline-block; width:28px; height:28px; border:3px solid var(--gray-200); border-top-color:var(--navy-deep); border-radius:50%; animation:spin .8s linear infinite; margin-bottom:12px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* MODAL */
+    .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300; align-items:center; justify-content:center; padding:20px; }
+    .modal-backdrop.show { display:flex; }
+    .modal { background:white; border-radius:14px; width:100%; max-width:520px; max-height:90vh; overflow:hidden; display:flex; flex-direction:column; box-shadow:0 20px 60px rgba(0,0,0,.3); }
+    .modal-header { padding:20px 24px; border-bottom:1px solid var(--gray-100); display:flex; justify-content:space-between; align-items:center; background:var(--navy-deep); color:white; }
+    .modal-header h2 { font-size:17px; font-weight:700; }
+    .modal-close { background:transparent; border:none; color:white; font-size:24px; cursor:pointer; line-height:1; padding:4px 10px; border-radius:6px; }
+    .modal-close:hover { background:rgba(255,255,255,.15); }
+    .modal-body { padding:24px; overflow-y:auto; }
+
+    /* FORM */
+    .form-group { margin-bottom:16px; }
+    .form-group label { display:block; font-size:13px; font-weight:600; color:var(--gray-700); margin-bottom:6px; }
+    .form-group input, .form-group select { width:100%; padding:10px 12px; border:1px solid var(--gray-200); border-radius:8px; font-size:14px; font-family:inherit; outline:none; }
+    .form-group input:focus, .form-group select:focus { border-color:var(--blue-accent); box-shadow:0 0 0 3px rgba(0,58,186,.1); }
+    .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .modal-footer { padding:16px 24px; border-top:1px solid var(--gray-100); display:flex; justify-content:flex-end; gap:10px; }
+    .btn-cancel { padding:10px 20px; border:1px solid var(--gray-200); border-radius:8px; background:white; font-family:inherit; font-size:14px; font-weight:600; color:var(--gray-600); cursor:pointer; }
+    .btn-cancel:hover { background:var(--gray-50); }
+
+    /* DETAIL ROWS */
+    .legal-row { display:grid; grid-template-columns:200px 1fr; gap:12px; padding:10px 0; border-bottom:1px solid var(--gray-100); font-size:13px; }
+    .legal-row:last-child { border-bottom:none; }
+    .legal-row .k { font-weight:600; color:var(--gray-600); }
+    .legal-row .v { color:var(--navy-deep); word-break:break-word; font-weight:500; }
+    .legal-row .v.mono { font-family:'Courier New',monospace; font-size:11px; }
+    .modal-section-title { font-size:11px; font-weight:700; color:var(--gray-500); text-transform:uppercase; letter-spacing:1px; margin:18px 0 4px; padding-top:10px; border-top:1px solid var(--gray-100); }
+    .modal-section-title:first-child { margin-top:0; padding-top:0; border-top:none; }
+
+    @media (max-width:900px) {
+      .stats-row { grid-template-columns:1fr 1fr; }
+      .main { margin-left:0; padding:20px; }
+      .sidebar { display:none; }
+      .legal-row { grid-template-columns:1fr; gap:2px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-brand">
+      <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="11" stroke="#dc2626" stroke-width="2"/><path d="M12 5v14M8 9l4-4 4 4" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Catholizare
+    </div>
+    <nav class="header-nav">
+      <a class="header-nav-btn active" id="btnOnboarding">&#x1F4C2; Onboarding</a>
+    </nav>
+    <div class="header-right">
+      <div class="header-user">
+        <strong id="hdrEmail">-</strong>
+        <small id="hdrRole">-</small>
+      </div>
+      <a class="btn-logout" id="btnLogout" href="#">&#x1F6AA; Salir</a>
+    </div>
+  </header>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div style="padding:0 20px 20px;display:flex;align-items:center;gap:10px;color:white;">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 3v18M3 9h18"/></svg>
+      <span style="font-size:15px;font-weight:600;">Onboarding</span>
+    </div>
+    <div class="sidebar-section">PRINCIPAL</div>
+    <div class="sidebar-link" id="navDashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </div>
+    <div class="sidebar-link" id="navProfesionales">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>
+      Profesionales
+    </div>
+    <div class="sidebar-link active" id="navVoluntarios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+      Voluntarios
+    </div>
+    <div class="sidebar-link" id="navLegal">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      Legales
+    </div>
+    <div class="sidebar-link" id="navAnalitica">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Analítica
+    </div>
+    <div class="sidebar-section" style="margin-top:24px;">ADMIN</div>
+    <div class="sidebar-link" id="navUsuarios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      Gestión de Usuarios
+    </div>
+    <div class="sidebar-link" id="navSuperAdmin">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      Super Admin
+    </div>
+    <div class="sidebar-link" id="navHealth">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      System Health
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="page-header">
+      <div>
+        <h1>🤝 Voluntarios</h1>
+        <p>Gestiona voluntarios y su Contrato de Colaboración Voluntaria con Catholizare.</p>
+      </div>
+      <button class="btn-primary" onclick="openAddModal()">+ Agregar Voluntario</button>
+    </div>
+
+    <div class="stats-row">
+      <div class="mini-stat"><div class="num" id="statTotal">—</div><div class="label">Total voluntarios</div></div>
+      <div class="mini-stat ok"><div class="num" id="statFirmados">—</div><div class="label">Contrato firmado</div></div>
+      <div class="mini-stat warn"><div class="num" id="statPendientes">—</div><div class="label">Pendientes de firmar</div></div>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Buscar por nombre o correo…">
+      </div>
+      <select class="filter-select" id="filterContrato">
+        <option value="">Todos los estados</option>
+        <option value="firmado">Contrato firmado</option>
+        <option value="pendiente">Pendiente de firma</option>
+      </select>
+      <span class="result-count" id="resultCount">—</span>
+    </div>
+
+    <div class="table-wrap">
+      <div id="tableContent">
+        <div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Modal: Agregar voluntario -->
+  <div class="modal-backdrop" id="addModal" onclick="if(event.target===this) closeAddModal()">
+    <div class="modal">
+      <div class="modal-header">
+        <h2>➕ Agregar Voluntario</h2>
+        <button class="modal-close" onclick="closeAddModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nombre completo *</label>
+            <input type="text" id="addNombre" placeholder="Ej. María García López">
+          </div>
+          <div class="form-group">
+            <label>Correo electrónico *</label>
+            <input type="email" id="addEmail" placeholder="voluntario@email.com">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="addTelefono" placeholder="+52 55 0000 0000">
+          </div>
+          <div class="form-group">
+            <label>Tipo de voluntario</label>
+            <select id="addTipo">
+              <option value="voluntario">Voluntario general</option>
+              <option value="voluntario_administrativo">Administrativo</option>
+              <option value="voluntario_pastoral">Pastoral</option>
+              <option value="voluntario_tecnico">Técnico</option>
+            </select>
+          </div>
+        </div>
+        <div id="addMsg" style="margin-top:8px;font-size:13px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" onclick="closeAddModal()">Cancelar</button>
+        <button class="btn-primary" id="btnConfirmAdd" onclick="confirmAdd()">Guardar y enviar contrato</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Detalle del contrato -->
+  <div class="modal-backdrop" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
+    <div class="modal" style="max-width:700px;">
+      <div class="modal-header">
+        <div>
+          <h2 id="detailTitle">Detalle de aceptación</h2>
+          <div style="font-family:'Courier New',monospace;font-size:12px;opacity:.85;margin-top:2px;" id="detailFolio"></div>
+        </div>
+        <button class="modal-close" onclick="closeDetailModal()">&times;</button>
+      </div>
+      <div class="modal-body" id="detailBody">
+        <div class="loading"><div class="spinner"></div><p>Cargando…</p></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    var PROXY = BASE + '/api.php';
+    var TOKEN = sessionStorage.getItem('onb_token') || '';
+    var ROLE  = sessionStorage.getItem('onb_userRole') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
+
+    var DASH = BASE + '/Admin_Dashboard_Complete.html';
+
+    document.getElementById('hdrEmail').textContent = sessionStorage.getItem('onb_userEmail') || sessionStorage.getItem('onb_userName') || '-';
+    var roleEl = document.getElementById('hdrRole');
+    roleEl.textContent = ROLE === 'superadmin' ? 'Super Admin' : (ROLE || '-');
+
+    if (ROLE !== 'superadmin') {
+      ['navSuperAdmin','navHealth'].forEach(function(id){ var el=document.getElementById(id); if(el) el.style.display='none'; });
+    }
+
+    // Navegación sidebar
+    document.getElementById('navDashboard').onclick    = function(){ location.href = DASH; };
+    document.getElementById('navProfesionales').onclick = function(){ location.href = DASH + '#profesionales'; };
+    document.getElementById('navLegal').onclick         = function(){ location.href = BASE + '/Admin_legal.html'; };
+    document.getElementById('navAnalitica').onclick     = function(){ location.href = DASH + '#analitica'; };
+    document.getElementById('navUsuarios').onclick      = function(){ location.href = DASH + '#usuarios'; };
+    document.getElementById('navSuperAdmin').onclick    = function(){ location.href = DASH + '#superadmin'; };
+    document.getElementById('navHealth').onclick        = function(){ location.href = DASH + '#health'; };
+    document.getElementById('btnOnboarding').onclick    = function(){ location.href = DASH; };
+    document.getElementById('btnLogout').onclick = function(e){ e.preventDefault(); sessionStorage.clear(); location.href = BASE + '/index.html'; };
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r){ return r.json(); });
+    }
+
+    function esc(s) {
+      return String(s||'').replace(/[&<>"']/g, function(c){
+        return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+      });
+    }
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      try { return new Date(iso).toLocaleString('es-MX',{timeZone:'America/Mexico_City'}); } catch(e){ return '—'; }
+    }
+
+    // ── DATA ──────────────────────────────────────────────
+    var allVoluntarios = [];
+
+    function load() {
+      document.getElementById('tableContent').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando voluntarios…</p></div>';
+      callProxy('getAllVoluntarios', {}).then(function(r) {
+        if (!r || !r.success) {
+          document.getElementById('tableContent').innerHTML = '<div class="empty">Error: ' + esc((r&&r.message)||'Sin respuesta') + '</div>';
+          return;
+        }
+        allVoluntarios = r.data || [];
+        updateStats(allVoluntarios);
+        applyFilters();
+      }).catch(function(e){
+        document.getElementById('tableContent').innerHTML = '<div class="empty">Error de conexión: ' + esc(e.message) + '</div>';
+      });
+    }
+
+    function updateStats(rows) {
+      var firmados = rows.filter(function(v){ return v.contratoFirmado; }).length;
+      document.getElementById('statTotal').textContent = rows.length;
+      document.getElementById('statFirmados').textContent = firmados;
+      document.getElementById('statPendientes').textContent = rows.length - firmados;
+    }
+
+    function applyFilters() {
+      var search = document.getElementById('searchInput').value.toLowerCase();
+      var contrato = document.getElementById('filterContrato').value;
+      var filtered = allVoluntarios.filter(function(v) {
+        var matchSearch = !search || v.nombre.toLowerCase().includes(search) || v.email.toLowerCase().includes(search);
+        var matchContrato = !contrato || (contrato === 'firmado' ? v.contratoFirmado : !v.contratoFirmado);
+        return matchSearch && matchContrato;
+      });
+      renderTable(filtered);
+      document.getElementById('resultCount').textContent = filtered.length + ' voluntario' + (filtered.length === 1 ? '' : 's');
+    }
+
+    function renderTable(rows) {
+      if (!rows.length) {
+        document.getElementById('tableContent').innerHTML = '<div class="empty">Sin voluntarios para los filtros actuales.</div>';
+        return;
+      }
+      var html = '<table><thead><tr><th>Nombre</th><th>Correo</th><th>Tipo</th><th>Registro</th><th>Contrato</th><th>Acciones</th></tr></thead><tbody>';
+      rows.forEach(function(v) {
+        var estadoBadge = v.contratoFirmado
+          ? '<span class="badge badge-firmado">✓ Firmado</span>'
+          : '<span class="badge badge-pendiente">⏳ Pendiente</span>';
+        var fechaFirma = (v.contratoFirmado && v.contratoInfo) ? '<br><span style="font-size:11px;color:var(--gray-500);">' + fmtDate(v.contratoInfo.fecha) + '</span>' : '';
+        var actions = '<div class="actions-cell">';
+        if (!v.contratoFirmado) {
+          actions += '<button class="btn-sm btn-send" onclick="sendContrato(\'' + esc(v.token) + '\',event)">📧 Enviar contrato</button>';
+        }
+        if (v.contratoFirmado) {
+          actions += '<button class="btn-sm btn-view" onclick="viewDetail(\'' + esc(v.contratoInfo.folio) + '\',event)">🔍 Ver detalle</button>';
+        }
+        actions += '</div>';
+        html += '<tr>' +
+          '<td class="name">' + esc(v.nombre) + '</td>' +
+          '<td style="color:var(--blue-accent);">' + esc(v.email) + '</td>' +
+          '<td><span class="badge badge-activo">' + esc(v.tipo) + '</span></td>' +
+          '<td>' + fmtDate(v.fechaRegistro) + '</td>' +
+          '<td>' + estadoBadge + fechaFirma + '</td>' +
+          '<td>' + actions + '</td>' +
+          '</tr>';
+      });
+      html += '</tbody></table>';
+      document.getElementById('tableContent').innerHTML = html;
+    }
+
+    // ── SEND CONTRACT ──────────────────────────────────────
+    function sendContrato(token, e) {
+      e.stopPropagation();
+      if (!confirm('¿Enviar el contrato de colaboración voluntaria por correo?')) return;
+      callProxy('sendContratoVoluntario', { token: token }).then(function(r) {
+        if (r && r.success) {
+          alert('✅ ' + r.message);
+          load();
+        } else {
+          alert('Error: ' + ((r && r.message) || 'Sin respuesta'));
+        }
+      }).catch(function(err){ alert('Error: ' + err.message); });
+    }
+
+    // ── DETAIL MODAL ───────────────────────────────────────
+    function viewDetail(folio, e) {
+      if (e) e.stopPropagation();
+      document.getElementById('detailFolio').textContent = folio;
+      document.getElementById('detailBody').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando detalle…</p></div>';
+      document.getElementById('detailModal').classList.add('show');
+
+      callProxy('getLegalAcceptanceDetail', { adminToken: TOKEN, folio: folio }).then(function(r) {
+        if (!r || !r.success) {
+          document.getElementById('detailBody').innerHTML = '<div class="empty">' + esc((r&&r.message)||'Error') + '</div>';
+          return;
+        }
+        var d = r.detail;
+        document.getElementById('detailTitle').textContent = 'Contrato: ' + (d.docTitulo || 'Colaboración Voluntaria');
+        var html = '<div class="modal-section-title">Registro de aceptación (audit trail legal)</div>';
+        [
+          ['Folio de aceptación', d.folio, 'mono'],
+          ['Versión del contrato', 'v' + d.version, ''],
+          ['Fecha y hora', fmtDate(d.fecha), ''],
+          ['Nombre del voluntario', d.nombre, ''],
+          ['Correo electrónico', d.correo, ''],
+          ['Teléfono', d.telefono||'—', ''],
+          ['RFC', d.rfc||'—', ''],
+          ['Dirección IP', d.ip||'—', 'mono'],
+          ['Método de aceptación', d.metodo||'—', ''],
+          ['Hash del documento (SHA-256)', d.hash||'—', 'mono'],
+          ['Referencia de sesión', d.refSesion||'—', 'mono'],
+          ['Copia enviada', d.copiaEnviada||'No', '']
+        ].forEach(function(row){
+          html += '<div class="legal-row"><div class="k">' + esc(row[0]) + '</div><div class="v ' + row[2] + '">' + esc(row[1]) + '</div></div>';
+        });
+        if (d.otp) {
+          html += '<div class="modal-section-title">Código de firma OTP</div>';
+          html += '<div class="legal-row"><div class="k">Folio OTP</div><div class="v mono">' + esc(d.otp.folio) + '</div></div>';
+          html += '<div class="legal-row"><div class="k">Estado</div><div class="v" style="color:var(--green-ok)">' + esc(d.otp.estado) + '</div></div>';
+          html += '<div class="legal-row"><div class="k">Correo de entrega</div><div class="v">' + esc(d.otp.emailDestino) + '</div></div>';
+          html += '<div class="legal-row"><div class="k">Fecha de uso</div><div class="v">' + fmtDate(d.otp.fechaUso) + '</div></div>';
+        }
+        document.getElementById('detailBody').innerHTML = html;
+      }).catch(function(e){
+        document.getElementById('detailBody').innerHTML = '<div class="empty">Error: ' + esc(e.message) + '</div>';
+      });
+    }
+    function closeDetailModal() { document.getElementById('detailModal').classList.remove('show'); }
+
+    // ── ADD MODAL ──────────────────────────────────────────
+    function openAddModal() {
+      ['addNombre','addEmail','addTelefono'].forEach(function(id){ document.getElementById(id).value=''; });
+      document.getElementById('addTipo').value = 'voluntario';
+      document.getElementById('addMsg').textContent = '';
+      document.getElementById('addModal').classList.add('show');
+    }
+    function closeAddModal() { document.getElementById('addModal').classList.remove('show'); }
+
+    function confirmAdd() {
+      var nombre = document.getElementById('addNombre').value.trim();
+      var email  = document.getElementById('addEmail').value.trim();
+      var telefono = document.getElementById('addTelefono').value.trim();
+      var tipo = document.getElementById('addTipo').value;
+      var msg = document.getElementById('addMsg');
+
+      if (!nombre || !email) { msg.style.color='var(--red)'; msg.textContent='Nombre y correo son obligatorios.'; return; }
+
+      var btn = document.getElementById('btnConfirmAdd');
+      btn.disabled = true; btn.textContent = 'Guardando…';
+      msg.style.color = 'var(--gray-600)'; msg.textContent = '';
+
+      callProxy('addVoluntario', { nombre: nombre, email: email, telefono: telefono, tipo: tipo }).then(function(r) {
+        if (!r || !r.success) {
+          msg.style.color = 'var(--red)'; msg.textContent = r ? r.message : 'Error al guardar.';
+          btn.disabled = false; btn.textContent = 'Guardar y enviar contrato'; return;
+        }
+        // Send contract automatically
+        return callProxy('sendContratoVoluntario', { token: r.token }).then(function(rEmail) {
+          closeAddModal();
+          var emailMsg = (rEmail && rEmail.success) ? ' Se envió el contrato a ' + email + '.' : ' (No se pudo enviar el correo.)';
+          alert('✅ Voluntario registrado.' + emailMsg);
+          load();
+        });
+      }).catch(function(e){
+        msg.style.color='var(--red)'; msg.textContent='Error: '+e.message;
+        btn.disabled=false; btn.textContent='Guardar y enviar contrato';
+      }).finally(function(){ btn.disabled=false; btn.textContent='Guardar y enviar contrato'; });
+    }
+
+    // ── EVENTS ────────────────────────────────────────────
+    var searchTimer;
+    document.getElementById('searchInput').addEventListener('input', function(){ clearTimeout(searchTimer); searchTimer=setTimeout(applyFilters,200); });
+    document.getElementById('filterContrato').addEventListener('change', applyFilters);
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAddModal(); closeDetailModal(); } });
+
+    load();
+  </script>
+</body>
+</html>

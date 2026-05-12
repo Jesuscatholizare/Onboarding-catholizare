@@ -1,1 +1,313 @@
-PLACEHOLDER_3
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contrato de Colaboración Voluntaria - Catholizare</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: linear-gradient(135deg,#001A55 0%,#003ABA 100%); min-height:100vh; padding:24px 16px; line-height:1.6; }
+    .container { max-width:760px; margin:0 auto; background:white; border-radius:16px; box-shadow:0 12px 48px rgba(0,0,0,.35); overflow:hidden; }
+    .header { background:linear-gradient(135deg,#001A55,#003ABA); color:white; padding:36px 32px; text-align:center; }
+    .header .logo { font-size:20px; font-weight:700; opacity:.9; margin-bottom:8px; }
+    .header h1 { font-size:22px; font-weight:700; margin-bottom:6px; }
+    .header p { opacity:.85; font-size:14px; }
+    .content { padding:32px; }
+
+    /* LOADING */
+    .state-loading { text-align:center; padding:60px 20px; color:#6b7280; }
+    .state-loading .spinner { width:36px; height:36px; border:3px solid #e5e7eb; border-top-color:#001A55; border-radius:50%; animation:spin .8s linear infinite; margin:0 auto 16px; }
+    @keyframes spin { to { transform:rotate(360deg); } }
+
+    /* ERROR */
+    .state-error { background:#fef2f2; border:1px solid #fecaca; border-radius:10px; padding:20px; color:#991b1b; text-align:center; }
+
+    /* SECTIONS */
+    .section-title { font-size:13px; font-weight:700; color:#6b7280; text-transform:uppercase; letter-spacing:.8px; margin-bottom:12px; }
+    .info-card { background:#f9fafb; border:1px solid #e5e7eb; border-radius:10px; padding:16px 20px; margin-bottom:20px; font-size:14px; color:#374151; }
+    .info-card strong { color:#001A55; }
+
+    /* CONTRACT VIEWER */
+    .contract-box { border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; margin-bottom:20px; }
+    .contract-box-header { background:#001A55; color:white; padding:12px 16px; font-size:13px; font-weight:600; display:flex; justify-content:space-between; align-items:center; }
+    .contract-box-header .version { background:rgba(255,255,255,.2); border-radius:4px; padding:2px 8px; font-size:11px; }
+    .contract-viewer { height:240px; overflow-y:auto; padding:20px; font-size:13px; color:#374151; line-height:1.7; }
+    .contract-viewer p { margin-bottom:10px; }
+
+    /* STEPS */
+    .steps { display:flex; gap:0; margin-bottom:28px; }
+    .step { flex:1; text-align:center; position:relative; }
+    .step::after { content:''; position:absolute; top:18px; left:50%; width:100%; height:2px; background:#e5e7eb; z-index:0; }
+    .step:last-child::after { display:none; }
+    .step-num { width:36px; height:36px; border-radius:50%; border:2px solid #e5e7eb; background:white; display:inline-flex; align-items:center; justify-content:center; font-size:14px; font-weight:700; color:#9ca3af; position:relative; z-index:1; transition:all .3s; }
+    .step.active .step-num { background:#001A55; color:white; border-color:#001A55; }
+    .step.done .step-num { background:#22c55e; color:white; border-color:#22c55e; }
+    .step-label { font-size:11px; color:#9ca3af; margin-top:6px; font-weight:600; }
+    .step.active .step-label, .step.done .step-label { color:#001A55; }
+
+    /* CHECKBOX */
+    .check-row { display:flex; align-items:flex-start; gap:12px; padding:14px; background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; cursor:pointer; margin-bottom:16px; transition:all .2s; }
+    .check-row:hover { border-color:#003ABA; background:#eff6ff; }
+    .check-row input { width:20px; height:20px; margin-top:1px; cursor:pointer; flex-shrink:0; }
+    .check-row span { font-size:14px; color:#1f2937; line-height:1.5; }
+
+    /* OTP */
+    .otp-container { background:#f0f4ff; border:1px solid #c7d2fe; border-radius:10px; padding:20px; margin-bottom:16px; }
+    .otp-container p { font-size:14px; color:#374151; margin-bottom:12px; }
+    .otp-input-row { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .otp-input { width:160px; padding:12px 16px; border:2px solid #c7d2fe; border-radius:8px; font-size:20px; font-weight:700; text-align:center; letter-spacing:4px; outline:none; font-family:inherit; }
+    .otp-input:focus { border-color:#001A55; box-shadow:0 0 0 3px rgba(0,26,85,.15); }
+    .btn-resend { background:none; border:none; color:#003ABA; font-size:13px; font-weight:600; cursor:pointer; text-decoration:underline; padding:4px 0; }
+    .btn-resend:disabled { color:#9ca3af; cursor:default; }
+    .countdown { font-size:12px; color:#6b7280; }
+
+    /* BUTTONS */
+    .btn { display:block; width:100%; padding:15px; border-radius:10px; font-size:16px; font-weight:700; cursor:pointer; border:none; font-family:inherit; transition:all .3s; margin-top:8px; }
+    .btn-navy { background:#001A55; color:white; }
+    .btn-navy:hover:not(:disabled) { background:#000f33; transform:translateY(-2px); box-shadow:0 4px 14px rgba(0,26,85,.4); }
+    .btn-navy:disabled { background:#9ca3af; cursor:not-allowed; transform:none; }
+    .btn-outline { background:white; color:#001A55; border:2px solid #001A55; }
+    .btn-outline:hover:not(:disabled) { background:#f0f4ff; }
+
+    /* MESSAGES */
+    .msg { padding:12px 16px; border-radius:8px; font-size:14px; margin-top:12px; display:none; }
+    .msg.show { display:block; }
+    .msg.error { background:#fef2f2; color:#991b1b; border:1px solid #fecaca; }
+    .msg.success { background:#f0fdf4; color:#166534; border:1px solid #bbf7d0; }
+    .msg.info { background:#eff6ff; color:#1d4ed8; border:1px solid #bfdbfe; }
+
+    /* SUCCESS STATE */
+    .state-success { text-align:center; padding:40px 20px; }
+    .state-success .check-icon { width:72px; height:72px; background:#f0fdf4; border:3px solid #22c55e; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:32px; margin:0 auto 20px; }
+    .state-success h2 { color:#166534; font-size:22px; margin-bottom:10px; }
+    .state-success p { color:#6b7280; font-size:14px; margin-bottom:4px; }
+    .folio-box { background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:12px 20px; display:inline-block; margin:16px 0; font-family:'Courier New',monospace; font-size:14px; font-weight:700; color:#001A55; }
+
+    @media(max-width:600px){ .content{padding:20px;} .steps{display:none;} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo">✝ Catholizare</div>
+      <h1>Contrato de Colaboración Voluntaria</h1>
+      <p>Lee cuidadosamente el contrato y firma con tu código de seguridad</p>
+    </div>
+    <div class="content" id="mainContent">
+      <div class="state-loading" id="stateLoading">
+        <div class="spinner"></div>
+        <p>Cargando contrato…</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var BASE  = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    var PROXY = BASE + '/api.php';
+    var token = new URLSearchParams(location.search).get('token') || '';
+    var docData = null;
+    var otpRequested = false;
+    var countdownTimer = null;
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(Object.assign({ token: token }, data || {}))
+      }).then(function(r){ return r.json(); });
+    }
+    function esc(s){ var d=document.createElement('div'); d.textContent=String(s||''); return d.innerHTML; }
+
+    // ── INIT ──────────────────────────────────────────────
+    if (!token) {
+      renderError('No se encontró el enlace de acceso. Usa el enlace enviado a tu correo.');
+    } else {
+      callProxy('getDocumentoLegal', { docId: 'VOLUNTARIO' }).then(function(r) {
+        if (!r || !r.success) { renderError(r ? r.message : 'Contrato no disponible.'); return; }
+        docData = r.documento;
+        renderStep1();
+      }).catch(function(e){ renderError('Error de conexión: ' + e.message); });
+    }
+
+    // ── RENDER ERROR ──────────────────────────────────────
+    function renderError(msg) {
+      document.getElementById('mainContent').innerHTML =
+        '<div class="state-error"><strong>⚠️ Error</strong><br>' + esc(msg) + '</div>';
+    }
+
+    // ── STEP 1: Leer contrato ─────────────────────────────
+    function renderStep1() {
+      var content = String(docData.contenido || '').replace(/\n/g, '</p><p>');
+      document.getElementById('mainContent').innerHTML =
+        '<div class="steps">' +
+          '<div class="step active" id="stp1"><div class="step-num">1</div><div class="step-label">Leer contrato</div></div>' +
+          '<div class="step" id="stp2"><div class="step-num">2</div><div class="step-label">Código de firma</div></div>' +
+          '<div class="step" id="stp3"><div class="step-num">3</div><div class="step-label">Confirmar firma</div></div>' +
+        '</div>' +
+
+        '<div class="section-title">Contrato de Colaboración Voluntaria</div>' +
+        '<div class="contract-box">' +
+          '<div class="contract-box-header">' +
+            '<span>' + esc(docData.titulo) + '</span>' +
+            '<span class="version">v' + esc(docData.version) + '</span>' +
+          '</div>' +
+          '<div class="contract-viewer"><p>' + content + '</p></div>' +
+        '</div>' +
+
+        '<label class="check-row" onclick="toggleCheck()">' +
+          '<input type="checkbox" id="chkLeido">' +
+          '<span>He leído el <strong>Contrato de Colaboración Voluntaria</strong> completo y deseo continuar con la firma digital.</span>' +
+        '</label>' +
+
+        '<div class="msg" id="msg1"></div>' +
+        '<button class="btn btn-navy" id="btnSolicitarOtp" disabled onclick="solicitarOtp()">📨 Solicitar código de firma por correo</button>';
+
+      document.getElementById('chkLeido').addEventListener('change', function() {
+        document.getElementById('btnSolicitarOtp').disabled = !this.checked;
+      });
+    }
+
+    function toggleCheck() {
+      var chk = document.getElementById('chkLeido');
+      if (chk) { chk.checked = !chk.checked; document.getElementById('btnSolicitarOtp').disabled = !chk.checked; }
+    }
+
+    // ── STEP 2: Solicitar OTP ─────────────────────────────
+    function solicitarOtp() {
+      var btn = document.getElementById('btnSolicitarOtp');
+      btn.disabled = true; btn.textContent = 'Enviando código…';
+      showMsg('msg1','info','Enviando código de firma a tu correo…');
+
+      callProxy('solicitarCodigoFirma', { docId: 'VOLUNTARIO' }).then(function(r) {
+        if (!r || !r.success) {
+          showMsg('msg1','error', r ? r.message : 'Error al solicitar el código.');
+          btn.disabled = false; btn.textContent = '📨 Solicitar código de firma por correo'; return;
+        }
+        otpRequested = true;
+        renderStep2(r.emailDestino || '');
+      }).catch(function(e){
+        showMsg('msg1','error','Error: ' + e.message);
+        btn.disabled=false; btn.textContent='📨 Solicitar código de firma por correo';
+      });
+    }
+
+    // ── RENDER STEP 2 ─────────────────────────────────────
+    function renderStep2(emailHint) {
+      document.getElementById('stp1').className = 'step done';
+      document.getElementById('stp2').className = 'step active';
+
+      var masked = emailHint ? ' (' + esc(emailHint) + ')' : '';
+      document.getElementById('mainContent').innerHTML =
+        document.getElementById('mainContent').innerHTML.replace(
+          /(<div class="section-title">).*/s,
+          ''
+        );
+
+      // Replace from section-title onwards
+      var c = document.getElementById('mainContent');
+      // Keep steps, replace rest
+      var stepsHtml = c.querySelector('.steps') ? c.querySelector('.steps').outerHTML : '';
+      c.innerHTML = stepsHtml +
+
+        '<div class="section-title">Código de firma</div>' +
+        '<div class="otp-container">' +
+          '<p>📧 Te enviamos un código de 6 dígitos a tu correo' + masked + '.<br>Ingresa el código a continuación para firmar el contrato:</p>' +
+          '<div class="otp-input-row">' +
+            '<input type="number" id="otpInput" class="otp-input" placeholder="000000" maxlength="6" min="100000" max="999999">' +
+          '</div>' +
+          '<div style="margin-top:12px;display:flex;align-items:center;gap:12px;">' +
+            '<span class="countdown" id="countdown">El código expira en <strong id="countdownNum">15:00</strong></span>' +
+            '<button class="btn-resend" id="btnResend" onclick="reenviarOtp()" disabled>Reenviar código</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="msg" id="msg2"></div>' +
+        '<button class="btn btn-navy" id="btnFirmar" onclick="firmarContrato()">✍️ Firmar Contrato de Colaboración Voluntaria</button>' +
+        '<button class="btn btn-outline" style="margin-top:10px;" onclick="renderStep1()">← Volver a releer el contrato</button>';
+
+      document.getElementById('otpInput').addEventListener('input', function(){
+        this.value = this.value.replace(/\D/g,'').substring(0,6);
+      });
+
+      startCountdown(15 * 60);
+    }
+
+    function startCountdown(seconds) {
+      clearInterval(countdownTimer);
+      var remaining = seconds;
+      function tick() {
+        var m = Math.floor(remaining/60), s = remaining%60;
+        var el = document.getElementById('countdownNum');
+        if (el) el.textContent = m + ':' + (s<10?'0':'') + s;
+        if (remaining <= 0) {
+          clearInterval(countdownTimer);
+          var resend = document.getElementById('btnResend');
+          if (resend) { resend.disabled=false; }
+          var cEl = document.getElementById('countdown');
+          if (cEl) cEl.innerHTML = '<span style="color:#ef4444;">⏰ Código expirado.</span>';
+        }
+        remaining--;
+      }
+      tick();
+      countdownTimer = setInterval(tick, 1000);
+    }
+
+    function reenviarOtp() {
+      var btn = document.getElementById('btnResend');
+      btn.disabled = true; btn.textContent = 'Enviando…';
+      callProxy('solicitarCodigoFirma', { docId: 'VOLUNTARIO' }).then(function(r){
+        if (r && r.success) {
+          showMsg('msg2','info','✓ Nuevo código enviado a tu correo.');
+          startCountdown(15*60);
+          btn.textContent = 'Reenviar código';
+        } else {
+          showMsg('msg2','error',(r&&r.message)||'Error al reenviar.');
+          btn.disabled=false; btn.textContent='Reenviar código';
+        }
+      }).catch(function(e){ showMsg('msg2','error','Error: '+e.message); btn.disabled=false; btn.textContent='Reenviar código'; });
+    }
+
+    // ── STEP 3: Firmar ────────────────────────────────────
+    function firmarContrato() {
+      var otp = String(document.getElementById('otpInput').value||'').replace(/\D/g,'').trim();
+      if (!otp || otp.length !== 6) { showMsg('msg2','error','Ingresa el código de 6 dígitos.'); return; }
+
+      var btn = document.getElementById('btnFirmar');
+      btn.disabled=true; btn.textContent='Firmando…';
+      clearInterval(countdownTimer);
+
+      callProxy('aceptarDocumento', { docId:'VOLUNTARIO', otp: otp }).then(function(r){
+        if (!r || !r.success) {
+          showMsg('msg2','error', r ? r.message : 'Error al firmar.');
+          btn.disabled=false; btn.textContent='✍️ Firmar Contrato de Colaboración Voluntaria'; return;
+        }
+        renderSuccess(r.folio || '—');
+      }).catch(function(e){
+        showMsg('msg2','error','Error: '+e.message);
+        btn.disabled=false; btn.textContent='✍️ Firmar Contrato de Colaboración Voluntaria';
+      });
+    }
+
+    // ── SUCCESS ───────────────────────────────────────────
+    function renderSuccess(folio) {
+      clearInterval(countdownTimer);
+      document.getElementById('mainContent').innerHTML =
+        '<div class="state-success">' +
+          '<div class="check-icon">✅</div>' +
+          '<h2>¡Contrato firmado exitosamente!</h2>' +
+          '<p>Tu Contrato de Colaboración Voluntaria con <strong>Catholizare</strong> ha sido registrado.</p>' +
+          '<p>Recibirás una copia por correo electrónico.</p>' +
+          '<div class="folio-box">' + esc(folio) + '</div>' +
+          '<p style="font-size:12px;color:#9ca3af;margin-top:16px;">Guarda este folio como comprobante de tu firma digital.<br>Fecha: ' + new Date().toLocaleString('es-MX',{timeZone:'America/Mexico_City'}) + '</p>' +
+        '</div>';
+    }
+
+    // ── HELPERS ───────────────────────────────────────────
+    function showMsg(id, type, text) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      el.className = 'msg ' + type + ' show';
+      el.textContent = text;
+    }
+  </script>
+</body>
+</html>
