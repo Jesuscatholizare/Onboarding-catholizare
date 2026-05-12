@@ -1,1 +1,73 @@
-PLACEHOLDER
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Admin Dashboard - Catholizare</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    :root {
+      --navy: #0f1d3d;
+      --navy-light: #1a2d5a;
+      --gold: #D4AF37;
+      --blue: #3b82f6;
+      --green: #22c55e;
+      --orange: #f59e0b;
+      --red: #ef4444;
+      --gray-50: #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-300: #d1d5db;
+      --gray-500: #6b7280;
+      --gray-700: #374151;
+      --gray-900: #111827;
+      --sidebar-w: 260px;
+      --header-h: 64px;
+    }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--gray-50); color: var(--gray-900); }
+
+    /* === HEADER === */
+    .header {
+      position: fixed; top:0; left:0; right:0; height: var(--header-h); z-index:100;
+      background: white; border-bottom: 1px solid var(--gray-200);
+      display: flex; align-items: center; padding: 0 24px; gap: 16px;
+    }
+    .header-brand { display:flex; align-items:center; gap:8px; font-size:20px; font-weight:700; color:var(--navy); }
+    .header-brand svg { width:28px; height:28px; }
+    .header-nav { display:flex; gap:4px; margin-left:24px; }
+    .header-nav-btn { padding:8px 16px; border-radius:8px; border:1px solid var(--gray-200); background:white; font-size:13px; font-weight:500; color:var(--gray-700); cursor:pointer; display:flex; align-items:center; gap:6px; text-decoration:none; }
+    .header-nav-btn.active { background:var(--navy); color:white; border-color:var(--navy); }
+    .header-nav-btn:hover:not(.active) { background:var(--gray-100); }
+    .header-right { margin-left:auto; display:flex; align-items:center; gap:16px; }
+    .header-user { text-align:right; font-size:13px; color:var(--gray-500); }
+    .header-user strong { display:block; color:var(--gray-900); font-size:14px; }
+    .header-user small { color:var(--gold); font-weight:600; font-size:11px; }
+
+    /* === SIDEBAR === */
+    .sidebar {
+      position:fixed; top:var(--header-h); left:0; bottom:0; width:var(--sidebar-w); z-index:90;
+      background:var(--navy); padding:24px 0; overflow-y:auto;
+    }
+    .sidebar-section { padding:0 16px; margin-bottom:8px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.4); letter-spacing:1.5px; text-transform:uppercase; }
+    .sidebar-link {
+      display:flex; align-items:center; gap:12px; padding:10px 20px; margin:2px 8px; border-radius:8px;
+      color:rgba(255,255,255,0.7); font-size:14px; cursor:pointer; transition:all 0.15s;
+    }
+    .sidebar-link:hover { background:rgba(255,255,255,0.08); color:white; }
+    .sidebar-link.active { background:rgba(255,255,255,0.15); color:white; font-weight:600; }
+    .sidebar-link svg { width:18px; height:18px; opacity:0.7; }
+    .sidebar-link.active svg { opacity:1; }
+
+    /* === MAIN === */
+    .main { margin-left:var(--sidebar-w); margin-top:var(--header-h); padding:32px; min-height:calc(100vh - var(--header-h)); overflow-y:auto; }
+
+    /* PLACEHOLDER_TRUNCATED_FOR_BREVITY */
+  </style>
+</head>
+<body>
+<!-- This file is a placeholder. See full content in repo history. -->
+</body>
+</html>
