@@ -474,6 +474,9 @@ function doPost(e) {
       case 'sendContratoVoluntario':
         result = sendContratoVoluntario(data);
         break;
+      case 'getVoluntarioInfo':
+        result = getVoluntarioInfo(data);
+        break;
 
       default:
         result = { success: false, message: 'Accion no reconocida: ' + action };
@@ -3303,6 +3306,30 @@ function getVolunteerByToken(token) {
     }
   }
   return null;
+}
+
+/**
+ * Devuelve los datos del voluntario (para prellenar formulario de firma).
+ */
+function getVoluntarioInfo(data) {
+  try {
+    var token = String(data.token || '').trim();
+    if (!token) return { success: false, message: 'Falta token.' };
+    var vol = getVolunteerByToken(token);
+    if (!vol) return { success: false, message: 'Token de voluntario no válido.' };
+    return {
+      success: true,
+      voluntario: {
+        nombre: vol.nombre || '',
+        email: vol.email || '',
+        telefono: vol.telefono || '',
+        rfc: vol.rfc || '',
+        tipo: vol.tipo || 'voluntario'
+      }
+    };
+  } catch (e) {
+    return { success: false, message: e.toString() };
+  }
 }
 
 /**
