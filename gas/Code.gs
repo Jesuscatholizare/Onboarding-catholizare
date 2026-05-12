@@ -3397,7 +3397,8 @@ function addVoluntario(data) {
 }
 
 /**
- * Envía por correo el enlace al contrato de colaboración voluntaria.
+ * Envía por correo (MailApp) el enlace al contrato de colaboración voluntaria
+ * y registra el envío en la hoja Voluntarios (col 8: Email_Contrato_Enviado, col 9: Fecha_Envio_Contrato).
  */
 function sendContratoVoluntario(data) {
   try {
@@ -3408,36 +3409,66 @@ function sendContratoVoluntario(data) {
     var BASE_URL = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
     var link = BASE_URL + '/Public_Voluntario.html?token=' + token;
 
-    var config = getConfig();
-    var html =
-      '<div style="font-family:sans-serif;max-width:600px;margin:0 auto;">' +
-      '<div style="background:linear-gradient(135deg,#001A55,#003ABA);color:white;padding:32px;text-align:center;border-radius:12px 12px 0 0;">' +
-      '<h1 style="margin:0;font-size:24px;">✝ Catholizare</h1>' +
-      '<p style="margin:8px 0 0;opacity:.85;">Contrato de Colaboración Voluntaria</p>' +
-      '</div>' +
-      '<div style="background:white;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">' +
-      '<p>Estimado/a <strong>' + vol.nombre + '</strong>,</p>' +
-      '<p>Te invitamos a revisar y firmar tu <strong>Contrato de Colaboración Voluntaria</strong> con Catholizare.</p>' +
-      '<p>Para proceder con la firma, haz clic en el botón a continuación:</p>' +
-      '<div style="text-align:center;margin:28px 0;">' +
-      '<a href="' + link + '" style="background:#001A55;color:white;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block;">Revisar y Firmar Contrato</a>' +
-      '</div>' +
-      '<p style="font-size:12px;color:#6b7280;">Si el botón no funciona, copia este enlace en tu navegador:<br><a href="' + link + '">' + link + '</a></p>' +
-      '</div></div>';
+    var asunto = 'Contrato de Colaboración Voluntaria – Catholizare';
+    var htmlBody =
+      '<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">' +
+        '<div style="background:#001A55;color:white;padding:32px;text-align:center;border-radius:12px 12px 0 0;">' +
+          '<h1 style="margin:0;font-size:24px;">&#10013; Catholizare</h1>' +
+          '<p style="margin:8px 0 0;opacity:.85;">Contrato de Colaboración Voluntaria</p>' +
+        '</div>' +
+        '<div style="background:#ffffff;padding:32px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;">' +
+          '<p>Estimado/a <strong>' + vol.nombre + '</strong>,</p>' +
+          '<p>Te invitamos a revisar y firmar tu <strong>Contrato de Colaboración Voluntaria</strong> con Catholizare.</p>' +
+          '<p>Para proceder con la firma, haz clic en el siguiente botón:</p>' +
+          '<div style="text-align:center;margin:28px 0;">' +
+            '<a href="' + link + '" style="background:#001A55;color:#ffffff;padding:14px 32px;border-radius:8px;text-decoration:none;font-weight:bold;font-size:15px;display:inline-block;">Revisar y Firmar Contrato</a>' +
+          '</div>' +
+          '<p style="font-size:12px;color:#6b7280;">Si el botón no funciona, copia este enlace en tu navegador:<br>' +
+          '<a href="' + link + '">' + link + '</a></p>' +
+          '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0;">' +
+          '<p style="font-size:11px;color:#9ca3af;text-align:center;">Catholizare &bull; Este correo es generado automáticamente, no lo respondas.</p>' +
+        '</div>' +
+      '</div>';
 
-    var result = sendEmailViaBrevo(
-      vol.email,
-      'Contrato de Colaboración Voluntaria – Catholizare',
-      html
-    );
+    var textoPlano =
+      'Estimado/a ' + vol.nombre + ',\n\n' +
+      'Te invitamos a revisar y firmar tu Contrato de Colaboración Voluntaria con Catholizare.\n\n' +
+      'Accede al siguiente enlace para firmar:\n' + link + '\n\n' +
+      'Si no solicitaste este correo, ignóralo.\n\nCatholizare';
 
-    try { logAction(token, vol.email, 'Contrato voluntario enviado por correo', 'Voluntario_Email', '', link, 'Admin'); } catch(e) {}
+    MailApp.sendEmail({
+      to: vol.email,
+      subject: asunto,
+      body: textoPlano,
+      htmlBody: htmlBody,
+      name: 'Catholizare Pro'
+    });
 
-    if (result && result.success !== false) {
-      return { success: true, message: 'Contrato enviado a ' + vol.email };
+    // Registrar envío en la hoja Voluntarios
+    var sheet = getSS().getSheetByName(VOLUNTARIOS_SHEET);
+    if (sheet) {
+      // Asegurar encabezados en col 8 y 9
+      var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+      if (headers.length < 8 || !headers[7]) sheet.getRange(1, 8).setValue('Email_Contrato_Enviado');
+      if (headers.length < 9 || !headers[8]) sheet.getRange(1, 9).setValue('Fecha_Envio_Contrato');
+
+      // Encontrar fila del voluntario y actualizar
+      var allData = sheet.getDataRange().getValues();
+      var tokenNorm = token.trim().toLowerCase();
+      for (var i = 1; i < allData.length; i++) {
+        if (String(allData[i][0] || '').trim().toLowerCase() === tokenNorm) {
+          sheet.getRange(i + 1, 8).setValue('Sí');
+          sheet.getRange(i + 1, 9).setValue(new Date());
+          break;
+        }
+      }
     }
-    return { success: false, message: 'Error al enviar: ' + JSON.stringify(result) };
+
+    try { logAction(token, vol.email, 'Contrato voluntario enviado por MailApp', 'Voluntario_Email', '', link, 'Admin'); } catch(e) {}
+
+    return { success: true, message: 'Contrato enviado a ' + vol.email };
   } catch (e) {
+    Logger.log('Error sendContratoVoluntario: ' + e);
     return { success: false, message: e.toString() };
   }
 }
