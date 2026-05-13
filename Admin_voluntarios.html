@@ -107,6 +107,10 @@
     .loading .spinner { display:inline-block; width:28px; height:28px; border:3px solid var(--gray-200); border-top-color:var(--navy-deep); border-radius:50%; animation:spin .8s linear infinite; margin-bottom:12px; }
     @keyframes spin { to { transform:rotate(360deg); } }
 
+    /* Spinner inline para botones */
+    .btn-spinner { display:inline-block; width:14px; height:14px; border:2px solid rgba(255,255,255,.4); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; vertical-align:middle; margin-right:6px; }
+    .btn-spinner.dark { border-color:rgba(0,0,0,.15); border-top-color:var(--navy-deep); }
+
     /* MODAL */
     .modal-backdrop { display:none; position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:300; align-items:center; justify-content:center; padding:20px; }
     .modal-backdrop.show { display:flex; }
@@ -279,6 +283,34 @@
       <div class="modal-footer">
         <button class="btn-cancel" onclick="closeAddModal()">Cancelar</button>
         <button class="btn-primary" id="btnConfirmAdd" onclick="confirmAdd()">Guardar y enviar contrato</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Dar de baja -->
+  <div class="modal-backdrop" id="bajaModal">
+    <div class="modal" style="max-width:420px;">
+      <div class="modal-header" style="background:#991b1b;">
+        <h2>⛔ Dar de baja al voluntario</h2>
+        <button class="modal-close" onclick="closeBajaModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">Esta acción registrará la fecha de baja y cambiará el estado a <strong>Dejó de laborar</strong>. Requiere PIN de super admin.</p>
+        <div class="form-group">
+          <label>Motivo de baja</label>
+          <input type="text" id="bajaMotivo" placeholder="Ej. Término de proyecto, renuncia voluntaria…">
+        </div>
+        <div class="form-group">
+          <label>PIN de super admin *</label>
+          <input type="password" id="bajaPin" placeholder="••••" autocomplete="off">
+        </div>
+        <div id="bajaMsg" style="font-size:13px;margin-top:4px;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-cancel" id="bajaCancelBtn" onclick="closeBajaModal()">Cancelar</button>
+        <button class="btn-primary" id="bajaConfirmBtn" style="background:#991b1b;border-color:#991b1b;" onclick="confirmarBaja()">
+          Confirmar baja
+        </button>
       </div>
     </div>
   </div>
@@ -508,16 +540,31 @@
     // ── DAR DE BAJA ────────────────────────────────────────
     function darBaja() {
       if (ROLE !== 'superadmin') { alert('Solo un super admin puede dar de baja a un voluntario.'); return; }
-      if (!currentDetailVolToken) { alert('No se encontró el voluntario.'); return; }
+      if (!currentDetailVolToken) return;
+      document.getElementById('bajaMotivo').value = '';
+      document.getElementById('bajaPin').value = '';
+      document.getElementById('bajaMsg').textContent = '';
+      var btn = document.getElementById('bajaConfirmBtn');
+      btn.disabled = false;
+      btn.innerHTML = 'Confirmar baja';
+      document.getElementById('bajaModal').classList.add('show');
+    }
 
-      if (!confirm('¿Confirmas que este voluntario dejó de laborar? Esta acción quedará registrada con la fecha de hoy.')) return;
+    function closeBajaModal() {
+      document.getElementById('bajaModal').classList.remove('show');
+    }
 
-      var pin = prompt('Ingresa el PIN de super admin para confirmar la baja:');
-      if (pin === null) return;
-      pin = String(pin).trim();
-      if (!pin) { alert('PIN requerido.'); return; }
+    function confirmarBaja() {
+      var pin = document.getElementById('bajaPin').value.trim();
+      var motivo = document.getElementById('bajaMotivo').value.trim();
+      var msg = document.getElementById('bajaMsg');
+      if (!pin) { msg.style.color = 'var(--red)'; msg.textContent = 'El PIN es obligatorio.'; return; }
 
-      var motivo = prompt('(Opcional) Motivo de la baja:') || '';
+      var btn = document.getElementById('bajaConfirmBtn');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="btn-spinner"></span>Procesando…';
+      document.getElementById('bajaCancelBtn').disabled = true;
+      msg.textContent = '';
 
       callProxy('adminSetStatus', {
         token: currentDetailVolToken,
@@ -525,14 +572,24 @@
         pin: pin,
         motivo: motivo
       }).then(function(r) {
+        btn.disabled = false;
+        btn.innerHTML = 'Confirmar baja';
+        document.getElementById('bajaCancelBtn').disabled = false;
         if (!r || !r.success) {
-          alert('Error: ' + ((r && r.message) || 'Sin respuesta'));
+          msg.style.color = 'var(--red)';
+          msg.textContent = (r && r.message) || 'Error al procesar la baja.';
           return;
         }
-        alert('✅ ' + r.message);
+        closeBajaModal();
         closeDetailModal();
         load();
-      }).catch(function(e){ alert('Error: ' + e.message); });
+      }).catch(function(e) {
+        btn.disabled = false;
+        btn.innerHTML = 'Confirmar baja';
+        document.getElementById('bajaCancelBtn').disabled = false;
+        msg.style.color = 'var(--red)';
+        msg.textContent = 'Error: ' + e.message;
+      });
     }
 
     // ── ADD MODAL ──────────────────────────────────────────
@@ -554,13 +611,13 @@
       if (!nombre || !email) { msg.style.color='var(--red)'; msg.textContent='Nombre y correo son obligatorios.'; return; }
 
       var btn = document.getElementById('btnConfirmAdd');
-      btn.disabled = true; btn.textContent = 'Guardando…';
+      btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Guardando…';
       msg.style.color = 'var(--gray-600)'; msg.textContent = '';
 
       callProxy('addVoluntario', { nombre: nombre, email: email, telefono: telefono, tipo: tipo }).then(function(r) {
         if (!r || !r.success) {
           msg.style.color = 'var(--red)'; msg.textContent = r ? r.message : 'Error al guardar.';
-          btn.disabled = false; btn.textContent = 'Guardar y enviar contrato'; return;
+          btn.disabled = false; btn.innerHTML = 'Guardar y enviar contrato'; return;
         }
         // Send contract automatically
         return callProxy('sendContratoVoluntario', { token: r.token }).then(function(rEmail) {
@@ -572,14 +629,14 @@
       }).catch(function(e){
         msg.style.color='var(--red)'; msg.textContent='Error: '+e.message;
         btn.disabled=false; btn.textContent='Guardar y enviar contrato';
-      }).finally(function(){ btn.disabled=false; btn.textContent='Guardar y enviar contrato'; });
+      }).finally(function(){ btn.disabled=false; btn.innerHTML='Guardar y enviar contrato'; });
     }
 
     // ── EVENTS ────────────────────────────────────────────
     var searchTimer;
     document.getElementById('searchInput').addEventListener('input', function(){ clearTimeout(searchTimer); searchTimer=setTimeout(applyFilters,200); });
     document.getElementById('filterContrato').addEventListener('change', applyFilters);
-    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAddModal(); closeDetailModal(); } });
+    document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeAddModal(); closeDetailModal(); closeBajaModal(); } });
 
     load();
   </script>
