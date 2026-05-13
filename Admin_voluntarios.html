@@ -288,7 +288,7 @@
   </div>
 
   <!-- Modal: Dar de baja -->
-  <div class="modal-backdrop" id="bajaModal">
+  <div class="modal-backdrop" id="bajaModal" style="z-index:400;">
     <div class="modal" style="max-width:420px;">
       <div class="modal-header" style="background:#991b1b;">
         <h2>⛔ Dar de baja al voluntario</h2>
@@ -577,7 +577,12 @@
         document.getElementById('bajaCancelBtn').disabled = false;
         if (!r || !r.success) {
           msg.style.color = 'var(--red)';
-          msg.textContent = (r && r.message) || 'Error al procesar la baja.';
+          var errMsg = (r && r.message) || 'Error al procesar la baja.';
+          // Detección clara del problema de redeploy
+          if (errMsg.toLowerCase().indexOf('token no encontrado') >= 0) {
+            errMsg = '⚠️ El código de GAS no está actualizado. Re-despliega el Apps Script como NUEVA VERSIÓN (Implementar → Administrar implementaciones → ✏️ Editar → Versión: Nueva versión → Implementar). Sin nueva versión, el deploy sigue sirviendo el código viejo.';
+          }
+          msg.textContent = errMsg;
           return;
         }
         closeBajaModal();
