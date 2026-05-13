@@ -519,8 +519,9 @@
 
       var motivo = prompt('(Opcional) Motivo de la baja:') || '';
 
-      callProxy('darBajaVoluntario', {
+      callProxy('adminSetStatus', {
         token: currentDetailVolToken,
+        nuevoEstado: 'baja',
         pin: pin,
         motivo: motivo
       }).then(function(r) {

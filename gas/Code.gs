@@ -383,7 +383,7 @@ function doPost(e) {
         result = adminAdvancePhase(data.token);
         break;
       case 'adminSetStatus':
-        result = adminSetStatus(data.token, data.nuevoEstado);
+        result = adminSetStatus(data.token, data.nuevoEstado, data);
         break;
       case 'adminMarkAction':
         result = adminMarkAction(data.token, data.actionId);
@@ -996,8 +996,40 @@ function adminAdvancePhase(token) {
   } catch (e) { return { success: false, message: e.toString() }; }
 }
 
-function adminSetStatus(token, nuevoEstado) {
+function adminSetStatus(token, nuevoEstado, extraData) {
   try {
+    // Voluntarios: token VOL- → actualiza hoja Voluntarios con PIN de superadmin
+    if (String(token || '').toUpperCase().indexOf('VOL-') === 0) {
+      var pin = extraData && extraData.pin ? String(extraData.pin).trim() : '';
+      if (!pin) return { success: false, message: 'Se requiere PIN de super admin para cambiar el estado de un voluntario.' };
+      if (!validateSuperAdminPin(pin)) return { success: false, message: 'PIN de super admin incorrecto.' };
+
+      var vSheet = getSS().getSheetByName(VOLUNTARIOS_SHEET);
+      if (!vSheet) return { success: false, message: 'Hoja Voluntarios no encontrada.' };
+
+      // Asegurar encabezados
+      var headers = vSheet.getRange(1, 1, 1, Math.max(vSheet.getLastColumn(), 11)).getValues()[0];
+      if (!headers[9]) vSheet.getRange(1, 10).setValue('Fecha_Baja');
+      if (!headers[10]) vSheet.getRange(1, 11).setValue('Motivo_Baja');
+
+      var vData = vSheet.getDataRange().getValues();
+      var tokenNorm = String(token).trim().toLowerCase();
+      for (var k = 1; k < vData.length; k++) {
+        if (String(vData[k][0] || '').trim().toLowerCase() === tokenNorm) {
+          var ahora = new Date();
+          vSheet.getRange(k + 1, 6).setValue(nuevoEstado);
+          if (nuevoEstado === 'baja') {
+            vSheet.getRange(k + 1, 10).setValue(ahora);
+            if (extraData && extraData.motivo) vSheet.getRange(k + 1, 11).setValue(extraData.motivo);
+          }
+          try { logAction(token, vData[k][2] || '', 'Estado voluntario cambiado a ' + nuevoEstado, 'Voluntario_Estado', vData[k][5] || '', nuevoEstado, 'SuperAdmin'); } catch(le) {}
+          return { success: true, message: 'Estado del voluntario actualizado a: ' + nuevoEstado, fechaBaja: nuevoEstado === 'baja' ? ahora.toISOString() : '' };
+        }
+      }
+      return { success: false, message: 'Voluntario no encontrado.' };
+    }
+
+    // Profesionales (comportamiento original)
     var data = getSHEET().getDataRange().getValues();
     for (var i = 1; i < data.length; i++) {
       if (data[i][0] == token) {
