@@ -2620,12 +2620,16 @@ function getDocumentosStatus(token) {
     // Lista de documentos requeridos
     var docsSheet = getSS().getSheetByName("Documentos_Legales");
     var documentos = [];
+    // VOLUNTARIO solo aplica a tokens VOL-xxx (hoja Voluntarios)
+    var esVoluntario = String(token || '').toUpperCase().indexOf('VOL-') === 0;
     if (docsSheet) {
       var docsData = docsSheet.getDataRange().getValues();
       for (var j = 1; j < docsData.length; j++) {
         if (docsData[j][5] === 'activo') {
           var docId = String(docsData[j][0] || '').trim();
           var docIdKey = docId.toUpperCase();
+          // Excluir contrato de voluntariado para profesionales
+          if (docIdKey === 'VOLUNTARIO' && !esVoluntario) continue;
           documentos.push({
             id: docId,
             titulo: docsData[j][1],
@@ -2679,6 +2683,11 @@ function aceptarDocumento(data) {
     var token = data.token;
     var docId = data.docId;
     if (!token || !docId) return { success: false, message: "Faltan datos obligatorios (token, docId)" };
+
+    // Bloqueo de seguridad: el contrato VOLUNTARIO solo lo pueden aceptar tokens VOL-
+    if (String(docId).toUpperCase() === 'VOLUNTARIO' && String(token).toUpperCase().indexOf('VOL-') !== 0) {
+      return { success: false, message: "Este contrato es exclusivo para voluntarios registrados. Tu token no está autorizado para firmarlo." };
+    }
 
     // Verificar que el profesional existe
     var prof = getProfessionalByToken(token);
@@ -2842,6 +2851,11 @@ function solicitarCodigoFirma(data) {
     var token = String(data.token || '').trim();
     var docId = String(data.docId || '').trim();
     if (!token || !docId) return { success: false, message: 'Faltan datos (token, docId).' };
+
+    // Bloqueo: VOLUNTARIO solo para tokens VOL-
+    if (docId.toUpperCase() === 'VOLUNTARIO' && token.toUpperCase().indexOf('VOL-') !== 0) {
+      return { success: false, message: 'Este contrato es exclusivo para voluntarios registrados.' };
+    }
 
     var prof = getProfessionalByToken(token);
     if (!prof) return { success: false, message: 'Token de profesional inválido.' };
