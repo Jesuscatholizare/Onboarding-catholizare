@@ -2328,7 +2328,9 @@ function isSuperAdminPinSet() {
 function validateSuperAdminPin(pin) {
   var stored = getSuperAdminPin();
   if (!stored) return false;
-  return String(pin || '').trim() === stored;
+  // Normaliza ambos: quita todo espacio en blanco (espacios, tabs, saltos, espacios invisibles)
+  var clean = function(s) { return String(s || '').replace(/\s+/g, '').replace(/[​-‍﻿]/g, ''); };
+  return clean(pin) === clean(stored);
 }
 function setSuperAdminPin(newPin, currentPin, currentUserToken) {
   try {
