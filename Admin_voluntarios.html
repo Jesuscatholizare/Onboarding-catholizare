@@ -295,13 +295,13 @@
         <button class="modal-close" onclick="closeBajaModal()">&times;</button>
       </div>
       <div class="modal-body">
-        <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">Esta acción registrará la fecha de baja y cambiará el estado a <strong>Dejó de laborar</strong>. Requiere PIN de super admin.</p>
+        <p style="font-size:13px;color:var(--gray-700);margin-bottom:16px;">Esta acción registrará la fecha de baja y cambiará el estado a <strong>Dejó de laborar</strong>. Requiere tu token de super admin (columna <em>Token</em> en hoja Admin_Users).</p>
         <div class="form-group">
           <label>Motivo de baja</label>
           <input type="text" id="bajaMotivo" placeholder="Ej. Término de proyecto, renuncia voluntaria…">
         </div>
         <div class="form-group">
-          <label>PIN de super admin *</label>
+          <label>Token de super admin *</label>
           <div style="position:relative;">
             <input type="password" id="bajaPin" placeholder="Ingresa tu PIN" autocomplete="new-password" name="bajapin_field" data-lpignore="true" style="width:100%;padding:10px 40px 10px 12px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;font-family:inherit;outline:none;">
             <button type="button" onclick="toggleBajaPin()" id="bajaPinEye" style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--gray-500);font-size:16px;line-height:1;padding:2px;">👁</button>

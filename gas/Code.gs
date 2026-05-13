@@ -1001,8 +1001,10 @@ function adminSetStatus(token, nuevoEstado, extraData) {
     // Voluntarios: token VOL- → actualiza hoja Voluntarios con PIN de superadmin
     if (String(token || '').toUpperCase().indexOf('VOL-') === 0) {
       var pin = extraData && extraData.pin ? String(extraData.pin).trim() : '';
-      if (!pin) return { success: false, message: 'Se requiere PIN de super admin para cambiar el estado de un voluntario.' };
-      if (!validateSuperAdminPin(pin)) return { success: false, message: 'PIN de super admin incorrecto.' };
+      if (!pin) return { success: false, message: 'Se requiere el token de super admin para cambiar el estado de un voluntario.' };
+      var adminUser = validateAdminToken(pin);
+      if (!adminUser) return { success: false, message: 'Token de super admin no válido. Ingresa el token que aparece en Admin_Users.' };
+      if (adminUser.role !== 'superadmin') return { success: false, message: 'Solo un super admin puede dar de baja a un voluntario.' };
 
       var vSheet = getSS().getSheetByName(VOLUNTARIOS_SHEET);
       if (!vSheet) return { success: false, message: 'Hoja Voluntarios no encontrada.' };
