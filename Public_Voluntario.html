@@ -122,10 +122,15 @@
     if (!token) {
       renderError('No se encontró el enlace de acceso. Usa el enlace enviado a tu correo.');
     } else {
-      callProxy('getDocumentoLegal', { docId: 'VOLUNTARIO' }).then(function(r) {
-        if (!r || !r.success) { renderError(r ? r.message : 'Contrato no disponible.'); return; }
-        docData = r.documento;
-        volData = r.voluntario || { nombre: '', email: '', telefono: '', rfc: '' };
+      Promise.all([
+        callProxy('getDocumentoLegal', { docId: 'VOLUNTARIO' }),
+        callProxy('getVoluntarioInfo', {})
+      ]).then(function(arr) {
+        var rDoc = arr[0], rVol = arr[1];
+        if (!rDoc || !rDoc.success) { renderError(rDoc ? rDoc.message : 'Contrato no disponible.'); return; }
+        if (!rVol || !rVol.success) { renderError(rVol ? rVol.message : 'No se pudo cargar tu información.'); return; }
+        docData = rDoc.documento;
+        volData = rVol.voluntario;
         renderStep1();
       }).catch(function(e){ renderError('Error de conexión: ' + e.message); });
     }

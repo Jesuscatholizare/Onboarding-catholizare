@@ -1,0 +1,41 @@
+# ============================================================
+# Onboarding Catholizare - .htaccess
+# Protege esta carpeta de las reglas de WordPress del directorio padre
+# ============================================================
+
+# Desactivar cualquier reescritura heredada de WordPress
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /catholizare_sistem/onboarding/
+
+  # Servir archivos y directorios reales directamente (sin pasar por WordPress)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+</IfModule>
+
+# Asegurar que los .php se ejecuten como PHP
+<FilesMatch "\.php$">
+  SetHandler application/x-httpd-php
+</FilesMatch>
+
+# ============================================================
+# Headers CORS y anti-cache a nivel de Apache
+# Se envían incluso si PHP falla (gracias al "always")
+# ============================================================
+<IfModule mod_headers.c>
+  # CORS para api.php (peticiones JSON desde el mismo dominio)
+  <FilesMatch "\.php$">
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization"
+    Header always set Access-Control-Max-Age "3600"
+  </FilesMatch>
+
+  # Anti-cache para los HTML (cambios visibles inmediatamente)
+  <FilesMatch "\.(html|htm)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+</IfModule>

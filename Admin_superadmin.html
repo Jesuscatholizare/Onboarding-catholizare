@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <title>Super Admin - Catholizare Admin</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root { --navy: #001A55; --navy-dark: #001238; --blue: #003ABA; --gold: #D4AF37; --gray-50: #f8f9fa; --gray-100: #f1f3f5; --gray-600: #6c757d; }
+    body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); min-height: 100vh; display: flex; flex-direction: column; }
+    .top-bar { height: 56px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+    .top-bar-left { display: flex; align-items: center; gap: 12px; }
+    .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; }
+    .logo-icon { width: 30px; height: 30px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
+    .breadcrumb { color: var(--gray-600); font-size: 14px; }
+    .breadcrumb a { color: var(--blue); text-decoration: none; }
+    .user-badge { display: flex; align-items: center; gap: 8px; padding: 6px 12px; background: var(--gray-50); border-radius: 8px; font-size: 13px; color: var(--navy); }
+    .role-tag { background: var(--navy); color: white; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; }
+    .main { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+    .card { text-align: center; max-width: 550px; width: 100%; }
+    .icon-box { width: 120px; height: 120px; background: linear-gradient(135deg, var(--navy), var(--blue)); border-radius: 28px; display: flex; align-items: center; justify-content: center; margin: 0 auto 32px; font-size: 52px; box-shadow: 0 12px 40px rgba(0,26,85,0.2); }
+    .badge { display: inline-block; background: linear-gradient(135deg, var(--gold), #e8c84a); color: var(--navy); padding: 6px 16px; border-radius: 20px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 20px; }
+    .card h1 { color: var(--navy); font-size: 32px; font-weight: 800; margin-bottom: 12px; }
+    .card .desc { color: var(--gray-600); font-size: 16px; line-height: 1.6; margin-bottom: 32px; }
+    .features { background: white; border-radius: 16px; padding: 24px; box-shadow: 0 2px 12px rgba(0,0,0,0.06); text-align: left; margin-bottom: 32px; }
+    .features h3 { color: var(--navy); font-size: 14px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 16px; }
+    .fi { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--gray-100); font-size: 14px; color: #4a5568; }
+    .fi:last-child { border-bottom: none; }
+    .fi-icon { width: 32px; height: 32px; background: var(--gray-100); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .btn-back { display: inline-flex; align-items: center; gap: 8px; background: var(--navy); color: white; padding: 14px 32px; border-radius: 12px; font-size: 15px; font-weight: 600; text-decoration: none; transition: all 0.2s; }
+    .btn-back:hover { background: var(--navy-dark); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(0,26,85,0.3); }
+    .note { margin-top: 24px; font-size: 12px; color: #adb5bd; }
+  
+    /* LOGOUT & ROLE */
+    .top-bar-right { display: flex; align-items: center; gap: 12px; }
+    .role-tag.superadmin { background: linear-gradient(135deg, #D4AF37, #C4A030); color: #001A55; }
+    .role-tag.administrador { background: #003ABA; color: white; }
+    .role-tag.coordinador { background: #28a745; color: white; }
+    .btn-logout { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: transparent; border: 1px solid #e5e7eb; border-radius: 8px; font-family: 'Montserrat', sans-serif; font-size: 12px; font-weight: 600; color: #6c757d; cursor: pointer; transition: all 0.2s; text-decoration: none; }
+    .btn-logout:hover { background: #fee2e2; border-color: #dc3545; color: #dc3545; }
+
+  </style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <a class="logo" id="lnkD"><div class="logo-icon">✝</div>Catholizare</a>
+      <span class="breadcrumb">/ <a id="lnkD2">Dashboard</a> / Super Admin</span>
+    </div>
+    <div class="top-bar-right">
+      <div class="user-badge">👤 <span id="uN"></span> <span class="role-tag" id="uR"></span></div>
+      <a class="btn-logout" id="btnLogout">🚪 Salir</a>
+    </div>
+  </div>
+  <div class="main">
+    <div class="card">
+      <div class="icon-box">🛡️</div>
+      <div class="badge">🚧 Próximamente</div>
+      <h1>Super Admin</h1>
+      <p class="desc">Panel de control avanzado para super administradores: gestión de tokens, permisos y configuración del sistema.</p>
+      <div class="features">
+        <h3>Funcionalidades planificadas</h3>
+        <div class="fi"><div class="fi-icon">🔑</div>Gestión completa de tokens de acceso</div>
+        <div class="fi"><div class="fi-icon">👥</div>Control de roles y permisos</div>
+        <div class="fi"><div class="fi-icon">⚙️</div>Configuración global del sistema</div>
+        <div class="fi"><div class="fi-icon">📝</div>Logs de auditoría detallados</div>
+      </div>
+      <a class="btn-back" id="btnB">← Volver al Dashboard</a>
+      <p class="note">Disponible en próxima actualización · Catholizare Pro v5.0</p>
+    </div>
+  </div>
+  <script>
+    var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    // Leer credenciales de sessionStorage (ya no de URL)
+    var t = sessionStorage.getItem('onb_token') || '';
+    if (!t) { window.location.href = BASE + '/index.html'; }
+    var d = BASE + '/dashboard-admin.html';
+    document.getElementById('uN').textContent = sessionStorage.getItem('onb_userName') || '';
+    document.getElementById('uR').textContent = sessionStorage.getItem('onb_userRole') || '';
+    document.getElementById('lnkD').href = d;
+    document.getElementById('lnkD2').href = d;
+    document.getElementById('btnB').href = d;
+
+    // LOGOUT (limpiar sessionStorage)
+    var logoutBtn = document.getElementById('btnLogout');
+    if (logoutBtn) logoutBtn.onclick = function(e) { e.preventDefault(); sessionStorage.clear(); window.location.href = BASE + '/index.html'; };
+
+    function applyRoleColor() {
+      var roleEls = document.querySelectorAll('.role-tag');
+      roleEls.forEach(function(el) {
+        var role = (el.textContent || '').toLowerCase().trim();
+        if (role === 'superadmin') el.classList.add('superadmin');
+        else if (role === 'administrador') el.classList.add('administrador');
+        else if (role.indexOf('coordinador') >= 0) el.classList.add('coordinador');
+      });
+    }
+    applyRoleColor();
+  </script>
+</body>
+</html>

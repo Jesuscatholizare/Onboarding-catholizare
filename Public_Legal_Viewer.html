@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documento Legal - Catholizare Pro</title>
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --navy: #001A55;
+      --blue: #003ABA;
+      --blue-light: #0966FF;
+      --gold: #D4AF37;
+      --green: #15803D;
+      --red: #DC3545;
+      --gray-50: #F8F9FC;
+      --gray-100: #EEF0F5;
+      --gray-400: #9CA3B4;
+      --gray-600: #5A6275;
+      --gray-700: #374151;
+      --white: #FFFFFF;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-700);
+      line-height: 1.6;
+    }
+    .top-bar {
+      background: var(--navy);
+      color: var(--white);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .top-bar h1 { font-size: 16px; font-weight: 600; }
+    .top-bar a { color: rgba(255,255,255,0.7); text-decoration: none; font-size: 13px; }
+    .top-bar a:hover { color: white; }
+    .container { max-width: 900px; margin: 0 auto; padding: 24px; }
+
+    /* Status bar */
+    .status-bar {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+    .status-bar .doc-info { display: flex; align-items: center; gap: 12px; }
+    .status-bar .version { font-size: 12px; color: var(--gray-400); background: var(--gray-100); padding: 4px 10px; border-radius: 12px; }
+    .status-bar .accepted { font-size: 13px; color: var(--green); font-weight: 600; }
+    .toolbar {
+      display: flex; gap: 8px;
+    }
+    .toolbar button {
+      padding: 8px 16px;
+      border: 1px solid var(--gray-100);
+      border-radius: 8px;
+      background: var(--white);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--gray-700);
+      cursor: pointer;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .toolbar button:hover { background: var(--gray-50); border-color: var(--blue); color: var(--blue); }
+
+    /* Document content */
+    .doc-panel {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 40px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 1px solid var(--gray-100);
+    }
+    .doc-panel h1, .doc-panel h2, .doc-panel h3 { color: var(--navy); margin: 20px 0 10px; }
+    .doc-panel h1 { font-size: 24px; }
+    .doc-panel h2 { font-size: 20px; }
+    .doc-panel h3 { font-size: 16px; }
+    .doc-panel p { margin-bottom: 12px; }
+    .doc-panel ol, .doc-panel ul { margin: 12px 0 12px 24px; }
+    .doc-panel li { margin-bottom: 8px; }
+    .doc-panel strong { color: var(--navy); }
+    .doc-panel table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+    .doc-panel td, .doc-panel th { padding: 8px 12px; border: 1px solid var(--gray-100); font-size: 14px; }
+    .doc-panel th { background: var(--gray-50); font-weight: 600; text-align: left; }
+
+    /* Acceptance form */
+    .accept-panel {
+      background: var(--white);
+      border-radius: 10px;
+      padding: 32px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      border: 2px solid var(--gray-100);
+    }
+    .accept-panel.already-accepted {
+      border-color: var(--green);
+      background: #f0fdf4;
+    }
+    .accept-panel h2 { font-size: 18px; color: var(--navy); margin-bottom: 16px; }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .form-group { display: flex; flex-direction: column; }
+    .form-group.full { grid-column: 1 / -1; }
+    .form-group label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .form-group input {
+      padding: 10px 14px;
+      border: 1px solid var(--gray-100);
+      border-radius: 8px;
+      font-size: 14px;
+      color: var(--gray-700);
+      background: var(--gray-50);
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--blue);
+      background: var(--white);
+      box-shadow: 0 0 0 3px rgba(0,58,186,0.08);
+    }
+    .form-group input:read-only {
+      background: var(--gray-100);
+      color: var(--gray-400);
+    }
+    .form-group .hint {
+      font-size: 11px;
+      color: var(--gray-400);
+      margin-top: 4px;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: var(--gray-50);
+      border-radius: 8px;
+      margin: 20px 0;
+      cursor: pointer;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 20px; height: 20px; margin-top: 2px; cursor: pointer; flex-shrink: 0;
+    }
+    .checkbox-row label {
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy);
+    }
+    .btn-accept {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: var(--white);
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: all 0.3s;
+    }
+    .btn-accept:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,26,85,0.3); }
+    .btn-accept:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+    .accepted-badge {
+      text-align: center;
+      padding: 24px;
+      color: var(--green);
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    /* Código de firma */
+    .codigo-section {
+      margin: 20px 0;
+      padding: 20px;
+      background: #f0f7ff;
+      border: 2px solid #bfdbfe;
+      border-radius: 12px;
+      transition: all 0.3s;
+    }
+    .codigo-section.sent {
+      background: #f0fdf4;
+      border-color: #86efac;
+    }
+    .codigo-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .codigo-desc { font-size: 13px; color: var(--gray-600); margin-bottom: 14px; line-height: 1.5; }
+    .codigo-row { display: flex; gap: 10px; align-items: stretch; flex-wrap: wrap; }
+    .btn-request-code {
+      padding: 12px 18px;
+      border: none;
+      border-radius: 8px;
+      background: var(--navy);
+      color: white;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+      flex: 1;
+      min-width: 180px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-request-code:hover:not(:disabled) { background: var(--blue); }
+    .btn-request-code:disabled { background: #9ca3b4; cursor: not-allowed; }
+    .codigo-input-wrap { display: none; margin-top: 14px; }
+    .codigo-section.sent .codigo-input-wrap { display: block; }
+    .codigo-input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid #86efac;
+      border-radius: 10px;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: 10px;
+      text-align: center;
+      font-family: 'Courier New', monospace;
+      color: var(--navy);
+      background: white;
+    }
+    .codigo-input:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 4px rgba(0,58,186,0.1);
+    }
+    .codigo-sent-msg {
+      font-size: 13px;
+      color: var(--green);
+      margin-top: 10px;
+      padding: 8px 12px;
+      background: #f0fdf4;
+      border-radius: 6px;
+      display: none;
+    }
+    .codigo-section.sent .codigo-sent-msg { display: block; }
+    .btn-resend {
+      margin-top: 8px;
+      background: transparent;
+      border: none;
+      color: var(--blue);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: underline;
+      padding: 4px 0;
+    }
+    .btn-resend:disabled { color: var(--gray-400); cursor: not-allowed; text-decoration: none; }
+
+    /* Alert */
+    .alert {
+      padding: 14px 18px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      font-size: 14px;
+      display: none;
+    }
+    .alert.show { display: block; }
+    .alert-success { background: #f0fdf4; color: var(--green); border: 1px solid #bbf7d0; }
+    .alert-error { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+
+    .loading { text-align: center; padding: 60px; }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 4px solid var(--gray-100);
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @media (max-width: 768px) {
+      .container { padding: 16px; }
+      .doc-panel { padding: 24px; }
+      .form-grid { grid-template-columns: 1fr; }
+      .status-bar { flex-direction: column; gap: 12px; align-items: flex-start; }
+    }
+
+    /* Print styles */
+    @media print {
+      .top-bar, .toolbar, .accept-panel, .status-bar, .doc-nav { display: none !important; }
+      .container { max-width: 100%; padding: 0; }
+      .doc-panel { box-shadow: none; border: none; padding: 20px; }
+      body { background: white; }
+    }
+
+    /* Global top nav (con iconos) */
+    .global-nav {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: white;
+      padding: 0;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,26,85,0.15);
+    }
+    .global-nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 20px;
+      overflow-x: auto;
+    }
+    .global-nav .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px; letter-spacing: 0.3px;
+      padding-right: 14px; margin-right: 6px;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+    }
+    .global-nav .brand-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--gold); color: var(--navy);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 14px;
+    }
+    .global-nav a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .global-nav a .icon { font-size: 16px; }
+    .global-nav a:hover { background: rgba(255,255,255,0.12); color: white; }
+    .global-nav a.active {
+      background: white; color: var(--navy);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .global-nav .spacer { flex: 1; }
+    .global-nav .logout {
+      background: rgba(220,53,69,0.2);
+      color: #fff;
+    }
+    .global-nav .logout:hover { background: rgba(220,53,69,0.5); }
+    @media (max-width: 768px) {
+      .global-nav .brand { font-size: 13px; padding-right: 10px; }
+      .global-nav a { padding: 8px 10px; font-size: 12px; }
+      .global-nav a .label-long { display: none; }
+    }
+
+    /* Document navigation (contratos) */
+    .doc-nav {
+      display: flex;
+      gap: 6px;
+      padding: 10px 24px;
+      background: white;
+      border-bottom: 1px solid var(--gray-100);
+      overflow-x: auto;
+      flex-wrap: wrap;
+    }
+    .doc-nav a {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-decoration: none;
+      border: 1px solid var(--gray-100);
+      white-space: nowrap;
+      transition: all 0.2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .doc-nav a:hover { background: var(--gray-50); border-color: var(--blue); color: var(--blue); }
+    .doc-nav a.active { background: var(--navy); color: white; border-color: var(--navy); }
+    .doc-nav .nav-home {
+      margin-right: auto;
+      border: none;
+      color: var(--blue);
+      font-weight: 500;
+    }
+    .doc-nav .nav-home:hover { background: var(--gray-50); }
+    .doc-nav .doc-label-small { font-size: 11px; }
+  </style>
+</head>
+<body>
+  <!-- Global nav -->
+  <nav class="global-nav" id="globalNav"></nav>
+
+  <div class="top-bar">
+    <h1 id="topTitle">Documento Legal</h1>
+    <a href="#" onclick="goBack(); return false;">Volver al dashboard</a>
+  </div>
+
+  <div class="doc-nav" id="docNav">
+    <a class="nav-home" href="#" onclick="goBack(); return false;">← Dashboard</a>
+    <a href="?doc=CONTRATO" id="navCONTRATO"><span>📄</span> Contrato de Intermediación</a>
+    <a href="?doc=TERMINOS" id="navTERMINOS"><span>📋</span> Términos y Condiciones</a>
+    <a href="?doc=PRIVACIDAD" id="navPRIVACIDAD"><span>🔒</span> Aviso de Privacidad</a>
+    <a href="?doc=ETICA" id="navETICA"><span>⚖️</span> Código de Ética</a>
+  </div>
+
+  <div class="container">
+    <div id="loadingArea" class="loading">
+      <div class="spinner"></div>
+      <p>Cargando documento...</p>
+    </div>
+
+    <div id="contentArea" style="display:none;">
+      <!-- Status bar -->
+      <div class="status-bar">
+        <div class="doc-info">
+          <strong id="docTitle"></strong>
+          <span class="version" id="docVersion"></span>
+          <span class="accepted" id="docAccepted" style="display:none;"></span>
+        </div>
+        <div class="toolbar">
+          <button onclick="printDoc()">Imprimir</button>
+          <button onclick="downloadDoc()">Descargar</button>
+        </div>
+      </div>
+
+      <!-- Document content -->
+      <div class="doc-panel" id="docContent"></div>
+
+      <!-- Acceptance form -->
+      <div class="accept-panel" id="acceptPanel">
+        <h2 id="acceptPanelTitle">Datos de Aceptación</h2>
+        <p id="acceptPanelSubtitle" style="font-size:13px;color:var(--gray-400);margin-bottom:16px;">
+          Confirma tus datos para registrar la aceptación legal de este documento.
+        </p>
+
+        <div class="form-grid" id="formGrid">
+          <div class="form-group">
+            <label>Nombre completo</label>
+            <input type="text" id="inputNombre" placeholder="Tu nombre completo">
+            <span class="hint">Confirma que tu nombre es correcto</span>
+          </div>
+          <div class="form-group">
+            <label>Correo electrónico</label>
+            <input type="email" id="inputCorreo" placeholder="tu@email.com">
+            <span class="hint">Recibirás la copia del documento aquí</span>
+          </div>
+          <div class="form-group">
+            <label>Teléfono</label>
+            <input type="tel" id="inputTelefono" placeholder="+52 55 1234 5678">
+            <span class="hint">Número de contacto verificable</span>
+          </div>
+          <div class="form-group">
+            <label>RFC (o identificador)</label>
+            <input type="text" id="inputRFC" placeholder="XXXX000000XXX" maxlength="13" style="text-transform:uppercase;">
+            <span class="hint">Tu RFC o identificador fiscal</span>
+          </div>
+        </div>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="checkAccept">
+          <label for="checkAccept" id="checkLabel">He leído y acepto este documento</label>
+        </div>
+
+        <div class="codigo-section" id="codigoSection">
+          <div class="codigo-title">Código de firma</div>
+          <div class="codigo-desc">
+            Para que tu firma quede registrada como legítima te enviaremos un código de 6 dígitos a tu correo. Es único para este contrato y de un solo uso.
+          </div>
+          <div class="codigo-row">
+            <button type="button" class="btn-request-code" id="btnSolicitarCodigo" onclick="solicitarCodigoFirma()">
+              Enviar código a mi correo
+            </button>
+          </div>
+          <div class="codigo-input-wrap">
+            <input type="text" inputmode="numeric" pattern="[0-9]*" maxlength="6" id="inputCodigo" class="codigo-input" placeholder="------" autocomplete="one-time-code">
+            <div class="codigo-sent-msg" id="codigoSentMsg">Te enviamos un código a tu correo. Escríbelo arriba.</div>
+            <button type="button" class="btn-resend" id="btnResend" onclick="solicitarCodigoFirma()" disabled>Reenviar código</button>
+          </div>
+        </div>
+
+        <button class="btn-accept" id="btnAccept" disabled onclick="firmarDocumento()">
+          <span id="btnAcceptLabel">Firmar y aceptar</span>
+        </button>
+
+        <div id="alertBox" class="alert" style="margin-top:16px;margin-bottom:0;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    var PROXY = BASE + '/api.php';
+    var TOKEN = sessionStorage.getItem('onb_token') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
+
+    // ====== GLOBAL NAV (mismo menú en Dashboard, Perfil y Legales) ======
+    function renderGlobalNav(active) {
+      var items = [
+        { id: 'dashboard', icon: '🏠', label: 'Dashboard',       href: BASE + '/Public_Dashboard.html' },
+        { id: 'perfil',    icon: '👤', label: 'Mi Perfil',        href: BASE + '/Public_Perfil.html' },
+        { id: 'docs',      icon: '📎', label: 'Mis Documentos',   href: BASE + '/Public_Dashboard.html?tab=documentos' },
+        { id: 'legales',   icon: '⚖️', label: 'Legales',          href: BASE + '/Public_Legal_Viewer.html?doc=CONTRATO' }
+      ];
+      var nav = document.getElementById('globalNav');
+      if (!nav) return;
+      var html = '<div class="global-nav-inner">';
+      html += '<div class="brand"><span class="brand-badge">CP</span><span class="label-long">Catholizare Pro · Onboarding</span></div>';
+      items.forEach(function(it) {
+        var cls = (it.id === active) ? ' class="active"' : '';
+        html += '<a href="' + it.href + '"' + cls + '><span class="icon">' + it.icon + '</span><span class="label-long">' + it.label + '</span></a>';
+      });
+      html += '<div class="spacer"></div>';
+      html += '<a href="#" onclick="onLogout(); return false;" class="logout"><span class="icon">🚪</span><span class="label-long">Cerrar sesión</span></a>';
+      html += '</div>';
+      nav.innerHTML = html;
+    }
+    function onLogout() {
+      try { sessionStorage.removeItem('onb_token'); } catch(_){}
+      window.location.href = BASE + '/index.html';
+    }
+    renderGlobalNav('legales');
+
+    // Obtener doc_id de la URL
+    var urlParams = new URLSearchParams(window.location.search);
+    var DOC_ID = urlParams.get('doc') || '';
+    var IS_ETICA = String(DOC_ID).toUpperCase() === 'ETICA';
+
+    var currentDoc = null;
+    var currentProf = null;
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    function goBack() {
+      window.location.href = BASE + '/Public_Dashboard.html';
+    }
+
+    // Normaliza el string de versión por si en la spreadsheet se guardó como fecha.
+    // Acepta "1.0", "1", un Date serializado, etc., y devuelve algo legible.
+    function normalizeVersion(raw) {
+      var v = String(raw == null ? '' : raw).trim();
+      if (!v) return '1.0';
+      // Si parece una fecha (contiene "GMT", "T..Z", nombre de mes en inglés), intentamos
+      // convertir a fecha y mostrar solo YYYY-MM-DD, que es lo mejor que podemos hacer.
+      if (/GMT|UTC|\b\d{4}-\d{2}-\d{2}T/.test(v) ||
+          /(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d+/.test(v)) {
+        var d = new Date(v);
+        if (!isNaN(d.getTime())) {
+          return d.toISOString().slice(0, 10);
+        }
+      }
+      return v;
+    }
+
+    // Highlight current doc in nav
+    if (DOC_ID) {
+      var navEl = document.getElementById('nav' + DOC_ID);
+      if (navEl) navEl.classList.add('active');
+    }
+
+    function showAlert(msg, type) {
+      var el = document.getElementById('alertBox');
+      el.textContent = msg;
+      el.className = 'alert alert-' + type + ' show';
+      el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    // Load document and status
+    async function loadDocument() {
+      if (!DOC_ID) {
+        document.getElementById('loadingArea').innerHTML = '<p style="color:var(--red);">Error: No se especificó un documento. Usa ?doc=CONTRATO, ?doc=TERMINOS o ?doc=PRIVACIDAD</p>';
+        return;
+      }
+
+      try {
+        // Load document and status in parallel
+        var docPromise = callProxy('getDocumentoLegal', { docId: DOC_ID });
+        var statusPromise = callProxy('getDocumentosStatus', { token: TOKEN });
+        var results = await Promise.all([docPromise, statusPromise]);
+
+        var docResult = results[0];
+        var statusResult = results[1];
+
+        if (!docResult.success) {
+          document.getElementById('loadingArea').innerHTML = '<p style="color:var(--red);">' + docResult.message + '</p>';
+          return;
+        }
+
+        currentDoc = docResult.documento;
+        currentProf = statusResult.profesional || {};
+
+        // Render document
+        var versionLegible = normalizeVersion(currentDoc.version);
+        document.getElementById('topTitle').textContent = currentDoc.titulo;
+        document.getElementById('docTitle').textContent = currentDoc.titulo;
+        document.getElementById('docVersion').textContent = 'v' + versionLegible;
+        document.getElementById('docContent').innerHTML = currentDoc.contenido;
+
+        // Update checkbox label
+        document.getElementById('checkLabel').textContent = 'He leído y acepto ' + currentDoc.titulo;
+
+        // Pre-fill form
+        document.getElementById('inputNombre').value = currentProf.nombre || '';
+        document.getElementById('inputCorreo').value = currentProf.email || '';
+
+        // Flujo simplificado para Código de Ética (no es documento legal):
+        // ocultar captura de datos y OTP; solo checklist de aceptación.
+        if (IS_ETICA) {
+          var fg = document.getElementById('formGrid');
+          if (fg) fg.style.display = 'none';
+          var cs = document.getElementById('codigoSection');
+          if (cs) cs.style.display = 'none';
+          var st = document.getElementById('acceptPanelTitle');
+          if (st) st.textContent = 'Aceptación del Código de Ética';
+          var sb = document.getElementById('acceptPanelSubtitle');
+          if (sb) sb.textContent = 'Marca la casilla para confirmar que lees y aceptas el Código de Ética. Se registrará la fecha, hora y versión, y enviaremos una copia a tu correo.';
+          var bl = document.getElementById('btnAcceptLabel');
+          if (bl) bl.textContent = 'Aceptar Código de Ética';
+        }
+
+        // Check if already accepted
+        var isAccepted = false;
+        if (statusResult.success && statusResult.documentos) {
+          statusResult.documentos.forEach(function(d) {
+            if (d.id === DOC_ID && d.aceptado) {
+              isAccepted = true;
+              document.getElementById('docAccepted').textContent = 'Aceptado (Folio: ' + d.datosAceptacion.folio + ')';
+              document.getElementById('docAccepted').style.display = 'inline';
+            }
+          });
+        }
+
+        if (isAccepted) {
+          document.getElementById('acceptPanel').classList.add('already-accepted');
+          document.getElementById('acceptPanel').innerHTML =
+            '<div class="accepted-badge">' +
+              'Este documento ya fue aceptado.<br>' +
+              '<span style="font-size:13px;color:var(--gray-400);">La constancia fue enviada a tu correo electrónico.</span>' +
+            '</div>';
+        }
+
+        document.getElementById('loadingArea').style.display = 'none';
+        document.getElementById('contentArea').style.display = 'block';
+
+      } catch (error) {
+        document.getElementById('loadingArea').innerHTML = '<p style="color:var(--red);">Error de conexión: ' + error.message + '</p>';
+      }
+    }
+
+    var codigoSolicitado = false;
+    var resendCooldownTimer = null;
+
+    document.getElementById('checkAccept').addEventListener('change', updateBtnAcceptState);
+
+    function updateBtnAcceptState() {
+      var checked = document.getElementById('checkAccept').checked;
+      if (IS_ETICA) {
+        // Código de Ética: solo requiere la casilla de aceptación
+        document.getElementById('btnAccept').disabled = !checked;
+        return;
+      }
+      var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
+      document.getElementById('btnAccept').disabled = !(checked && codigoSolicitado && codigo.length === 6);
+    }
+
+    document.getElementById('inputCodigo').addEventListener('input', function(e) {
+      // Solo dígitos
+      this.value = this.value.replace(/\D/g, '').slice(0, 6);
+      updateBtnAcceptState();
+    });
+
+    function solicitarCodigoFirma() {
+      // Validar datos mínimos antes de pedir el código
+      var nombre = document.getElementById('inputNombre').value.trim();
+      var correo = document.getElementById('inputCorreo').value.trim();
+      var telefono = document.getElementById('inputTelefono').value.trim();
+      if (!nombre) { showAlert('Escribe tu nombre completo antes de pedir el código.', 'error'); return; }
+      if (!correo || !correo.includes('@')) { showAlert('Escribe un correo válido antes de pedir el código.', 'error'); return; }
+      if (!telefono) { showAlert('Escribe tu teléfono antes de pedir el código.', 'error'); return; }
+
+      var btn = document.getElementById('btnSolicitarCodigo');
+      var btnResend = document.getElementById('btnResend');
+      btn.disabled = true;
+      btnResend.disabled = true;
+      var originalBtnHtml = btn.innerHTML;
+      btn.innerHTML = '<div class="spinner" style="width:16px;height:16px;border-width:3px;margin:0;"></div> Enviando...';
+
+      callProxy('solicitarCodigoFirma', {
+        token: TOKEN,
+        docId: DOC_ID,
+        email: correo
+      }).then(function(r) {
+        if (r && r.success) {
+          codigoSolicitado = true;
+          document.getElementById('codigoSection').classList.add('sent');
+          document.getElementById('codigoSentMsg').textContent =
+            'Te enviamos un código de 6 dígitos a ' + (r.email || 'tu correo') + '. Vigencia: ' + (r.vigenciaMinutos || 15) + ' minutos.';
+          btn.style.display = 'none';
+          document.getElementById('inputCodigo').focus();
+          showAlert('Código enviado. Revisa tu correo (y la bandeja de spam por si acaso).', 'success');
+          startResendCooldown();
+        } else {
+          btn.disabled = false;
+          btn.innerHTML = originalBtnHtml;
+          showAlert((r && r.message) || 'No pudimos enviar el código. Intenta de nuevo.', 'error');
+        }
+      }).catch(function(e) {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnHtml;
+        showAlert('Error de conexión: ' + e.message, 'error');
+      });
+    }
+
+    function startResendCooldown() {
+      var btnResend = document.getElementById('btnResend');
+      var secs = 60;
+      btnResend.disabled = true;
+      btnResend.textContent = 'Reenviar código (' + secs + 's)';
+      clearInterval(resendCooldownTimer);
+      resendCooldownTimer = setInterval(function() {
+        secs--;
+        if (secs <= 0) {
+          clearInterval(resendCooldownTimer);
+          btnResend.disabled = false;
+          btnResend.textContent = 'Reenviar código';
+        } else {
+          btnResend.textContent = 'Reenviar código (' + secs + 's)';
+        }
+      }, 1000);
+    }
+
+    function firmarDocumento() {
+      var payload = { token: TOKEN, docId: DOC_ID };
+
+      if (IS_ETICA) {
+        if (!document.getElementById('checkAccept').checked) {
+          showAlert('Marca la casilla de aceptación del Código de Ética.', 'error');
+          return;
+        }
+        // No se pide nombre, correo, teléfono, RFC ni OTP para el Código de Ética.
+      } else {
+        var nombre = document.getElementById('inputNombre').value.trim();
+        var correo = document.getElementById('inputCorreo').value.trim();
+        var telefono = document.getElementById('inputTelefono').value.trim();
+        var rfc = document.getElementById('inputRFC').value.trim().toUpperCase();
+        var codigo = (document.getElementById('inputCodigo').value || '').replace(/\D/g, '');
+
+        if (!nombre) { showAlert('Ingresa tu nombre completo.', 'error'); return; }
+        if (!correo || !correo.includes('@')) { showAlert('Ingresa un correo válido.', 'error'); return; }
+        if (!telefono) { showAlert('Ingresa tu número de teléfono.', 'error'); return; }
+        if (!codigoSolicitado || codigo.length !== 6) {
+          showAlert('Necesitas solicitar y escribir el código de firma de 6 dígitos.', 'error');
+          return;
+        }
+        payload.nombreCompleto = nombre;
+        payload.correo = correo;
+        payload.telefono = telefono;
+        payload.rfc = rfc;
+        payload.otp = codigo;
+      }
+
+      var btn = document.getElementById('btnAccept');
+      var originalLabel = IS_ETICA ? 'Aceptar Código de Ética' : 'Firmar y aceptar';
+      btn.disabled = true;
+      btn.innerHTML = '<div class="spinner" style="width:18px;height:18px;border-width:3px;margin:0;"></div> Procesando...';
+
+      callProxy('aceptarDocumento', payload)
+      .then(function(r) {
+        if (r.success) {
+          var msg = IS_ETICA
+            ? 'Código de Ética aceptado. Folio: ' + r.folio + '. Se envió una copia a tu correo.'
+            : 'Documento firmado exitosamente. Folio: ' + r.folio + '. Se envió una copia a tu correo.';
+          var badgeTitle = IS_ETICA ? 'Código de Ética aceptado.' : 'Documento firmado exitosamente.';
+          showAlert(msg, 'success');
+          document.getElementById('acceptPanel').classList.add('already-accepted');
+          document.getElementById('acceptPanel').innerHTML =
+            '<div class="accepted-badge">' +
+              badgeTitle + '<br>' +
+              '<strong style="font-size:18px;">' + r.folio + '</strong><br>' +
+              '<span style="font-size:13px;color:var(--gray-400);">La constancia fue enviada a tu correo electrónico.</span>' +
+            '</div>';
+          document.getElementById('docAccepted').textContent = 'Aceptado (Folio: ' + r.folio + ')';
+          document.getElementById('docAccepted').style.display = 'inline';
+        } else {
+          showAlert(r.message || 'Error al registrar la aceptación.', 'error');
+          btn.disabled = false;
+          btn.innerHTML = originalLabel;
+        }
+      })
+      .catch(function(e) {
+        showAlert('Error de conexión: ' + e.message, 'error');
+        btn.disabled = false;
+        btn.innerHTML = originalLabel;
+      });
+    }
+
+    function printDoc() {
+      window.print();
+    }
+
+    function downloadDoc() {
+      var content = document.getElementById('docContent').innerHTML;
+      var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + (currentDoc ? currentDoc.titulo : 'Documento') + '</title>' +
+        '<style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:20px;line-height:1.6;color:#333;}h1,h2,h3{color:#001A55;}table{width:100%;border-collapse:collapse;}td,th{padding:8px;border:1px solid #ddd;}th{background:#f5f5f5;}</style>' +
+        '</head><body>' + content +
+        '<hr style="margin-top:40px;"><p style="font-size:11px;color:#999;">Documento generado desde Catholizare Pro — ' + new Date().toLocaleString('es-MX') + '</p>' +
+        '</body></html>';
+      var blob = new Blob([html], { type: 'text/html' });
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (currentDoc ? currentDoc.id : 'documento') + '_v' + (currentDoc ? currentDoc.version : '1') + '.html';
+      a.click();
+    }
+
+    // Init
+    loadDocument();
+  </script>
+</body>
+</html>

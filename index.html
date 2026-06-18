@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Ingreso - Onboarding Catholizare</title>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --navy: #001A55;
+      --navy-deep: #000D2E;
+      --blue: #003ABA;
+      --blue-light: #0966FF;
+      --gold: #D4AF37;
+      --white: #FFFFFF;
+      --gray-50: #F8F9FC;
+      --gray-100: #EEF0F5;
+      --gray-400: #9CA3B4;
+      --gray-600: #5A6275;
+      --red: #DC3545;
+    }
+    body {
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 60%, #001040 100%);
+      padding: 20px;
+    }
+    .login-card {
+      width: 100%;
+      max-width: 420px;
+      background: var(--white);
+      border-radius: 16px;
+      padding: 48px 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .login-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .login-header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 6px;
+    }
+    .login-header p {
+      font-size: 14px;
+      color: var(--gray-600);
+    }
+    .input-group {
+      margin-bottom: 20px;
+    }
+    .input-label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 14px 16px;
+      border: 2px solid var(--gray-100);
+      border-radius: 10px;
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      color: var(--navy);
+      background: var(--gray-50);
+      transition: all 0.25s ease;
+    }
+    .input-field:focus {
+      outline: none;
+      border-color: var(--blue);
+      background: var(--white);
+      box-shadow: 0 0 0 4px rgba(0, 58, 186, 0.08);
+    }
+    .input-field::placeholder {
+      color: var(--gray-400);
+      font-weight: 400;
+    }
+    .input-field.error {
+      border-color: var(--red);
+      box-shadow: 0 0 0 4px rgba(220, 53, 69, 0.08);
+    }
+    .error-msg {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--red);
+      font-weight: 500;
+    }
+    .error-msg.show { display: flex; }
+    .btn-login {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 10px;
+      background: linear-gradient(135deg, var(--navy) 0%, var(--blue) 100%);
+      color: var(--white);
+      font-family: 'Montserrat', sans-serif;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(0, 26, 85, 0.3);
+    }
+    .btn-login:active { transform: translateY(0); }
+    .help-section {
+      margin-top: 32px;
+      padding-top: 20px;
+      border-top: 1px solid var(--gray-100);
+      text-align: center;
+    }
+    .help-text {
+      font-size: 13px;
+      color: var(--gray-400);
+      line-height: 1.6;
+    }
+    .wa-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 12px;
+      padding: 10px 20px;
+      background: #F0FDF4;
+      border: 1px solid #BBF7D0;
+      border-radius: 8px;
+      color: #15803D;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s;
+    }
+    .wa-link:hover { background: #DCFCE7; }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      border: 3px solid rgba(255,255,255,0.3);
+      border-top-color: white;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .login-footer {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 11px;
+      color: var(--gray-400);
+    }
+    @media (max-width: 480px) {
+      .login-card { padding: 36px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-card">
+    <div class="login-header">
+      <h1>Ingreso al proceso de onboarding</h1>
+      <p>Catholizare Pro</p>
+    </div>
+
+    <form id="loginForm" onsubmit="handleLogin(event)">
+      <div class="input-group">
+        <label class="input-label" for="email">Correo electrónico</label>
+        <input
+          type="email"
+          class="input-field"
+          id="email"
+          placeholder="tucorreo@ejemplo.com"
+          autocomplete="email"
+          spellcheck="false"
+        >
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="password">Clave de acceso</label>
+        <input
+          type="password"
+          class="input-field"
+          id="password"
+          placeholder="Ingresa tu clave"
+          autocomplete="current-password"
+          spellcheck="false"
+        >
+        <div class="error-msg" id="errorMsg"></div>
+      </div>
+
+      <button type="submit" class="btn-login" id="btnLogin">
+        Ingresar
+      </button>
+    </form>
+
+    <div class="help-section">
+      <p class="help-text">
+        Ingresa con el correo registrado y la clave de acceso que recibiste por email.<br>
+        Si no la encuentras, contacta al equipo de coordinación.
+      </p>
+      <a class="wa-link" href="https://wa.me/5215510223883?text=Hola%2C%20necesito%20ayuda%20para%20acceder%20al%20sistema%20de%20Catholizare%20Pro" target="_blank">
+        Contactar por WhatsApp
+      </a>
+    </div>
+
+    <div class="login-footer">
+      &copy; 2026 Catholizare Pro
+    </div>
+  </div>
+
+  <script>
+    var BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    var PROXY = BASE + '/api.php';
+
+    // Limpiar sesión anterior al cargar login
+    sessionStorage.removeItem('onb_token');
+    sessionStorage.removeItem('onb_role');
+    sessionStorage.removeItem('onb_userName');
+    sessionStorage.removeItem('onb_userRole');
+    sessionStorage.removeItem('onb_userEmail');
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    function showError(msg) {
+      var el = document.getElementById('errorMsg');
+      el.textContent = msg;
+      el.classList.add('show');
+      document.getElementById('password').classList.add('error');
+    }
+
+    function clearError() {
+      document.getElementById('errorMsg').classList.remove('show');
+      document.getElementById('password').classList.remove('error');
+      document.getElementById('email').classList.remove('error');
+    }
+
+    document.getElementById('password').addEventListener('input', clearError);
+    document.getElementById('email').addEventListener('input', clearError);
+
+    function isValidEmail(e) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+    }
+
+    function handleLogin(e) {
+      e.preventDefault();
+      clearError();
+
+      var email = document.getElementById('email').value.trim().toLowerCase();
+      var token = document.getElementById('password').value.trim();
+
+      if (!email) {
+        showError('Ingresa tu correo electrónico.');
+        document.getElementById('email').classList.add('error');
+        return;
+      }
+      if (!isValidEmail(email)) {
+        showError('El correo electrónico no es válido.');
+        document.getElementById('email').classList.add('error');
+        return;
+      }
+      if (!token) {
+        showError('Ingresa tu clave de acceso.');
+        return;
+      }
+
+      var btn = document.getElementById('btnLogin');
+      btn.innerHTML = '<div class="spinner"></div> Verificando...';
+      btn.style.pointerEvents = 'none';
+
+      // Detectar tipo de token por prefijo (case-insensitive)
+      var prefix = token.substring(0, 6).toUpperCase();
+
+      if (prefix === 'ADMIN-') {
+        // Flujo administrador
+        if (token.length < 10) {
+          showError('Clave de administrador inválida.');
+          btn.innerHTML = 'Ingresar';
+          btn.style.pointerEvents = 'auto';
+          return;
+        }
+        callProxy('validateAdminToken', { token: token, email: email, userAgent: navigator.userAgent || '' })
+          .then(function(r) {
+            if (r && r.success && r.data) {
+              // Guardar en sessionStorage
+              sessionStorage.setItem('onb_token', token);
+              sessionStorage.setItem('onb_role', 'admin');
+              sessionStorage.setItem('onb_userName', r.data.nombre || '');
+              sessionStorage.setItem('onb_userRole', r.data.role || '');
+              sessionStorage.setItem('onb_userEmail', r.data.email || '');
+              // Redirigir SIN token en URL
+              window.location.href = BASE + '/Admin_Dashboard_Complete.html';
+            } else {
+              showError('Correo o clave incorrectos.');
+              btn.innerHTML = 'Ingresar';
+              btn.style.pointerEvents = 'auto';
+            }
+          })
+          .catch(function(err) {
+            showError('Error de conexión: ' + err.message);
+            btn.innerHTML = 'Ingresar';
+            btn.style.pointerEvents = 'auto';
+          });
+
+      } else if (prefix.substring(0, 4) === 'ONB-') {
+        // Flujo profesional
+        if (token.length < 8) {
+          showError('Clave de profesional inválida.');
+          btn.innerHTML = 'Ingresar';
+          btn.style.pointerEvents = 'auto';
+          return;
+        }
+        callProxy('getStatus', { token: token, loginEmail: email })
+          .then(function(r) {
+            if (r && r.success) {
+              // Guardar en sessionStorage
+              sessionStorage.setItem('onb_token', token);
+              sessionStorage.setItem('onb_role', 'professional');
+              // Redirigir SIN token en URL
+              window.location.href = BASE + '/Public_Dashboard.html';
+            } else {
+              showError('Correo o clave incorrectos.');
+              btn.innerHTML = 'Ingresar';
+              btn.style.pointerEvents = 'auto';
+            }
+          })
+          .catch(function(err) {
+            showError('Error de conexión: ' + err.message);
+            btn.innerHTML = 'Ingresar';
+            btn.style.pointerEvents = 'auto';
+          });
+
+      } else {
+        showError('Clave no reconocida. Debe iniciar con ONB- o ADMIN-.');
+        btn.innerHTML = 'Ingresar';
+        btn.style.pointerEvents = 'auto';
+      }
+    }
+
+    // Auto-login desde enlaces de email (?token=ONB-xxx o ?token=ADMIN-xxx)
+    (function checkEmailLink() {
+      var params = new URLSearchParams(window.location.search);
+      var urlToken = params.get('token');
+      if (urlToken) {
+        // Limpiar URL inmediatamente (seguridad: token fuera del historial)
+        history.replaceState(null, '', window.location.pathname);
+        // NO convertir a mayúsculas: los tokens pueden tener minúsculas (ej: ONB-fb85d4e7)
+        var cleanToken = urlToken.trim();
+        var prefix = cleanToken.substring(0, 6).toUpperCase();
+
+        var btn = document.getElementById('btnLogin');
+        btn.innerHTML = '<div class="spinner"></div> Verificando acceso...';
+        btn.style.pointerEvents = 'none';
+
+        // Validar según tipo
+        if (prefix === 'ADMIN-') {
+          callProxy('validateAdminToken', { token: cleanToken })
+            .then(function(r) {
+              if (r && r.success && r.data) {
+                sessionStorage.setItem('onb_token', cleanToken);
+                sessionStorage.setItem('onb_role', 'admin');
+                sessionStorage.setItem('onb_userName', r.data.nombre || '');
+                sessionStorage.setItem('onb_userRole', r.data.role || '');
+                sessionStorage.setItem('onb_userEmail', r.data.email || '');
+                window.location.href = BASE + '/Admin_Dashboard_Complete.html';
+              } else {
+                showError('Tu enlace de acceso no es válido o ya expiró. Contacta al equipo por WhatsApp.');
+                btn.innerHTML = 'Ingresar';
+                btn.style.pointerEvents = 'auto';
+              }
+            })
+            .catch(function() {
+              showError('No pudimos validar tu enlace. Intenta de nuevo o contacta por WhatsApp.');
+              btn.innerHTML = 'Ingresar';
+              btn.style.pointerEvents = 'auto';
+            });
+        } else if (prefix.substring(0, 4) === 'ONB-') {
+          callProxy('getStatus', { token: cleanToken })
+            .then(function(r) {
+              if (r && r.success) {
+                sessionStorage.setItem('onb_token', cleanToken);
+                sessionStorage.setItem('onb_role', 'professional');
+                window.location.href = BASE + '/Public_Dashboard.html';
+              } else {
+                showError('Tu enlace de acceso no es válido o ya expiró. Contacta al equipo por WhatsApp.');
+                btn.innerHTML = 'Ingresar';
+                btn.style.pointerEvents = 'auto';
+              }
+            })
+            .catch(function() {
+              showError('No pudimos validar tu enlace. Intenta de nuevo o contacta por WhatsApp.');
+              btn.innerHTML = 'Ingresar';
+              btn.style.pointerEvents = 'auto';
+            });
+        } else {
+          showError('Enlace de acceso no reconocido. Contacta al equipo por WhatsApp.');
+          btn.innerHTML = 'Ingresar';
+          btn.style.pointerEvents = 'auto';
+        }
+      }
+    })();
+  </script>
+</body>
+</html>

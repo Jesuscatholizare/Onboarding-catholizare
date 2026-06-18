@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestión de Usuarios - Admin</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --navy: #001A55;
+      --navy-dark: #001238;
+      --blue: #003ABA;
+      --gold: #D4AF37;
+      --green: #28a745;
+      --orange: #ff9800;
+      --red: #dc3545;
+      --gray-50: #f8f9fa;
+      --gray-100: #f1f3f5;
+      --gray-600: #6c757d;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      padding: 2rem;
+    }
+    
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .header {
+      margin-bottom: 2rem;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      color: var(--gray-600);
+      font-size: 14px;
+    }
+    
+    /* Stats Cards */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-bottom: 30px;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 24px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+    }
+    
+    .stat-label {
+      font-size: 13px;
+      color: var(--gray-600);
+      margin-bottom: 8px;
+      font-weight: 500;
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--navy);
+    }
+    
+    /* Actions Bar */
+    .actions-bar {
+      background: white;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .search-box {
+      flex: 1;
+      max-width: 400px;
+      padding: 10px 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    .btn-primary {
+      background: var(--navy);
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    
+    .btn-primary:hover {
+      background: var(--navy-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0, 26, 85, 0.2);
+    }
+    
+    .btn-primary:disabled {
+      background: var(--gray-600);
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    /* Table */
+    .table-container {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e7eb;
+      overflow: hidden;
+    }
+    
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    thead {
+      background: var(--gray-50);
+      border-bottom: 2px solid #e5e7eb;
+    }
+    
+    th {
+      padding: 16px;
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--gray-600);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    td {
+      padding: 16px;
+      border-bottom: 1px solid #f1f3f5;
+      font-size: 14px;
+    }
+    
+    tr:last-child td {
+      border-bottom: none;
+    }
+    
+    tbody tr:hover {
+      background: var(--gray-50);
+    }
+    
+    /* Badges */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+    }
+    
+    .badge.superadmin {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    
+    .badge.admin {
+      background: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .badge.active {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge.inactive {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    
+    /* Actions */
+    .actions {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .btn-action {
+      padding: 6px 12px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 6px;
+      font-size: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .btn-action:hover {
+      background: var(--gray-50);
+    }
+    
+    .btn-danger {
+      color: var(--red);
+      border-color: var(--red);
+    }
+    
+    .btn-danger:hover {
+      background: #fee2e2;
+    }
+    
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .modal.open {
+      display: flex;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    
+    .modal-header {
+      padding: 24px;
+      border-bottom: 1px solid #e5e7eb;
+    }
+    
+    .modal-header h2 {
+      font-size: 20px;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+    
+    .modal-header p {
+      font-size: 13px;
+      color: var(--gray-600);
+    }
+    
+    .modal-body {
+      padding: 24px;
+    }
+    
+    .form-group {
+      margin-bottom: 20px;
+    }
+    
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--navy);
+      margin-bottom: 8px;
+    }
+    
+    .form-group input,
+    .form-group select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    
+    .form-group input:focus,
+    .form-group select:focus {
+      outline: none;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(0, 58, 186, 0.1);
+    }
+    
+    .modal-footer {
+      padding: 20px 24px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      gap: 12px;
+      justify-content: flex-end;
+    }
+    
+    .btn-secondary {
+      padding: 10px 20px;
+      border: 1px solid #e5e7eb;
+      background: white;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    
+    .btn-secondary:hover {
+      background: var(--gray-50);
+    }
+    
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e5e7eb;
+      border-top-color: var(--navy);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Alert */
+    .alert {
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      font-size: 14px;
+    }
+    
+    .alert.success {
+      background: #d1fae5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+    
+    .alert.error {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+    
+    .alert.warning {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #fde68a;
+    }
+  </style>
+</head>
+<body>
+  
+  <div class="container">
+    
+    <!-- Header -->
+    <div class="header">
+      <h1>👨‍💼 Gestión de Usuarios</h1>
+      <p>Administra los accesos al sistema de onboarding</p>
+    </div>
+    
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Usuarios</div>
+        <div class="stat-value" id="statTotal">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Super Admins</div>
+        <div class="stat-value" id="statSuperAdmin">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Admins</div>
+        <div class="stat-value" id="statAdmin">0</div>
+      </div>
+    </div>
+    
+    <!-- Actions Bar -->
+    <div class="actions-bar">
+      <input type="text" class="search-box" placeholder="🔍 Buscar por nombre o email..." id="searchBox">
+      <button class="btn-primary" id="btnNuevoUsuario">
+        <span>➕</span>
+        Nuevo Usuario
+      </button>
+    </div>
+    
+    <!-- Alert placeholder -->
+    <div id="alertContainer"></div>
+    
+    <!-- Table -->
+    <div class="table-container" id="tableContainer">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Cargando usuarios...</p>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- Modal Nuevo Usuario -->
+  <div class="modal" id="modalNuevoUsuario">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>➕ Crear Nuevo Usuario</h2>
+        <p>Genera un token de acceso para un nuevo administrador</p>
+      </div>
+      <div class="modal-body">
+        <form id="formNuevoUsuario">
+          <div class="form-group">
+            <label>Nombre Completo *</label>
+            <input type="text" id="inputNombre" required placeholder="Ej: María García">
+          </div>
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="inputEmail" required placeholder="email@catholizare.com">
+          </div>
+          <div class="form-group">
+            <label>Rol *</label>
+            <select id="inputRole" required>
+              <option value="">Selecciona un rol</option>
+              <option value="admin">Admin - Acceso dashboard y profesionales</option>
+              <option value="superadmin">Super Admin - Acceso total + gestión</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-primary" onclick="crearUsuario()">Crear Usuario</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Modal Token Generado -->
+  <div class="modal" id="modalTokenGenerado">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>✅ Token Generado</h2>
+        <p>Guarda este token en un lugar seguro</p>
+      </div>
+      <div class="modal-body">
+        <div class="alert warning">
+          ⚠️ Este token solo se mostrará una vez. Cópialo ahora.
+        </div>
+        <div class="form-group">
+          <label>Token de Acceso</label>
+          <input type="text" id="tokenGenerado" readonly style="font-family: monospace; font-size: 16px; font-weight: 600;">
+        </div>
+        <div class="form-group">
+          <label>URL de Acceso</label>
+          <input type="text" id="urlGenerada" readonly style="font-size: 12px;">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" onclick="copiarToken()">📋 Copiar Token</button>
+        <button class="btn-primary" onclick="cerrarModalToken()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Variables globales
+    let allUsers = [];
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/api.php';
+    // Leer credenciales de sessionStorage (ya no de URL)
+    let currentAdminToken = sessionStorage.getItem('onb_token') || '';
+    let currentUserRole = sessionStorage.getItem('onb_userRole') || '';
+    if (!currentAdminToken) { window.location.href = BASE + '/index.html'; }
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+    
+    // Cargar al iniciar
+    window.onload = function() {
+      loadUsers();
+      setupEventListeners();
+      
+      // Deshabilitar botón si no es superadmin
+      if (currentUserRole !== 'superadmin') {
+        document.getElementById('btnNuevoUsuario').disabled = true;
+        document.getElementById('btnNuevoUsuario').title = 'Solo super admins pueden crear usuarios';
+      }
+    };
+    
+    // Event listeners
+    function setupEventListeners() {
+      document.getElementById('searchBox').addEventListener('input', filterUsers);
+      document.getElementById('btnNuevoUsuario').addEventListener('click', abrirModal);
+    }
+    
+    // Cargar usuarios
+    function loadUsers() {
+      callProxy('getAllAdminUsers')
+        .then(function(r) { renderUsers(r.data || r); })
+        .catch(function(e) { showError(e.message); });
+    }
+    
+    // Renderizar usuarios
+    function renderUsers(users) {
+      allUsers = users;
+      
+      // Actualizar stats
+      const total = users.length;
+      const superadmins = users.filter(u => u.role === 'superadmin').length;
+      const admins = users.filter(u => u.role === 'admin').length;
+      
+      document.getElementById('statTotal').textContent = total;
+      document.getElementById('statSuperAdmin').textContent = superadmins;
+      document.getElementById('statAdmin').textContent = admins;
+      
+      // Filtrar
+      const searchTerm = document.getElementById('searchBox').value.toLowerCase();
+      let filtered = users;
+      
+      if (searchTerm) {
+        filtered = users.filter(u => 
+          u.nombre.toLowerCase().includes(searchTerm) || 
+          u.email.toLowerCase().includes(searchTerm)
+        );
+      }
+      
+      // Generar tabla
+      let html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Estado</th>
+              <th>Fecha Creación</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+      `;
+      
+      filtered.forEach(u => {
+        const roleClass = u.role === 'superadmin' ? 'superadmin' : 'admin';
+        const statusClass = u.activo ? 'active' : 'inactive';
+        const statusText = u.activo ? 'Activo' : 'Inactivo';
+        const roleText = u.role === 'superadmin' ? '👑 Super Admin' : '👤 Admin';
+        
+        html += `
+          <tr>
+            <td>
+              <div style="font-weight: 600;">${u.nombre}</div>
+              <div style="font-size: 11px; color: #6c757d; font-family: monospace; margin-top: 2px;">${u.token}</div>
+            </td>
+            <td>${u.email}</td>
+            <td><span class="badge ${roleClass}">${roleText}</span></td>
+            <td><span class="badge ${statusClass}">${statusText}</span></td>
+            <td style="font-size: 13px;">${formatDate(u.fechaCreacion)}</td>
+            <td>
+              <div class="actions">
+                ${u.activo ? 
+                  `<button class="btn-action btn-danger" onclick="desactivarUsuario('${u.token}')">Desactivar</button>` :
+                  `<button class="btn-action" onclick="activarUsuario('${u.token}')">Activar</button>`
+                }
+              </div>
+            </td>
+          </tr>
+        `;
+      });
+      
+      html += `
+          </tbody>
+        </table>
+      `;
+      
+      document.getElementById('tableContainer').innerHTML = html;
+    }
+    
+    // Filtrar usuarios
+    function filterUsers() {
+      renderUsers(allUsers);
+    }
+    
+    // Abrir modal
+    function abrirModal() {
+      if (currentUserRole !== 'superadmin') {
+        showAlert('Solo super admins pueden crear usuarios', 'error');
+        return;
+      }
+      document.getElementById('modalNuevoUsuario').classList.add('open');
+    }
+    
+    // Cerrar modal
+    function cerrarModal() {
+      document.getElementById('modalNuevoUsuario').classList.remove('open');
+      document.getElementById('formNuevoUsuario').reset();
+    }
+    
+    // Crear usuario
+    function crearUsuario() {
+      const nombre = document.getElementById('inputNombre').value.trim();
+      const email = document.getElementById('inputEmail').value.trim();
+      const role = document.getElementById('inputRole').value;
+      
+      if (!nombre || !email || !role) {
+        showAlert('Por favor completa todos los campos', 'error');
+        return;
+      }
+      
+      // Validar email
+      if (!email.includes('@')) {
+        showAlert('Email inválido', 'error');
+        return;
+      }
+      
+      // Mostrar loading
+      const btn = event.target;
+      btn.disabled = true;
+      btn.textContent = 'Creando...';
+      
+      callProxy('generateAdminToken', { email: email, role: role, nombre: nombre, currentUserToken: currentAdminToken })
+        .then(function(result) {
+          btn.disabled = false;
+          btn.textContent = 'Crear Usuario';
+          if (result.success) {
+            cerrarModal();
+            mostrarTokenGenerado(result.token, email);
+            loadUsers();
+            showAlert('Usuario creado exitosamente', 'success');
+          } else {
+            showAlert(result.message, 'error');
+          }
+        })
+        .catch(function(error) {
+          btn.disabled = false;
+          btn.textContent = 'Crear Usuario';
+          showAlert('Error: ' + error.message, 'error');
+        });
+    }
+    
+    // Mostrar token generado
+    function mostrarTokenGenerado(token, email) {
+      const url = BASE + '/index.html';
+      
+      document.getElementById('tokenGenerado').value = token;
+      document.getElementById('urlGenerada').value = url;
+      document.getElementById('modalTokenGenerado').classList.add('open');
+    }
+    
+    // Cerrar modal token
+    function cerrarModalToken() {
+      document.getElementById('modalTokenGenerado').classList.remove('open');
+    }
+    
+    // Copiar token
+    function copiarToken() {
+      const input = document.getElementById('tokenGenerado');
+      input.select();
+      document.execCommand('copy');
+      showAlert('Token copiado al portapapeles', 'success');
+    }
+    
+    // Desactivar usuario
+    function desactivarUsuario(token) {
+      if (!confirm('¿Estás seguro de desactivar este usuario?')) return;
+      
+      callProxy('deactivateAdminToken', { tokenToDeactivate: token, currentUserToken: currentAdminToken })
+        .then(function(result) {
+          if (result.success) {
+            showAlert('Usuario desactivado', 'success');
+            loadUsers();
+          } else {
+            showAlert(result.message, 'error');
+          }
+        })
+        .catch(function(error) {
+          showAlert('Error: ' + error.message, 'error');
+        });
+    }
+    
+    // Activar usuario (función placeholder)
+    function activarUsuario(token) {
+      showAlert('Funcionalidad en desarrollo', 'warning');
+    }
+    
+    // Mostrar alerta
+    function showAlert(message, type) {
+      const container = document.getElementById('alertContainer');
+      container.innerHTML = `<div class="alert ${type}">${message}</div>`;
+      setTimeout(() => {
+        container.innerHTML = '';
+      }, 5000);
+    }
+    
+    // Mostrar error
+    function showError(error) {
+      document.getElementById('tableContainer').innerHTML = `
+        <div class="loading">
+          <p style="color: var(--red);">Error: ${error}</p>
+        </div>
+      `;
+    }
+    
+    // Formatear fecha
+    function formatDate(date) {
+      if (!date) return '-';
+      const d = new Date(date);
+      return d.toLocaleDateString('es-MX', { 
+        day: '2-digit', 
+        month: 'short', 
+        year: 'numeric' 
+      });
+    }
+  </script>
+  
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Documentos Legales - Catholizare Pro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --navy-primary: #001A55;
+      --navy-dark: #000F33;
+      --blue-accent: #003ABA;
+      --gold-accent: #D4AF37;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      padding: 20px;
+    }
+    
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0, 26, 85, 0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, var(--navy-primary) 0%, var(--blue-accent) 100%);
+      color: white;
+      padding: 40px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+    
+    .header p {
+      opacity: 0.9;
+      font-size: 16px;
+    }
+    
+    .content {
+      padding: 40px;
+    }
+    
+    h3 {
+      color: var(--navy-primary);
+      margin: 30px 0 15px 0;
+      font-size: 20px;
+    }
+    
+    .doc-viewer {
+      height: 200px;
+      overflow-y: auto;
+      background: #f8f9fa;
+      padding: 20px;
+      border-radius: 12px;
+      border: 1px solid #e9ecef;
+      margin-bottom: 20px;
+      line-height: 1.6;
+      font-size: 14px;
+    }
+    
+    .doc-viewer p {
+      margin-bottom: 12px;
+    }
+    
+    .check-group {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .check-group:hover {
+      background: #e9ecef;
+    }
+    
+    .check-group input[type="checkbox"] {
+      width: 20px;
+      height: 20px;
+      cursor: pointer;
+      margin-top: 2px;
+    }
+    
+    .check-group span {
+      flex: 1;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+    
+    .btn-submit {
+      width: 100%;
+      background: var(--navy-primary);
+      color: white;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-top: 20px;
+    }
+    
+    .btn-submit:hover {
+      background: var(--navy-dark);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 26, 85, 0.3);
+    }
+    
+    .btn-submit:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      transform: none;
+    }
+    
+    .back-link {
+      display: inline-block;
+      margin-top: 20px;
+      color: var(--blue-accent);
+      text-decoration: none;
+      font-size: 14px;
+    }
+    
+    .back-link:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📄 Documentación Legal</h1>
+      <p>Paso 1: Validación de Identidad y Compromiso Ético</p>
+    </div>
+
+    <div class="content">
+      <h3>1. Código de Ética del Psicólogo Católico</h3>
+      <div class="doc-viewer">
+        <p><strong>Compromiso:</strong> El profesional se compromete a ejercer su labor en total comunión con el Magisterio de la Iglesia y los principios de la antropología cristiana.</p>
+        <p><strong>Artículo 1:</strong> Respeto absoluto por la dignidad de la persona humana desde la concepción hasta la muerte natural.</p>
+        <p><strong>Artículo 2:</strong> Promoción del matrimonio como unión permanente entre hombre y mujer abierta a la vida.</p>
+        <p><strong>Artículo 3:</strong> Rechazo de prácticas contrarias a la enseñanza de la Iglesia (aborto, eutanasia, ideología de género, etc.).</p>
+        <p><strong>Artículo 4:</strong> Confidencialidad profesional con las excepciones establecidas por la ley y la moral católica.</p>
+        <p><strong>Artículo 5:</strong> Formación continua en la doctrina social de la Iglesia y actualización profesional.</p>
+      </div>
+
+      <h3>2. Acuerdo de Colaboración</h3>
+      <div class="doc-viewer">
+        <p>Este acuerdo regula la relación profesional, el uso de la plataforma y los acuerdos de confidencialidad entre Catholizare y el Profesional.</p>
+        <p><strong>Cláusula 1:</strong> El profesional se compromete a brindar servicios de calidad bajo los principios de la fe católica.</p>
+        <p><strong>Cláusula 2:</strong> Catholizare proveerá la plataforma tecnológica y el soporte administrativo necesario.</p>
+        <p><strong>Cláusula 3:</strong> Los honorarios y condiciones de pago serán establecidos de común acuerdo.</p>
+        <p><strong>Cláusula 4:</strong> Ambas partes se comprometen a la confidencialidad de la información de los pacientes.</p>
+        <p><strong>Cláusula 5:</strong> El presente acuerdo puede ser terminado por cualquiera de las partes con 30 días de anticipación.</p>
+      </div>
+
+      <form id="legalForm">
+        <label class="check-group">
+          <input type="checkbox" id="check1" required>
+          <span>He leído y acepto el Código de Ética del Psicólogo Católico y el Acuerdo de Colaboración.</span>
+        </label>
+        <label class="check-group">
+          <input type="checkbox" id="check2" required>
+          <span>Acepto el Aviso de Privacidad y autorizo el tratamiento de mis datos personales conforme a la normativa aplicable.</span>
+        </label>
+        <button type="submit" id="btnEnviar" class="btn-submit">✍️ Registrar Aceptación Legal</button>
+      </form>
+
+      <a href="javascript:history.back()" class="back-link">← Volver al dashboard</a>
+    </div>
+  </div>
+
+  <script>
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/api.php';
+    // Leer token de sessionStorage (ya no de URL)
+    const TOKEN = sessionStorage.getItem('onb_token') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    document.getElementById('legalForm').onsubmit = function(e) {
+      e.preventDefault();
+
+      if (!TOKEN) {
+        alert('Error: Token no válido');
+        return;
+      }
+
+      if (confirm('¿Confirmas tu firma digital? Se registrará tu aceptación vinculada a tu perfil profesional.')) {
+        const btn = document.getElementById('btnEnviar');
+        btn.disabled = true;
+        btn.innerText = "Procesando...";
+
+        callProxy('saveLegalAcceptance', { token: TOKEN, version: 'v1.0', signerName: 'Aceptado' })
+          .then(function(r) {
+            if (r && r.success) {
+              alert('¡Documentos firmados exitosamente!');
+              window.location.href = BASE + '/Public_Dashboard.html';
+            } else {
+              alert('Error: ' + (r ? r.message : 'Sin respuesta'));
+              btn.disabled = false;
+              btn.innerText = "✍️ Registrar Aceptación Legal";
+            }
+          })
+          .catch(function(err) {
+            alert('Error: ' + err.message);
+            btn.disabled = false;
+            btn.innerText = "✍️ Registrar Aceptación Legal";
+          });
+      }
+    };
+  </script>
+</body>
+</html>

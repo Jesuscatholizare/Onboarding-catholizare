@@ -1,0 +1,1200 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>Dashboard del Profesional · Catholizare Pro</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    :root {
+      --navy-primary: #001A55;
+      --navy-dark: #000F33;
+      --blue-accent: #003ABA;
+      --gold-accent: #D4AF37;
+      --success-green: #28a745;
+      --warning-yellow: #ffc107;
+      --danger-red: #dc3545;
+      --gray-light: #f8f9fa;
+      --gray-medium: #6c757d;
+      --border-radius: 12px;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Inter', sans-serif;
+      background-color: #f5f7fa;
+      color: #1a202c;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    /* Header */
+    .header {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px 32px;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .header h1 {
+      color: var(--navy-primary);
+      font-size: 24px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+    
+    .header-meta {
+      display: flex;
+      gap: 20px;
+      align-items: center;
+      font-size: 14px;
+      color: var(--gray-medium);
+    }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 12px;
+      border-radius: 16px;
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .badge.in-progress {
+      background-color: #dbeafe;
+      color: #1e40af;
+    }
+    
+    .badge.completed {
+      background-color: #d1fae5;
+      color: #065f46;
+    }
+    
+    .badge.warning {
+      background-color: #fef3c7;
+      color: #92400e;
+    }
+    
+    /* Tabs */
+    .tabs {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 0;
+      margin-bottom: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .tabs-header {
+      display: flex;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 0 16px;
+    }
+    
+    .tab {
+      padding: 16px 24px;
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      color: var(--gray-medium);
+      font-weight: 500;
+      font-size: 14px;
+      transition: all 0.2s;
+    }
+    
+    .tab:hover {
+      color: var(--navy-primary);
+    }
+    
+    .tab.active {
+      color: var(--navy-primary);
+      border-bottom-color: var(--navy-primary);
+    }
+    
+    .tab-content {
+      padding: 24px 32px;
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Grid Layout */
+    .grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    
+    @media (max-width: 1024px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* Cards */
+    .card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+    
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--navy-primary);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    /* Progress Bar */
+    .progress-container {
+      margin: 20px 0;
+    }
+    
+    .progress-bar {
+      width: 100%;
+      height: 8px;
+      background: #e5e7eb;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 12px 0;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--success-green) 0%, #20c997 100%);
+      border-radius: 4px;
+      transition: width 0.5s ease;
+    }
+    
+    .progress-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      color: var(--gray-medium);
+    }
+    
+    .progress-percent {
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--navy-primary);
+      margin-bottom: 8px;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+      margin-top: 20px;
+    }
+    
+    .stat-card {
+      background: var(--gray-light);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    
+    .stat-number {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--navy-primary);
+      display: block;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: var(--gray-medium);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    /* Action List */
+    .action-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    
+    .action-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      background: var(--gray-light);
+      border-radius: 8px;
+    }
+    
+    .action-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .action-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: white;
+    }
+    
+    .action-text h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--navy-primary);
+      margin-bottom: 2px;
+    }
+    
+    .action-text p {
+      font-size: 12px;
+      color: var(--gray-medium);
+      margin: 0;
+    }
+    
+    .action-status {
+      font-size: 13px;
+      font-weight: 500;
+    }
+    
+    .action-status.completed {
+      color: var(--success-green);
+    }
+    
+    .action-status.pending {
+      color: var(--warning-yellow);
+    }
+    
+    /* Action Button */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+    
+    .btn-primary {
+      background: var(--navy-primary);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: var(--navy-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 26, 85, 0.2);
+    }
+    
+    .btn-success {
+      background: var(--success-green);
+      color: white;
+    }
+    
+    .btn-outline {
+      background: white;
+      color: var(--navy-primary);
+      border: 1px solid #e5e7eb;
+    }
+    
+    .btn-outline:hover {
+      background: var(--gray-light);
+    }
+    
+    /* Alert */
+    .alert {
+      padding: 16px 20px;
+      border-radius: 8px;
+      margin-bottom: 24px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      border-left: 4px solid;
+    }
+    
+    .alert.warning {
+      background: #fffbeb;
+      border-color: var(--warning-yellow);
+      color: #78350f;
+    }
+    
+    .alert.success {
+      background: #f0fdf4;
+      border-color: var(--success-green);
+      color: #14532d;
+    }
+    
+    .alert.info {
+      background: #eff6ff;
+      border-color: var(--blue-accent);
+      color: #1e3a8a;
+    }
+    
+    .alert-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    
+    .alert-content h4 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .alert-content p {
+      font-size: 13px;
+      margin: 0;
+    }
+    
+    /* Loading */
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+    }
+    
+    .spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #e5e7eb;
+      border-top-color: var(--navy-primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* Fase Progress Dots */
+    .fase-dots {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    
+    .fase-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #e5e7eb;
+    }
+    
+    .fase-dot.active {
+      background: var(--blue-accent);
+    }
+    
+    .fase-dot.completed {
+      background: var(--success-green);
+    }
+
+    /* Global top nav */
+    .global-nav {
+      background: linear-gradient(135deg, var(--navy-primary) 0%, var(--blue-accent) 100%);
+      color: white;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 10px rgba(0,26,85,0.15);
+    }
+    .global-nav-inner {
+      max-width: 1400px; margin: 0 auto;
+      display: flex; align-items: center; gap: 4px;
+      padding: 10px 20px; overflow-x: auto;
+    }
+    .global-nav .brand {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 700; font-size: 15px; letter-spacing: 0.3px;
+      padding-right: 14px; margin-right: 6px;
+      border-right: 1px solid rgba(255,255,255,0.15);
+      white-space: nowrap;
+    }
+    .global-nav .brand-badge {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: var(--gold-accent); color: var(--navy-primary);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-weight: 900; font-size: 14px;
+    }
+    .global-nav a {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 14px; border-radius: 8px;
+      font-size: 13px; font-weight: 600;
+      color: rgba(255,255,255,0.85); text-decoration: none;
+      white-space: nowrap; transition: all 0.2s;
+    }
+    .global-nav a .icon { font-size: 16px; }
+    .global-nav a:hover { background: rgba(255,255,255,0.12); color: white; }
+    .global-nav a.active {
+      background: white; color: var(--navy-primary);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    .global-nav .spacer { flex: 1; }
+    .global-nav .logout { background: rgba(220,53,69,0.2); color: #fff; }
+    .global-nav .logout:hover { background: rgba(220,53,69,0.5); }
+    @media (max-width: 768px) {
+      .global-nav .brand { font-size: 13px; padding-right: 10px; }
+      .global-nav a { padding: 8px 10px; font-size: 12px; }
+      .global-nav a .label-long { display: none; }
+    }
+
+    /* Hero header */
+    .hero-header {
+      background: linear-gradient(135deg, #001A55 0%, #003ABA 100%);
+      color: white; border-radius: var(--border-radius);
+      padding: 28px 32px; margin: 20px 0 24px;
+      box-shadow: 0 8px 24px rgba(0,26,85,0.18);
+      position: relative; overflow: hidden;
+    }
+    .hero-header::before {
+      content: ""; position: absolute; right: -80px; top: -80px;
+      width: 240px; height: 240px; border-radius: 50%;
+      background: rgba(212,175,55,0.18);
+    }
+    .hero-header h1 {
+      color: white; font-size: 26px; font-weight: 700;
+      margin-bottom: 6px; position: relative;
+    }
+    .hero-header .subtitle {
+      color: rgba(255,255,255,0.85); font-size: 14px; margin-bottom: 14px;
+      position: relative;
+    }
+    .hero-header .header-meta {
+      color: rgba(255,255,255,0.9); position: relative;
+    }
+    .hero-header .badge { background: rgba(255,255,255,0.15); color: white; }
+    .hero-header .badge.completed { background: rgba(40,167,69,0.25); color: #bbf7d0; }
+    .hero-header .badge.in-progress { background: rgba(212,175,55,0.25); color: #fde68a; }
+    .hero-header .badge.warning { background: rgba(255,193,7,0.25); color: #fde68a; }
+    .hero-header .fase-dot { background: rgba(255,255,255,0.25); }
+    .hero-header .fase-dot.active { background: var(--gold-accent); }
+    .hero-header .fase-dot.completed { background: #bbf7d0; }
+
+    /* Upload overlay */
+    .upload-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.55);
+      display: none; align-items: center; justify-content: center;
+      z-index: 9999;
+    }
+    .upload-overlay.show { display: flex; }
+    .upload-overlay .card {
+      background: white; border-radius: 16px; padding: 32px 40px;
+      text-align: center; max-width: 340px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    .upload-overlay .card h4 { color: var(--navy-primary); margin-bottom: 6px; }
+    .upload-overlay .card p { color: var(--gray-medium); font-size: 13px; }
+    .upload-overlay .card .spinner {
+      width: 44px; height: 44px; border-width: 5px; margin: 0 auto 16px;
+    }
+    .upload-overlay .card .file-name {
+      margin-top: 10px; font-size: 12px; color: var(--gray-medium);
+      word-break: break-all;
+    }
+
+    /* Meetings card */
+    .meetings-card {
+      background: white;
+      border-radius: var(--border-radius);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-top: 20px;
+      border-left: 4px solid var(--gold-accent);
+    }
+    .meeting-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 14px 16px;
+      border: 1px solid #eef0f5;
+      border-radius: 10px;
+      margin-bottom: 10px;
+      background: #fcfcfd;
+      transition: all 0.2s;
+    }
+    .meeting-item:hover { background: #fafbff; border-color: #cbd5e1; }
+    .meeting-item .m-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px;
+      background: linear-gradient(135deg, var(--navy-primary), var(--blue-accent));
+      color: white; flex-shrink: 0;
+    }
+    .meeting-item.done .m-icon {
+      background: linear-gradient(135deg, var(--success-green), #22c55e);
+    }
+    .meeting-item.upcoming { opacity: 0.72; }
+    .meeting-item.upcoming .m-icon {
+      background: linear-gradient(135deg, #94a3b8, #cbd5e1);
+    }
+    .meeting-item.active { border-color: var(--blue-accent); background: #f0f7ff; }
+    .meeting-item .m-body { flex: 1; min-width: 0; }
+    .meeting-item h4 {
+      color: var(--navy-primary); font-size: 14px;
+      font-weight: 700; margin-bottom: 2px;
+    }
+    .meeting-item p { font-size: 12px; color: var(--gray-medium); margin: 0; }
+    .btn-wa {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 9px 14px; border-radius: 8px;
+      background: #25D366; color: white;
+      text-decoration: none; font-size: 13px; font-weight: 600;
+      white-space: nowrap;
+      box-shadow: 0 2px 6px rgba(37,211,102,0.3);
+      transition: all 0.2s;
+    }
+    .btn-wa:hover { background: #1ebe5a; transform: translateY(-1px); }
+    .meetings-card .phase-pill {
+      display: inline-block; margin-left: 8px;
+      padding: 2px 8px; border-radius: 10px;
+      background: rgba(212,175,55,0.2); color: #92400e;
+      font-size: 11px; font-weight: 700;
+    }
+    @media (max-width: 640px) {
+      .meeting-item { flex-direction: column; align-items: flex-start; }
+      .meeting-item .m-icon { width: 40px; height: 40px; font-size: 20px; }
+      .btn-wa { width: 100%; justify-content: center; }
+    }
+
+    .toast {
+      position: fixed; bottom: 24px; right: 24px;
+      background: var(--success-green); color: white;
+      padding: 14px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      z-index: 10000; opacity: 0; transform: translateY(10px);
+      transition: all 0.3s ease;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.error { background: var(--danger-red); }
+  </style>
+</head>
+<body>
+  <!-- Global Nav -->
+  <nav class="global-nav" id="globalNav"></nav>
+
+  <div class="container">
+
+    <!-- Hero Header -->
+    <div class="hero-header">
+      <h1 id="userName">Cargando…</h1>
+      <div class="subtitle">Dashboard del Profesional · Proceso de Onboarding Catholizare</div>
+      <div class="header-meta">
+        <span id="faseActual"></span>
+        <span id="estadoActual"></span>
+      </div>
+    </div>
+
+    <div id="content">
+      <div class="loading">
+        <div class="spinner"></div>
+        <p>Cargando tu información...</p>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Upload overlay -->
+  <div class="upload-overlay" id="uploadOverlay">
+    <div class="card">
+      <div class="spinner"></div>
+      <h4 id="uploadTitle">Subiendo documento…</h4>
+      <p>Por favor espera. No cierres esta ventana.</p>
+      <div class="file-name" id="uploadFileName"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const BASE = 'https://profesionales.catholizare.com/catholizare_sistem/onboarding';
+    const PROXY = BASE + '/api.php';
+    const WA_NUMBER = '5215510223883';
+    // Leer token de sessionStorage (ya no de URL)
+    const TOKEN = sessionStorage.getItem('onb_token') || '';
+    if (!TOKEN) { window.location.href = BASE + '/index.html'; }
+
+    function callProxy(action, data) {
+      return fetch(PROXY + '?action=' + action, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data || {})
+      }).then(function(r) { return r.json(); });
+    }
+
+    // ====== GLOBAL NAV ======
+    function renderGlobalNav(active) {
+      var items = [
+        { id: 'dashboard', icon: '🏠', label: 'Dashboard',       href: BASE + '/Public_Dashboard.html' },
+        { id: 'perfil',    icon: '👤', label: 'Mi Perfil',        href: BASE + '/Public_Perfil.html' },
+        { id: 'docs',      icon: '📎', label: 'Mis Documentos',   href: BASE + '/Public_Dashboard.html?tab=documentos' },
+        { id: 'legales',   icon: '⚖️', label: 'Legales',          href: BASE + '/Public_Legal_Viewer.html?doc=CONTRATO' }
+      ];
+      var nav = document.getElementById('globalNav');
+      if (!nav) return;
+      var html = '<div class="global-nav-inner">';
+      html += '<div class="brand"><span class="brand-badge">CP</span><span class="label-long">Catholizare Pro · Onboarding</span></div>';
+      items.forEach(function(it) {
+        var cls = (it.id === active) ? ' class="active"' : '';
+        html += '<a href="' + it.href + '"' + cls + '><span class="icon">' + it.icon + '</span><span class="label-long">' + it.label + '</span></a>';
+      });
+      html += '<div class="spacer"></div>';
+      html += '<a href="#" onclick="onLogout(); return false;" class="logout"><span class="icon">🚪</span><span class="label-long">Cerrar sesión</span></a>';
+      html += '</div>';
+      nav.innerHTML = html;
+    }
+    function onLogout() {
+      try { sessionStorage.removeItem('onb_token'); } catch(_){}
+      window.location.href = BASE + '/index.html';
+    }
+
+    // ====== HELPERS ======
+    // Normaliza version (por si en la spreadsheet quedó como fecha)
+    function normalizeVersion(raw) {
+      var v = String(raw == null ? '' : raw).trim();
+      if (!v) return '1.0';
+      if (/GMT|UTC|\b\d{4}-\d{2}-\d{2}T/.test(v) ||
+          /(Mon|Tue|Wed|Thu|Fri|Sat|Sun)\s+\w{3}\s+\d+/.test(v)) {
+        var d = new Date(v);
+        if (!isNaN(d.getTime())) return d.toISOString().slice(0, 10);
+      }
+      return v;
+    }
+
+    function showToast(msg, isError) {
+      var t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'toast show' + (isError ? ' error' : '');
+      setTimeout(function() { t.classList.remove('show'); }, 3200);
+    }
+    function showUploadOverlay(fileName, title) {
+      document.getElementById('uploadFileName').textContent = fileName || '';
+      document.getElementById('uploadTitle').textContent = title || 'Subiendo documento…';
+      document.getElementById('uploadOverlay').classList.add('show');
+    }
+    function hideUploadOverlay() {
+      document.getElementById('uploadOverlay').classList.remove('show');
+    }
+
+    renderGlobalNav('dashboard');
+
+    // Cargar datos
+    async function loadDashboard() {
+      try {
+        // Cargar estado del profesional y documentos legales en paralelo
+        var statusPromise = callProxy('getStatus', { token: TOKEN });
+        var legalPromise = callProxy('getDocumentosStatus', { token: TOKEN });
+        var results = await Promise.all([statusPromise, legalPromise]);
+
+        // Guardar datos de documentos legales
+        if (results[1] && results[1].success && results[1].documentos) {
+          legalDocsData = results[1].documentos;
+        }
+
+        renderDashboard(results[0]);
+      } catch (error) {
+        console.error('Error:', error);
+        showError('Error al cargar el dashboard: ' + error.message);
+      }
+    }
+
+    function renderDashboard(status) {
+      if (!status.success) {
+        showError(status.message);
+        return;
+      }
+
+      // Actualizar header
+      document.getElementById('userName').textContent = `👋 Hola, ${status.nombre}`;
+      document.getElementById('faseActual').innerHTML = getFaseBadge(status.fase);
+      document.getElementById('estadoActual').innerHTML = getEstadoBadge(status.estado);
+
+      const diasRestantes = status.plazos?.diasRestantes || 0;
+      const progreso = status.progreso || 0;
+
+      let html = '';
+
+      // Alert si es necesario
+      if (status.fase === 'Fase 1' && diasRestantes > 0) {
+        if (diasRestantes <= 20) {
+          html += `
+            <div class="alert warning">
+              <span class="alert-icon">⏰</span>
+              <div class="alert-content">
+                <h4>Tiempo limitado</h4>
+                <p>Te quedan ${diasRestantes} días para completar la Fase 1</p>
+              </div>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="alert success">
+              <span class="alert-icon">✅</span>
+              <div class="alert-content">
+                <h4>Vas por buen camino</h4>
+                <p>Tienes ${diasRestantes} días restantes para completar</p>
+              </div>
+            </div>
+          `;
+        }
+      }
+
+      // Tabs
+      html += `
+        <div class="tabs">
+          <div class="tabs-header">
+            <div class="tab active" data-tab="informacion">Información</div>
+            <div class="tab" data-tab="documentos">Documentos</div>
+          </div>
+
+          <!-- Tab: Información -->
+          <div class="tab-content active" data-tab-content="informacion">
+            <div class="grid">
+
+              <!-- Acciones Pendientes (primario, 2fr) -->
+              <div>
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">🎯 Acciones Pendientes</h3>
+                  </div>
+
+                  <div class="action-list">
+                    ${renderLegalDocs()}
+                    ${renderActionItem(
+                      '👤',
+                      'Perfil Profesional',
+                      'Completa tu información',
+                      status.perfil,
+                      `${BASE}/Public_Perfil.html`
+                    )}
+                    ${renderActionItem(
+                      '📎',
+                      'Subir Documentos',
+                      'CV, cédula, foto, carta',
+                      Object.values(status.documentos).every(v => v),
+                      null,
+                      true
+                    )}
+                  </div>
+                </div>
+
+                ${renderMeetingsCard(status)}
+              </div>
+
+              <!-- Progreso (secundario, 1fr) -->
+              <div>
+                <div class="card">
+                  <div class="card-header">
+                    <h3 class="card-title">📊 Tu Progreso</h3>
+                  </div>
+
+                  <div class="progress-container">
+                    <div class="progress-percent">${progreso}%</div>
+                    <div class="progress-bar">
+                      <div class="progress-fill" style="width: ${progreso}%"></div>
+                    </div>
+                    <div class="progress-label">
+                      <span>Completado</span>
+                      <span>${progreso}% de 100%</span>
+                    </div>
+                  </div>
+
+                  <div class="stats-grid">
+                    <div class="stat-card">
+                      <span class="stat-number">${diasRestantes}</span>
+                      <span class="stat-label">Días restantes</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="stat-number">${progreso}</span>
+                      <span class="stat-label">% Completo</span>
+                    </div>
+                    <div class="stat-card">
+                      <span class="stat-number">${status.fase.replace('Fase ', '')}</span>
+                      <span class="stat-label">Fase Actual</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <!-- Tab: Documentos -->
+          <div class="tab-content" data-tab-content="documentos">
+            ${renderDocumentos(status.documentos, status.documentosUrls)}
+          </div>
+
+        </div>
+      `;
+
+      document.getElementById('content').innerHTML = html;
+
+      // Event listeners para tabs
+      document.querySelectorAll('.tab').forEach(tab => {
+        tab.addEventListener('click', () => {
+          activateTab(tab.dataset.tab);
+        });
+      });
+
+      // Si la URL pide ?tab=documentos, abrir esa pestaña
+      var urlTab = new URLSearchParams(window.location.search).get('tab');
+      if (urlTab) activateTab(urlTab);
+    }
+
+    function activateTab(targetTab) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+      var tabEl = document.querySelector('[data-tab="' + targetTab + '"]');
+      var contentEl = document.querySelector('[data-tab-content="' + targetTab + '"]');
+      if (tabEl) tabEl.classList.add('active');
+      if (contentEl) contentEl.classList.add('active');
+    }
+
+    // Variable global para docs legales
+    var legalDocsData = [];
+
+    // Reuniones por fase con botón WhatsApp prellenado
+    function renderMeetingsCard(status) {
+      var faseNum = parseInt(String(status.fase || '').replace(/[^0-9]/g, ''), 10) || 1;
+      // Fase 1 no tiene reuniones programadas aún
+      if (faseNum < 2) return '';
+
+      var nombre = (status && status.nombre) ? status.nombre : 'Profesional';
+
+      function waLink(msg) {
+        return 'https://wa.me/' + WA_NUMBER + '?text=' + encodeURIComponent(msg);
+      }
+
+      // Estado de cada reunión según fase actual:
+      //   done: la fase ya quedó atrás → completada
+      //   active: pertenece a la fase actual → en curso
+      //   upcoming: fase futura → próxima
+      function estado(phase) {
+        if (phase < faseNum) return 'done';
+        if (phase === faseNum) return 'active';
+        return 'upcoming';
+      }
+
+      var meetings = [
+        {
+          phase: 2,
+          icon: '📅',
+          title: 'Sincronización de agenda / calendario',
+          desc: 'Cita Zoom para configurar tu calendario y disponibilidad en la plataforma.',
+          state: estado(2),
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la cita Zoom de *Sincronización de agenda / calendario* (Fase 2 del onboarding Catholizare Pro). ¿Qué horario tienen disponible?'
+        },
+        {
+          phase: 2,
+          icon: '💬',
+          title: 'Reunión Zoom de bienvenida e inducción',
+          desc: 'Sesión de 60 min con el equipo de Catholizare Pro.',
+          state: estado(2),
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la *Reunión Zoom de bienvenida e inducción (60 min)* de mi onboarding en Catholizare Pro. ¿Qué horario tienen disponible?'
+        },
+        {
+          phase: 3,
+          icon: '🙏',
+          title: 'Supervisión fe y espiritualidad',
+          desc: 'Agenda tu cita de acompañamiento espiritual por WhatsApp.',
+          state: estado(3),
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar mi cita de *Supervisión de fe y espiritualidad* (Fase 3 del onboarding Catholizare Pro).'
+        },
+        {
+          phase: 4,
+          icon: '📋',
+          title: 'Actualización anual de CV',
+          desc: 'Agenda la fecha para la actualización anual de tu Curriculum.',
+          state: estado(4),
+          waMsg: 'Hola, soy ' + nombre + '. Quisiera agendar la fecha para la *actualización anual de mi CV* (Fase 4 del onboarding Catholizare Pro).'
+        }
+      ];
+
+      if (!meetings.length) return '';
+
+      var html = ''
+        + '<div class="meetings-card">'
+        +   '<div style="margin-bottom: 16px;">'
+        +     '<h3 class="card-title" style="margin-bottom: 4px;">📆 Reuniones y Citas</h3>'
+        +     '<p style="font-size: 13px; color: var(--gray-medium); margin: 0;">Agenda tus sesiones vía WhatsApp con el equipo Catholizare Pro</p>'
+        +   '</div>';
+
+      meetings.forEach(function(m) {
+        var stateClass = ' ' + m.state; // done | active | upcoming
+        var statusLabel = '';
+        if (m.state === 'done')    statusLabel = ' · <strong style="color:var(--success-green)">Completada</strong>';
+        if (m.state === 'active')  statusLabel = ' · <strong style="color:var(--blue-accent)">Por agendar</strong>';
+        if (m.state === 'upcoming') statusLabel = ' · <span style="color:var(--gray-medium)">Próximamente</span>';
+
+        var btn;
+        if (m.state === 'upcoming') {
+          btn = '<span class="btn-wa" style="background:#cbd5e1;box-shadow:none;cursor:not-allowed;opacity:0.75;">'
+              +   '<span>🔒</span><span>Fase ' + m.phase + '</span>'
+              + '</span>';
+        } else {
+          btn = '<a class="btn-wa" target="_blank" rel="noopener" href="' + waLink(m.waMsg) + '">'
+              +   '<span>💬</span><span>WhatsApp</span>'
+              + '</a>';
+        }
+
+        html += ''
+          + '<div class="meeting-item' + stateClass + '">'
+          +   '<div class="m-icon">' + m.icon + '</div>'
+          +   '<div class="m-body">'
+          +     '<h4>' + m.title + ' <span class="phase-pill">Fase ' + m.phase + '</span></h4>'
+          +     '<p>' + m.desc + statusLabel + '</p>'
+          +   '</div>'
+          +   btn
+          + '</div>';
+      });
+
+      html += '</div>';
+      return html;
+    }
+
+    function renderLegalDocs() {
+      if (!legalDocsData.length) {
+        return '<div class="action-item"><div class="action-info"><div class="action-icon">📄</div><div class="action-text"><h4>Documentos Legales</h4><p>Cargando...</p></div></div></div>';
+      }
+      var iconByDoc = { CONTRATO: '📄', TERMINOS: '📋', PRIVACIDAD: '🔒', ETICA: '⚖️' };
+      var html = '';
+      legalDocsData.forEach(function(d) {
+        var icon = iconByDoc[String(d.id).toUpperCase()] || '📄';
+        var labelBtn = (String(d.id).toUpperCase() === 'ETICA') ? 'Aceptar' : 'Firmar';
+        var vlegible = normalizeVersion(d.version);
+        if (d.aceptado) {
+          html += '<div class="action-item"><div class="action-info"><div class="action-icon">' + icon + '</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + vlegible + '</p></div></div><span class="action-status completed">✓ Firmado</span></div>';
+        } else {
+          html += '<div class="action-item"><div class="action-info"><div class="action-icon">' + icon + '</div><div class="action-text"><h4>' + d.titulo + '</h4><p>v' + vlegible + ' — Pendiente</p></div></div><a href="' + BASE + '/Public_Legal_Viewer.html?doc=' + d.id + '" class="btn btn-primary">' + labelBtn + '</a></div>';
+        }
+      });
+      return html;
+    }
+
+    function renderActionItem(icon, title, description, isCompleted, link, isDocuments = false) {
+      if (isCompleted) {
+        return `
+          <div class="action-item">
+            <div class="action-info">
+              <div class="action-icon">${icon}</div>
+              <div class="action-text">
+                <h4>${title}</h4>
+                <p>${description}</p>
+              </div>
+            </div>
+            <span class="action-status completed">✓ Completado</span>
+          </div>
+        `;
+      } else {
+        if (isDocuments) {
+          return `
+            <div class="action-item">
+              <div class="action-info">
+                <div class="action-icon">${icon}</div>
+                <div class="action-text">
+                  <h4>${title}</h4>
+                  <p>${description}</p>
+                </div>
+              </div>
+              <button onclick="switchToDocuments()" class="btn btn-primary">Ver Documentos</button>
+            </div>
+          `;
+        } else {
+          return `
+            <div class="action-item">
+              <div class="action-info">
+                <div class="action-icon">${icon}</div>
+                <div class="action-text">
+                  <h4>${title}</h4>
+                  <p>${description}</p>
+                </div>
+              </div>
+              <a href="${link}" class="btn btn-primary">Completar</a>
+            </div>
+          `;
+        }
+      }
+    }
+
+    function renderDocumentos(docs, urls) {
+      const docList = [
+        { key: 'cv', nombre: 'Curriculum Vitae', icon: '📄', max: '5MB' },
+        { key: 'cedula', nombre: 'Cédula Profesional', icon: '🎓', max: '5MB' },
+        { key: 'foto', nombre: 'Foto Profesional', icon: '📸', max: '1MB' },
+        { key: 'carta', nombre: 'Carta de Sacerdote', icon: '✉️', max: '5MB' }
+      ];
+
+      let html = '<div class="card"><div class="action-list">';
+
+      docList.forEach(doc => {
+        const isUploaded = docs[doc.key];
+        const url = urls[doc.key];
+
+        html += `
+          <div class="action-item">
+            <div class="action-info">
+              <div class="action-icon">${doc.icon}</div>
+              <div class="action-text">
+                <h4>${doc.nombre}</h4>
+                <p>Máximo ${doc.max}</p>
+              </div>
+            </div>
+            ${isUploaded ? 
+              `<div style="display: flex; gap: 8px;">
+                <span class="action-status completed">✓ Subido</span>
+                ${url ? `<a href="${url}" target="_blank" class="btn btn-outline">Ver</a>` : ''}
+              </div>` :
+              `<button onclick="uploadDocument('${doc.key}')" class="btn btn-primary">Subir</button>`
+            }
+          </div>
+        `;
+      });
+
+      html += '</div></div>';
+      return html;
+    }
+
+    function getFaseBadge(fase) {
+      const faseNum = fase.replace('Fase ', '');
+      const dots = Array.from({length: 4}, (_, i) => {
+        const dotClass = i < faseNum ? 'completed' : (i == faseNum - 1 ? 'active' : '');
+        return `<div class="fase-dot ${dotClass}"></div>`;
+      }).join('');
+
+      return `
+        <span class="badge in-progress">
+          <div class="fase-dots">${dots}</div>
+          ${fase}
+        </span>
+      `;
+    }
+
+    function getEstadoBadge(estado) {
+      const classes = {
+        'Activo': 'completed',
+        'En Progreso': 'in-progress',
+        'Incompleto': 'warning'
+      };
+
+      return `<span class="badge ${classes[estado] || 'in-progress'}">${estado}</span>`;
+    }
+
+    function switchToDocuments() {
+      document.querySelector('[data-tab="documentos"]').click();
+    }
+
+    function uploadDocument(type) {
+      const input = document.createElement('input');
+      input.type = 'file';
+
+      const limits = {
+        foto:   { maxMB: 1, accept: 'image/jpeg,image/jpg,image/png' },
+        cv:     { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
+        cedula: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
+        carta:  { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' }
+      };
+      var labels = { foto: 'Foto Profesional', cv: 'Curriculum Vitae', cedula: 'Cédula Profesional', carta: 'Carta de Sacerdote' };
+
+      input.accept = limits[type].accept;
+
+      input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const maxSize = limits[type].maxMB * 1024 * 1024;
+        if (file.size > maxSize) {
+          showToast('El archivo no debe superar los ' + limits[type].maxMB + 'MB', true);
+          return;
+        }
+
+        showUploadOverlay(file.name, 'Subiendo ' + (labels[type] || 'documento') + '…');
+
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          callProxy('uploadFile', { token: TOKEN, base64Data: event.target.result, fileName: file.name, fileType: type })
+            .then(function(result) {
+              hideUploadOverlay();
+              if (result.success) {
+                showToast('¡' + (labels[type] || 'Documento') + ' subido con éxito!');
+                // Recargar datos PERO mantener al usuario en la pestaña de Documentos
+                reloadDashboardKeepingTab('documentos');
+              } else {
+                showToast('Error: ' + (result.message || 'Sin respuesta'), true);
+              }
+            })
+            .catch(function(error) {
+              hideUploadOverlay();
+              showToast('Error al subir: ' + error.message, true);
+            });
+        };
+        reader.onerror = function() {
+          hideUploadOverlay();
+          showToast('No se pudo leer el archivo.', true);
+        };
+        reader.readAsDataURL(file);
+      };
+
+      input.click();
+    }
+
+    // Recarga el dashboard manteniendo la pestaña activa
+    function reloadDashboardKeepingTab(tab) {
+      // Marcamos en la URL la pestaña para que al volver a renderizar se reactive.
+      // Usamos replaceState para no ensuciar el historial.
+      try {
+        var url = new URL(window.location.href);
+        url.searchParams.set('tab', tab);
+        window.history.replaceState({}, '', url.toString());
+      } catch(_) {}
+      loadDashboard();
+    }
+
+    function showError(message) {
+      document.getElementById('content').innerHTML = `
+        <div class="alert warning">
+          <span class="alert-icon">⚠️</span>
+          <div class="alert-content">
+            <h4>Error</h4>
+            <p>${message}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Cargar al inicio
+    window.onload = loadDashboard;
+  </script>
+</body>
+</html>
