@@ -252,6 +252,10 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Analítica
     </div>
+    <div class="sidebar-link" id="navCorreos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 7l-10 6L2 7"/></svg>
+      Correos Enviados
+    </div>
     <div class="sidebar-section" style="margin-top:24px;">ADMIN</div>
     <div class="sidebar-link" id="navUsuarios">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -427,6 +431,7 @@
     document.getElementById('navVoluntarios').addEventListener('click', function(){ window.location.href = BASE + '/Admin_voluntarios.html'; });
     document.getElementById('navLegal').addEventListener('click', function(){ window.location.href = BASE + '/Admin_legal.html'; });
     document.getElementById('navAnalitica').addEventListener('click', function(){ setActive(this); showAnalitica(); });
+    document.getElementById('navCorreos').addEventListener('click', function(){ setActive(this); showCorreos(); });
     document.getElementById('navUsuarios').addEventListener('click', function(){ setActive(this); showUsuarios(); });
     document.getElementById('navSuperAdmin').addEventListener('click', function(){ setActive(this); showSuperAdmin(); });
     document.getElementById('navHealth').addEventListener('click', function(){ setActive(this); showHealth(); });
@@ -1131,32 +1136,35 @@
       });
   }
 
-  // === PREVISUALIZACIÓN DE CORREOS ===
-  function previewEmail(type) {
-    if (!currentToken) return;
-    var typeNames = {
-      welcome:'Bienvenida', reminder1:'Recordatorio 1', reminder2:'Recordatorio Urgente',
-      incomplete:'Marcado Incompleto', phase2:'Bienvenida Fase 2', guides:'Guías de Uso',
-      zoomReminder:'Recordatorio Zoom', annualUpdate:'Actualización Anual CV',
-      trainingMaterials:'Materiales de Formación', blogInvite:'Invitación Blog',
-      monthlyMeeting:'Reunión Mensual', supervisionInvite:'Supervisión Fe'
-    };
+  // === PREVISUALIZACIÓN DE PLANTILLAS DE CORREO ===
+  // Muestra la plantilla genérica; los campos [así] se reemplazan con los
+  // datos reales de cada profesional al momento del envío.
+  var EMAIL_TYPE_NAMES = {
+    welcome:'Bienvenida', reminder1:'Recordatorio Amigable', reminder2:'Recordatorio Urgente',
+    incomplete:'Marcado Incompleto', phase2:'Bienvenida Fase 2 + Guías', guides:'Guías de Uso',
+    zoomReminder:'Recordatorio Zoom', annualUpdate:'Actualización Anual CV',
+    trainingMaterials:'Materiales de Formación', blogInvite:'Invitación Blog',
+    monthlyMeeting:'Reunión Mensual', supervisionInvite:'Supervisión Fe'
+  };
+  function previewEmail(type, label) {
     var modal = document.getElementById('emailPreviewModal');
     var frame = document.getElementById('emailPreviewFrame');
-    document.getElementById('emailPreviewTitle').textContent = 'Vista previa · ' + (typeNames[type] || type);
-    document.getElementById('emailPreviewSubject').textContent = 'Cargando previsualización…';
+    document.getElementById('emailPreviewTitle').textContent = 'Vista previa · ' + (label || EMAIL_TYPE_NAMES[type] || type);
+    document.getElementById('emailPreviewSubject').textContent = 'Cargando plantilla…';
+    frame.onload = null;
     frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#888;">Cargando…</p>';
     modal.style.display = 'flex';
 
-    callProxy('getEmailPreview', {token: currentToken, emailType: type})
+    callProxy('getEmailTemplate', {emailType: type})
       .then(function(r) {
         if (r && r.success && r.data) {
           document.getElementById('emailPreviewSubject').textContent = 'Asunto: ' + (r.data.subject || '(sin asunto)');
+          frame.onload = function(){ try { highlightPlaceholders(frame.contentDocument); } catch(e){} };
           frame.srcdoc = r.data.html || '<p>Sin contenido</p>';
         } else {
           document.getElementById('emailPreviewSubject').textContent = '';
           frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#c0392b;">' +
-            ((r && r.message) || 'No se pudo generar la previsualización.') + '</p>';
+            ((r && r.message) || 'No se pudo generar la plantilla.') + '</p>';
         }
       })
       .catch(function(e) {
@@ -1164,9 +1172,106 @@
         frame.srcdoc = '<p style="font-family:sans-serif;padding:24px;color:#c0392b;">Error: ' + e.message + '</p>';
       });
   }
+  // Resalta los campos [placeholder] solo en el TEXTO (no en atributos como href)
+  function highlightPlaceholders(doc) {
+    if (!doc || !doc.body) return;
+    var walker = doc.createTreeWalker(doc.body, NodeFilter.SHOW_TEXT, null, false);
+    var targets = [];
+    while (walker.nextNode()) {
+      if (/\[[^\]]+\]/.test(walker.currentNode.nodeValue)) targets.push(walker.currentNode);
+    }
+    targets.forEach(function(node) {
+      var span = doc.createElement('span');
+      span.innerHTML = node.nodeValue.replace(/\[([^\]]+)\]/g,
+        '<mark style="background:#fff3cd;color:#856404;padding:0 3px;border-radius:3px;font-weight:600;">[$1]</mark>');
+      node.parentNode.replaceChild(span, node);
+    });
+  }
   function closeEmailPreview() {
     document.getElementById('emailPreviewModal').style.display = 'none';
-    document.getElementById('emailPreviewFrame').srcdoc = '';
+    var frame = document.getElementById('emailPreviewFrame');
+    frame.onload = null;
+    frame.srcdoc = '';
+  }
+
+  // === CORREOS ENVIADOS VIEW ===
+  var correosData = [];
+  function showCorreos() {
+    document.getElementById('mainContent').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando correos…</p></div>';
+    callProxy('getAllEmailLog', {})
+      .then(function(r) {
+        correosData = (r && r.data) ? r.data : [];
+        renderCorreos();
+      })
+      .catch(function(err) {
+        document.getElementById('mainContent').innerHTML =
+          '<p style="color:var(--red);padding:20px;">Error al cargar correos: ' + err.message + '</p>';
+      });
+  }
+  function renderCorreos() {
+    var tipos = {};
+    correosData.forEach(function(c){ if (c.tipo) tipos[c.tipo] = true; });
+    var tipoOptions = '<option value="">Todos los tipos</option>' +
+      Object.keys(tipos).sort().map(function(t){ return '<option value="' + t + '">' + t + '</option>'; }).join('');
+
+    document.getElementById('mainContent').innerHTML =
+      '<h1 style="font-size:28px;font-weight:700;color:var(--gray-900);margin-bottom:4px;">&#x1F4EC; Correos Enviados</h1>' +
+      '<p style="color:var(--gray-500);margin-bottom:24px;font-size:14px;">Registro de notificaciones enviadas por el sistema (hoja Email_Log)</p>' +
+      '<div style="background:white;border:1px solid var(--gray-200);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">' +
+        '<input id="correoSearch" placeholder="&#x1F50D;  Buscar por destinatario, asunto o tipo…" style="flex:1;min-width:240px;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;">' +
+        '<select id="correoEstado" style="padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;"><option value="">Todos los estados</option><option value="ENVIADO">ENVIADO</option><option value="ERROR">ERROR</option></select>' +
+        '<select id="correoTipo" style="padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;">' + tipoOptions + '</select>' +
+      '</div>' +
+      '<div style="background:white;border:1px solid var(--gray-200);border-radius:12px;overflow:hidden;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--gray-100);">' +
+          '<h3 style="font-size:16px;font-weight:700;">Notificaciones</h3>' +
+          '<span id="correoCount" style="font-size:13px;color:var(--gray-500);"></span>' +
+        '</div>' +
+        '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="text-align:left;color:var(--gray-500);font-size:11px;letter-spacing:0.5px;">' +
+          '<th style="padding:10px 20px;">FECHA</th><th style="padding:10px;">DESTINATARIO</th><th style="padding:10px;">ASUNTO</th><th style="padding:10px;">PROVEEDOR</th><th style="padding:10px;">ESTADO</th><th style="padding:10px 20px;">PLANTILLA</th>' +
+        '</tr></thead><tbody id="correoTbody"></tbody></table></div>' +
+      '</div>';
+
+    document.getElementById('correoSearch').addEventListener('input', renderCorreoRows);
+    document.getElementById('correoEstado').addEventListener('change', renderCorreoRows);
+    document.getElementById('correoTipo').addEventListener('change', renderCorreoRows);
+    renderCorreoRows();
+  }
+  function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+  function renderCorreoRows() {
+    var q = (document.getElementById('correoSearch').value || '').toLowerCase();
+    var fEstado = document.getElementById('correoEstado').value;
+    var fTipo = document.getElementById('correoTipo').value;
+    var filtered = correosData.filter(function(c) {
+      var matchQ = !q || (c.email||'').toLowerCase().indexOf(q) >= 0 ||
+                   (c.subject||'').toLowerCase().indexOf(q) >= 0 || (c.tipo||'').toLowerCase().indexOf(q) >= 0;
+      var matchE = !fEstado || c.estado === fEstado;
+      var matchT = !fTipo || c.tipo === fTipo;
+      return matchQ && matchE && matchT;
+    });
+    var rows = filtered.map(function(c) {
+      var estadoBadge = c.estado === 'ENVIADO'
+        ? '<span class="badge badge-green">ENVIADO</span>'
+        : '<span class="badge badge-red">' + escapeHtml(c.estado || '—') + '</span>';
+      return '<tr style="border-top:1px solid var(--gray-100);">' +
+        '<td style="padding:12px 20px;color:var(--gray-500);white-space:nowrap;">' + escapeHtml(c.fecha) + (c.hora ? (' ' + escapeHtml(c.hora)) : '') + '</td>' +
+        '<td style="padding:12px;">' + escapeHtml(c.email) + '</td>' +
+        '<td style="padding:12px;">' + escapeHtml(c.subject) + '</td>' +
+        '<td style="padding:12px;"><span class="badge" style="background:var(--gray-100);color:var(--navy);">' + escapeHtml(c.proveedor || 'BREVO') + '</span></td>' +
+        '<td style="padding:12px;">' + estadoBadge + '</td>' +
+        '<td style="padding:12px 20px;"><button class="btn-sm correo-prev" data-tipo="' + escapeHtml(c.tipo) + '" data-label="' + escapeHtml(c.subject) + '" style="display:inline-flex;align-items:center;gap:5px;">&#x1F441;&#xFE0F; Ver plantilla</button></td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('correoTbody').innerHTML = rows ||
+      '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-500);">Sin resultados</td></tr>';
+    document.getElementById('correoCount').textContent = filtered.length + ' de ' + correosData.length + ' registros';
+    document.querySelectorAll('.correo-prev').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        previewEmail(this.getAttribute('data-tipo'), this.getAttribute('data-label'));
+      });
+    });
   }
 
   // === LEGAL VIEW ===
@@ -1971,7 +2076,10 @@
       <button onclick="closeEmailPreview()" aria-label="Cerrar" style="background:rgba(255,255,255,0.15);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;flex-shrink:0;">&times;</button>
     </div>
     <div style="flex:1;overflow:auto;background:#f4f7fa;padding:14px;">
-      <iframe id="emailPreviewFrame" title="Contenido del correo" sandbox="" style="width:100%;height:60vh;border:1px solid var(--gray-200);border-radius:8px;background:#fff;"></iframe>
+      <div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12.5px;color:#856404;line-height:1.5;">
+        <strong>&#x2139;&#xFE0F; Esta es la plantilla genérica</strong> del correo que envía el sistema. Los campos resaltados <mark style="background:#fff3cd;color:#856404;padding:0 4px;border-radius:3px;font-weight:600;">[así]</mark> se reemplazan con los datos reales de cada profesional al momento del envío.
+      </div>
+      <iframe id="emailPreviewFrame" title="Contenido del correo" sandbox="allow-same-origin" style="width:100%;height:60vh;border:1px solid var(--gray-200);border-radius:8px;background:#fff;"></iframe>
     </div>
     <div style="padding:12px 20px;border-top:1px solid var(--gray-200);text-align:right;">
       <button class="btn-sm" onclick="closeEmailPreview()" style="padding:8px 18px;">Cerrar</button>

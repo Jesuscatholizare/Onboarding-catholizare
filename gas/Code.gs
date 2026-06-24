@@ -382,6 +382,12 @@ function doPost(e) {
       case 'getEmailPreview':
         result = getEmailPreview(data.token, data.emailType);
         break;
+      case 'getEmailTemplate':
+        result = getEmailTemplate(data.emailType);
+        break;
+      case 'getAllEmailLog':
+        result = { success: true, data: getAllEmailLog(data.limit) };
+        break;
       case 'adminAdvancePhase':
         result = adminAdvancePhase(data.token);
         break;
@@ -752,10 +758,10 @@ function sendManualEmailFromDashboard(token, emailType) {
 
 // ============================================================================
 // PREVISUALIZACIÓN DE CORREOS (sin enviar)
-// Reutiliza EXACTAMENTE el HTML que enviaría cada correo, interceptando el
-// envío real y los efectos secundarios. Devuelve { subject, to, html }.
+// Reutiliza EXACTAMENTE el HTML que construye cada correo, interceptando el
+// envío real y los efectos secundarios. Devuelve { to, subject, html }.
 // ============================================================================
-function getEmailPreview(token, emailType) {
+function _captureEmailSend(builderFn) {
   // Guardar las referencias originales para restaurarlas siempre
   var _origSend   = sendEmailViaBrevo;
   var _origLog    = logEmailSent;
@@ -776,9 +782,9 @@ function getEmailPreview(token, emailType) {
     if (_origAdd)    addContactToBrevo       = function() { return { success: true }; };
     if (_origAction) logAction               = function() {};
 
-    sendManualEmailFromDashboard(token, emailType);
+    builderFn();
   } catch (e) {
-    Logger.log('Error en getEmailPreview: ' + e);
+    Logger.log('Error capturando correo: ' + e);
   } finally {
     // Restaurar SIEMPRE las funciones originales
     sendEmailViaBrevo = _origSend;
@@ -787,11 +793,91 @@ function getEmailPreview(token, emailType) {
     if (_origAdd)    addContactToBrevo       = _origAdd;
     if (_origAction) logAction               = _origAction;
   }
+  return captured;
+}
 
+// Previsualización con los DATOS REALES de un profesional (requiere token)
+function getEmailPreview(token, emailType) {
+  var captured = _captureEmailSend(function() {
+    sendManualEmailFromDashboard(token, emailType);
+  });
   if (!captured) {
     return { success: false, message: 'No hay previsualización disponible para este correo (' + emailType + ').' };
   }
   return { success: true, data: { subject: captured.subject, to: captured.to, html: captured.html } };
+}
+
+// Normaliza tanto los tipos del dashboard (welcome, reminder1…) como los
+// Tipo_Email guardados en la hoja Email_Log (WELCOME, PHASE2_GUIDES…).
+function _normalizeEmailType(emailType) {
+  var up = String(emailType || '').toUpperCase();
+  if (up.indexOf('ANNUAL_UPDATE') === 0) return 'annualUpdate';
+  var map = {
+    'WELCOME': 'welcome', 'REMINDER_1': 'reminder1', 'REMINDER_2': 'reminder2',
+    'INCOMPLETE': 'incomplete', 'PHASE2_GUIDES': 'phase2', 'PHASE2_WELCOME': 'phase2',
+    'PHASE3_WELCOME': 'trainingMaterials', 'BLOG_INVITE': 'blogInvite',
+    'MONTHLY_MEETING': 'monthlyMeeting', 'ZOOM_REMINDER': 'zoomReminder'
+  };
+  return map[up] || String(emailType || '');
+}
+
+// Plantilla GENÉRICA: muestra el correo con campos [así] que se reemplazan
+// con los datos reales de cada profesional al momento del envío.
+function getEmailTemplate(emailType) {
+  var t = _normalizeEmailType(emailType);
+  var EMAIL = '[Email]', NOMBRE = '[Nombre]', TOKEN = '[TOKEN]', PROGRESO = '[Progreso]';
+
+  var captured = _captureEmailSend(function() {
+    switch (t) {
+      case 'welcome':           sendWelcomeEmail(EMAIL, NOMBRE, TOKEN); break;
+      case 'reminder1':         sendReminder1(EMAIL, NOMBRE, PROGRESO, TOKEN); break;
+      case 'reminder2':         sendReminder2(EMAIL, NOMBRE, PROGRESO, TOKEN); break;
+      case 'incomplete':        sendIncompleteNotification(EMAIL, NOMBRE); break;
+      case 'phase2':
+      case 'guides':            sendPhase2AndGuidesEmail(EMAIL, NOMBRE, TOKEN); break;
+      case 'zoomReminder':      sendZoomReminderEmail(EMAIL, NOMBRE, '[Fecha de reunión]'); break;
+      case 'annualUpdate':      sendAnnualUpdateEmail(EMAIL, NOMBRE, TOKEN, '[Años]'); break;
+      case 'trainingMaterials': sendPhase3WelcomeEmail(EMAIL, NOMBRE, TOKEN); break;
+      case 'blogInvite':        sendBlogInviteEmail(EMAIL, NOMBRE, TOKEN); break;
+      case 'monthlyMeeting':    sendMonthlyMeetingEmail(EMAIL, NOMBRE, TOKEN); break;
+      default: break;
+    }
+  });
+  if (!captured) {
+    return { success: false, message: 'No hay plantilla disponible para este tipo de correo (' + emailType + ').' };
+  }
+  return { success: true, data: { subject: captured.subject, to: captured.to, html: captured.html } };
+}
+
+// ============================================================================
+// REGISTRO DE CORREOS ENVIADOS (hoja Email_Log) — todos los profesionales
+// ============================================================================
+function getAllEmailLog(limit) {
+  try {
+    var sheet = getSS().getSheetByName("Email_Log");
+    if (!sheet) return [];
+    var data = sheet.getDataRange().getValues();
+    var rows = [];
+    for (var i = 1; i < data.length; i++) {
+      rows.push({
+        fecha:     data[i][0] ? String(data[i][0]) : '',
+        hora:      data[i][1] ? String(data[i][1]) : '',
+        token:     String(data[i][2] || ''),
+        email:     String(data[i][3] || ''),
+        tipo:      String(data[i][4] || ''),
+        subject:   String(data[i][5] || ''),
+        estado:    String(data[i][6] || ''),
+        proveedor: 'BREVO',
+        timestamp: data[i][7] ? String(data[i][7]) : ''
+      });
+    }
+    rows.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
+    if (limit && limit > 0) rows = rows.slice(0, limit);
+    return rows;
+  } catch (e) {
+    Logger.log('Error en getAllEmailLog: ' + e);
+    return [];
+  }
 }
 
 // ============================================================================
