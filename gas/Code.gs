@@ -379,6 +379,9 @@ function doPost(e) {
       case 'sendManualEmailFromDashboard':
         result = sendManualEmailFromDashboard(data.token, data.emailType);
         break;
+      case 'getEmailPreview':
+        result = getEmailPreview(data.token, data.emailType);
+        break;
       case 'adminAdvancePhase':
         result = adminAdvancePhase(data.token);
         break;
@@ -745,6 +748,50 @@ function sendManualEmailFromDashboard(token, emailType) {
     Logger.log('Error en sendManualEmailFromDashboard: ' + e);
     return { success: false, message: e.toString() };
   }
+}
+
+// ============================================================================
+// PREVISUALIZACIÓN DE CORREOS (sin enviar)
+// Reutiliza EXACTAMENTE el HTML que enviaría cada correo, interceptando el
+// envío real y los efectos secundarios. Devuelve { subject, to, html }.
+// ============================================================================
+function getEmailPreview(token, emailType) {
+  // Guardar las referencias originales para restaurarlas siempre
+  var _origSend   = sendEmailViaBrevo;
+  var _origLog    = logEmailSent;
+  var _origMove   = (typeof moveContactToBrevoPhase === 'function') ? moveContactToBrevoPhase : null;
+  var _origAdd    = (typeof addContactToBrevo === 'function') ? addContactToBrevo : null;
+  var _origAction = (typeof logAction === 'function') ? logAction : null;
+
+  var captured = null;
+  try {
+    // Interceptar el envío: capturar asunto + HTML en lugar de mandarlo a Brevo
+    sendEmailViaBrevo = function(to, subject, htmlContent) {
+      if (!captured) captured = { to: to, subject: subject, html: htmlContent };
+      return { success: true, preview: true };
+    };
+    // Anular efectos secundarios mientras se previsualiza
+    logEmailSent = function() {};
+    if (_origMove)   moveContactToBrevoPhase = function() { return { success: true }; };
+    if (_origAdd)    addContactToBrevo       = function() { return { success: true }; };
+    if (_origAction) logAction               = function() {};
+
+    sendManualEmailFromDashboard(token, emailType);
+  } catch (e) {
+    Logger.log('Error en getEmailPreview: ' + e);
+  } finally {
+    // Restaurar SIEMPRE las funciones originales
+    sendEmailViaBrevo = _origSend;
+    logEmailSent      = _origLog;
+    if (_origMove)   moveContactToBrevoPhase = _origMove;
+    if (_origAdd)    addContactToBrevo       = _origAdd;
+    if (_origAction) logAction               = _origAction;
+  }
+
+  if (!captured) {
+    return { success: false, message: 'No hay previsualización disponible para este correo (' + emailType + ').' };
+  }
+  return { success: true, data: { subject: captured.subject, to: captured.to, html: captured.html } };
 }
 
 // ============================================================================
