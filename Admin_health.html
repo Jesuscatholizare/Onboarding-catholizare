@@ -11,7 +11,8 @@
     body { font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--gray-50); min-height: 100vh; display: flex; flex-direction: column; }
     .top-bar { height: 56px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
     .top-bar-left { display: flex; align-items: center; gap: 12px; }
-    .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; }
+    .logo { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; background: var(--navy); padding: 5px 12px; border-radius: 8px; }
+    .logo img { height: 26px; width: auto; display: block; }
     .logo-icon { width: 30px; height: 30px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
     .breadcrumb { color: var(--gray-600); font-size: 14px; }
     .breadcrumb a { color: var(--blue); text-decoration: none; }
@@ -45,7 +46,7 @@
 <body>
   <div class="top-bar">
     <div class="top-bar-left">
-      <a class="logo" id="lnkD"><div class="logo-icon">✝</div>Catholizare</a>
+      <a class="logo" id="lnkD"><img src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png" alt="Catholizare Pro"></a>
       <span class="breadcrumb">/ <a id="lnkD2">Dashboard</a> / System Health</span>
     </div>
     <div class="top-bar-right">
