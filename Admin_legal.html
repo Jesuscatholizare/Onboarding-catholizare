@@ -304,6 +304,21 @@
     var USER_NAME = sessionStorage.getItem('onb_userName') || '';
     if (!TOKEN) { window.location.href = BASE + '/index.html'; }
 
+    // === AUTO-CIERRE POR INACTIVIDAD (30 min) — seguridad ===
+    (function() {
+      var INACTIVITY_MS = 30 * 60 * 1000; // 30 minutos
+      var _inacTimer;
+      function _autoLogout() {
+        try { sessionStorage.clear(); } catch (e) {}
+        window.location.href = BASE + '/index.html?timeout=1';
+      }
+      function _resetInac() { clearTimeout(_inacTimer); _inacTimer = setTimeout(_autoLogout, INACTIVITY_MS); }
+      ['mousemove','mousedown','keydown','scroll','touchstart','click'].forEach(function(ev){
+        document.addEventListener(ev, _resetInac, true);
+      });
+      _resetInac();
+    })();
+
     // Header user info
     document.getElementById('hdrEmail').textContent = USER_EMAIL || USER_NAME || '-';
     var roleEl = document.getElementById('hdrRole');

@@ -298,6 +298,19 @@
       }
     }
 
+    // Aviso si la sesión se cerró por inactividad (30 min)
+    (function notifyTimeout() {
+      try {
+        if (new URLSearchParams(window.location.search).get('timeout')) {
+          var el = document.getElementById('errorMsg');
+          if (el) {
+            el.textContent = 'Tu sesión se cerró por seguridad tras 30 minutos de inactividad. Ingresa de nuevo.';
+            el.classList.add('show');
+          }
+        }
+      } catch (e) {}
+    })();
+
     // Recordar el acceso en este equipo
     var REMEMBER_KEY = 'onb_remember';
     (function loadRemembered() {
