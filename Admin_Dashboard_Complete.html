@@ -1250,7 +1250,7 @@
 
     document.getElementById('mainContent').innerHTML =
       '<h1 style="font-size:28px;font-weight:700;color:var(--gray-900);margin-bottom:4px;">&#x1F4EC; Correos Enviados</h1>' +
-      '<p style="color:var(--gray-500);margin-bottom:24px;font-size:14px;">Registro de notificaciones enviadas por el sistema (hoja Email_Log)</p>' +
+      '<p style="color:var(--gray-500);margin-bottom:24px;font-size:14px;">Registro de notificaciones enviadas por el sistema</p>' +
       '<div style="background:white;border:1px solid var(--gray-200);border-radius:12px;padding:16px;margin-bottom:20px;display:flex;gap:12px;flex-wrap:wrap;align-items:center;">' +
         '<input id="correoSearch" placeholder="&#x1F50D;  Buscar por destinatario, asunto o tipo…" style="flex:1;min-width:240px;padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;">' +
         '<select id="correoEstado" style="padding:10px 14px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;"><option value="">Todos los estados</option><option value="ENVIADO">ENVIADO</option><option value="ERROR">ERROR</option></select>' +
@@ -1286,8 +1286,9 @@
       return matchQ && matchE && matchT;
     });
     var rows = filtered.map(function(c) {
-      var estadoBadge = c.estado === 'ENVIADO'
-        ? '<span class="badge badge-green">ENVIADO</span>'
+      var estadoOk = /^(enviado|sent)$/i.test(c.estado || '');
+      var estadoBadge = estadoOk
+        ? '<span class="badge badge-green">' + escapeHtml(c.estado) + '</span>'
         : '<span class="badge badge-red">' + escapeHtml(c.estado || '—') + '</span>';
       return '<tr style="border-top:1px solid var(--gray-100);">' +
         '<td style="padding:12px 20px;color:var(--gray-500);white-space:nowrap;">' + escapeHtml(c.fecha) + (c.hora ? (' ' + escapeHtml(c.hora)) : '') + '</td>' +

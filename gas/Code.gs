@@ -852,25 +852,53 @@ function getEmailTemplate(emailType) {
 }
 
 // ============================================================================
-// REGISTRO DE CORREOS ENVIADOS (hoja Email_Log) — todos los profesionales
+// REGISTRO DE CORREOS ENVIADOS — todos los profesionales
+// Lee la hoja de notificaciones sin importar su nombre ("Email_Log" propio del
+// onboarding, o "Notificaciones" estilo Selección) ni su orden de columnas:
+// detecta las columnas por sus encabezados.
 // ============================================================================
 function getAllEmailLog(limit) {
   try {
-    var sheet = getSS().getSheetByName("Email_Log");
+    var ss = getSS();
+    var sheet = ss.getSheetByName("Email_Log") || ss.getSheetByName("Notificaciones");
     if (!sheet) return [];
     var data = sheet.getDataRange().getValues();
+    if (data.length < 2) return [];
+
+    // Mapear columnas por encabezado (admite ambos formatos)
+    var header = data[0].map(function(h){ return String(h || '').toLowerCase().trim(); });
+    function col(names) {
+      for (var n = 0; n < names.length; n++) {
+        var i = header.indexOf(names[n]);
+        if (i >= 0) return i;
+      }
+      return -1;
+    }
+    var iFecha = col(['fecha', 'timestamp']);          // A en ambos formatos
+    var iHora  = col(['hora']);
+    var iToken = col(['token']);
+    var iEmail = col(['email_profesional', 'email', 'destinatario']);
+    var iTipo  = col(['tipo_email', 'tipo']);
+    var iSubj  = col(['subject', 'asunto']);
+    var iEstado = col(['estado', 'status']);
+    var iProv  = col(['proveedor', 'provider']);
+    var iIso   = col(['iso_timestamp', 'timestamp']);  // ISO para ordenar
+
+    function val(row, i) { return i >= 0 && row[i] != null ? String(row[i]) : ''; }
+
     var rows = [];
-    for (var i = 1; i < data.length; i++) {
+    for (var r = 1; r < data.length; r++) {
+      var row = data[r];
       rows.push({
-        fecha:     data[i][0] ? String(data[i][0]) : '',
-        hora:      data[i][1] ? String(data[i][1]) : '',
-        token:     String(data[i][2] || ''),
-        email:     String(data[i][3] || ''),
-        tipo:      String(data[i][4] || ''),
-        subject:   String(data[i][5] || ''),
-        estado:    String(data[i][6] || ''),
-        proveedor: 'BREVO',
-        timestamp: data[i][7] ? String(data[i][7]) : ''
+        fecha:     val(row, iFecha),
+        hora:      val(row, iHora),
+        token:     val(row, iToken),
+        email:     val(row, iEmail),
+        tipo:      val(row, iTipo),
+        subject:   val(row, iSubj),
+        estado:    val(row, iEstado),
+        proveedor: iProv >= 0 ? val(row, iProv) : 'BREVO',
+        timestamp: val(row, iIso) || val(row, iFecha)
       });
     }
     rows.sort(function(a, b) { return new Date(b.timestamp) - new Date(a.timestamp); });
