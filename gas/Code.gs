@@ -2001,18 +2001,21 @@ function logEmailSent(token, email, emailType, subject, success) {
       emailLogSheet.setFrozenRows(1);
     }
     var now = new Date();
-    emailLogSheet.appendRow([
+    var rowValues = [
       Utilities.formatDate(now, "GMT-6", "yyyy-MM-dd"),
       Utilities.formatDate(now, "GMT-6", "HH:mm:ss"),
       token, email, emailType, subject,
       success ? "ENVIADO" : "ERROR",
       now.toISOString()
-    ]);
-    var lastRow = emailLogSheet.getLastRow();
+    ];
+    // Insertar el nuevo correo en la fila 2 (debajo de los encabezados),
+    // de modo que el más reciente quede siempre arriba.
+    emailLogSheet.insertRowAfter(1);
+    emailLogSheet.getRange(2, 1, 1, rowValues.length).setValues([rowValues]);
     if (success) {
-      emailLogSheet.getRange(lastRow, 7).setBackground("#d4edda").setFontColor("#155724");
+      emailLogSheet.getRange(2, 7).setBackground("#d4edda").setFontColor("#155724");
     } else {
-      emailLogSheet.getRange(lastRow, 7).setBackground("#f8d7da").setFontColor("#721c24");
+      emailLogSheet.getRange(2, 7).setBackground("#f8d7da").setFontColor("#721c24");
     }
   } catch (error) {
     Logger.log('Error en logEmailSent: ' + error);

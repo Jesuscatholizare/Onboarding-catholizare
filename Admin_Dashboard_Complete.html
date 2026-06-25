@@ -1245,6 +1245,8 @@
 
   // === CORREOS ENVIADOS VIEW ===
   var correosData = [];
+  var CORREOS_PAGE = 30;
+  var correosVisible = CORREOS_PAGE;
   function showCorreos() {
     document.getElementById('mainContent').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando correos…</p></div>';
     callProxy('getAllEmailLog', {})
@@ -1279,11 +1281,17 @@
         '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;font-size:13px;"><thead><tr style="text-align:left;color:var(--gray-500);font-size:11px;letter-spacing:0.5px;">' +
           '<th style="padding:10px 20px;">FECHA</th><th style="padding:10px;">DESTINATARIO</th><th style="padding:10px;">ASUNTO</th><th style="padding:10px;">PROVEEDOR</th><th style="padding:10px;">ESTADO</th><th style="padding:10px 20px;">PLANTILLA</th>' +
         '</tr></thead><tbody id="correoTbody"></tbody></table></div>' +
+        '<div id="correoMoreWrap" style="padding:16px 20px;text-align:center;border-top:1px solid var(--gray-100);display:none;">' +
+          '<button id="correoMore" class="btn-sm" style="background:var(--navy);color:#fff;border:none;padding:10px 24px;font-weight:600;">Cargar más</button>' +
+        '</div>' +
       '</div>';
 
-    document.getElementById('correoSearch').addEventListener('input', renderCorreoRows);
-    document.getElementById('correoEstado').addEventListener('change', renderCorreoRows);
-    document.getElementById('correoTipo').addEventListener('change', renderCorreoRows);
+    correosVisible = CORREOS_PAGE;
+    function onFilterChange(){ correosVisible = CORREOS_PAGE; renderCorreoRows(); }
+    document.getElementById('correoSearch').addEventListener('input', onFilterChange);
+    document.getElementById('correoEstado').addEventListener('change', onFilterChange);
+    document.getElementById('correoTipo').addEventListener('change', onFilterChange);
+    document.getElementById('correoMore').addEventListener('click', function(){ correosVisible += CORREOS_PAGE; renderCorreoRows(); });
     renderCorreoRows();
   }
   function escapeHtml(s) {
@@ -1300,7 +1308,8 @@
       var matchT = !fTipo || c.tipo === fTipo;
       return matchQ && matchE && matchT;
     });
-    var rows = filtered.map(function(c) {
+    var visibles = filtered.slice(0, correosVisible);
+    var rows = visibles.map(function(c) {
       var estadoOk = /^(enviado|sent)$/i.test(c.estado || '');
       var estadoBadge = estadoOk
         ? '<span class="badge badge-green">' + escapeHtml(c.estado) + '</span>'
@@ -1316,7 +1325,16 @@
     }).join('');
     document.getElementById('correoTbody').innerHTML = rows ||
       '<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--gray-500);">Sin resultados</td></tr>';
-    document.getElementById('correoCount').textContent = filtered.length + ' de ' + correosData.length + ' registros';
+    document.getElementById('correoCount').textContent = 'Mostrando ' + visibles.length + ' de ' + filtered.length + ' registros';
+    var moreWrap = document.getElementById('correoMoreWrap');
+    if (moreWrap) {
+      if (filtered.length > correosVisible) {
+        moreWrap.style.display = 'block';
+        document.getElementById('correoMore').textContent = 'Cargar más (' + (filtered.length - correosVisible) + ' restantes)';
+      } else {
+        moreWrap.style.display = 'none';
+      }
+    }
     document.querySelectorAll('.correo-prev').forEach(function(btn) {
       btn.addEventListener('click', function() {
         previewEmail(this.getAttribute('data-tipo'), this.getAttribute('data-label'));
