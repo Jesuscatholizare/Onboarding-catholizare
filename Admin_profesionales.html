@@ -18,7 +18,8 @@
     /* TOP BAR */
     .top-bar { height: 56px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; position: sticky; top: 0; z-index: 50; }
     .top-bar-left { display: flex; align-items: center; gap: 16px; }
-    .logo { display: flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; cursor: pointer; }
+    .logo { display: inline-flex; align-items: center; gap: 8px; font-size: 18px; font-weight: 700; color: var(--navy); text-decoration: none; cursor: pointer; background: var(--navy); padding: 5px 12px; border-radius: 8px; }
+    .logo img { height: 26px; width: auto; display: block; }
     .logo-icon { width: 30px; height: 30px; background: var(--navy); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; font-size: 16px; }
     .breadcrumb { color: var(--gray-600); font-size: 14px; }
     .breadcrumb a { color: var(--blue); text-decoration: none; cursor: pointer; }
@@ -160,7 +161,7 @@
   <!-- TOP BAR -->
   <div class="top-bar">
     <div class="top-bar-left">
-      <a class="logo" id="lnkHome"><div class="logo-icon">✝</div>Catholizare</a>
+      <a class="logo" id="lnkHome"><img src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png" alt="Catholizare Pro"></a>
       <span class="breadcrumb">/ <a id="lnkDash">Dashboard</a> / <strong>Profesionales</strong></span>
     </div>
     <div class="top-bar-right">

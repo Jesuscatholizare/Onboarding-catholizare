@@ -27,10 +27,18 @@
       font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, sans-serif;
       min-height: 100vh;
       display: flex;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: linear-gradient(160deg, var(--navy) 0%, var(--navy-deep) 60%, #001040 100%);
       padding: 20px;
+    }
+    .login-logo {
+      width: 230px;
+      max-width: 72%;
+      height: auto;
+      margin-bottom: 30px;
+      filter: drop-shadow(0 4px 14px rgba(0,0,0,0.25));
     }
     .login-card {
       width: 100%;
@@ -164,12 +172,46 @@
       font-size: 11px;
       color: var(--gray-400);
     }
+    .password-wrap { position: relative; }
+    .password-wrap .input-field { padding-right: 48px; }
+    .toggle-pass {
+      position: absolute;
+      top: 50%;
+      right: 12px;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      color: var(--gray-400);
+      transition: color 0.2s;
+    }
+    .toggle-pass:hover { color: var(--blue); }
+    .remember-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: -4px 0 20px;
+      font-size: 13px;
+      color: var(--gray-600);
+      cursor: pointer;
+      user-select: none;
+    }
+    .remember-row input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--blue);
+      cursor: pointer;
+    }
     @media (max-width: 480px) {
       .login-card { padding: 36px 24px; }
     }
   </style>
 </head>
 <body>
+  <img class="login-logo" src="https://profesionales.catholizare.com/wp-content/uploads/2024/03/logo-Pro-2024-bco-1-1536x251.png" alt="Catholizare Pro">
   <div class="login-card">
     <div class="login-header">
       <h1>Ingreso al proceso de onboarding</h1>
@@ -191,16 +233,26 @@
 
       <div class="input-group">
         <label class="input-label" for="password">Clave de acceso</label>
-        <input
-          type="password"
-          class="input-field"
-          id="password"
-          placeholder="Ingresa tu clave"
-          autocomplete="current-password"
-          spellcheck="false"
-        >
+        <div class="password-wrap">
+          <input
+            type="password"
+            class="input-field"
+            id="password"
+            placeholder="Ingresa tu clave"
+            autocomplete="current-password"
+            spellcheck="false"
+          >
+          <button type="button" class="toggle-pass" id="togglePass" onclick="togglePassword()" aria-label="Mostrar u ocultar clave">
+            <svg id="eyeIcon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
         <div class="error-msg" id="errorMsg"></div>
       </div>
+
+      <label class="remember-row">
+        <input type="checkbox" id="rememberMe">
+        Recordar mi acceso en este equipo
+      </label>
 
       <button type="submit" class="btn-login" id="btnLogin">
         Ingresar
@@ -232,6 +284,41 @@
     sessionStorage.removeItem('onb_userName');
     sessionStorage.removeItem('onb_userRole');
     sessionStorage.removeItem('onb_userEmail');
+
+    // Mostrar/ocultar la clave de acceso (ojito)
+    function togglePassword() {
+      var input = document.getElementById('password');
+      var icon = document.getElementById('eyeIcon');
+      if (input.type === 'password') {
+        input.type = 'text';
+        icon.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-10-7-10-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 10 7 10 7a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="2" y1="2" x2="22" y2="22"/>';
+      } else {
+        input.type = 'password';
+        icon.innerHTML = '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>';
+      }
+    }
+
+    // Recordar el acceso en este equipo
+    var REMEMBER_KEY = 'onb_remember';
+    (function loadRemembered() {
+      try {
+        var saved = JSON.parse(localStorage.getItem(REMEMBER_KEY) || 'null');
+        if (saved && saved.email) {
+          document.getElementById('email').value = saved.email;
+          document.getElementById('password').value = saved.pass || '';
+          document.getElementById('rememberMe').checked = true;
+        }
+      } catch (e) {}
+    })();
+    function persistRemember(email, pass) {
+      try {
+        if (document.getElementById('rememberMe').checked) {
+          localStorage.setItem(REMEMBER_KEY, JSON.stringify({ email: email, pass: pass }));
+        } else {
+          localStorage.removeItem(REMEMBER_KEY);
+        }
+      } catch (e) {}
+    }
 
     function callProxy(action, data) {
       return fetch(PROXY + '?action=' + action, {
@@ -282,6 +369,9 @@
         showError('Ingresa tu clave de acceso.');
         return;
       }
+
+      // Guardar o limpiar credenciales recordadas en este equipo
+      persistRemember(email, token);
 
       var btn = document.getElementById('btnLogin');
       btn.innerHTML = '<div class="spinner"></div> Verificando...';
