@@ -320,12 +320,23 @@
       } catch (e) {}
     }
 
-    function callProxy(action, data) {
+    function callProxy(action, data, _retry) {
       return fetch(PROXY + '?action=' + action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data || {})
-      }).then(function(r) { return r.json(); });
+      }).then(function(r) { return r.json(); })
+        .catch(function(err) {
+          // Reintento automático ante fallo transitorio (arranque en frío del
+          // backend): la primera petición a veces falla y la segunda funciona.
+          // Solo reintenta errores de red/parseo, NO respuestas válidas
+          // {success:false} (credenciales incorrectas no se reintentan).
+          if (!_retry) {
+            return new Promise(function(resolve){ setTimeout(resolve, 900); })
+              .then(function(){ return callProxy(action, data, true); });
+          }
+          throw err;
+        });
     }
 
     function showError(msg) {
