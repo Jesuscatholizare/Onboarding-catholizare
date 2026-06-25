@@ -816,7 +816,8 @@ function _normalizeEmailType(emailType) {
     'WELCOME': 'welcome', 'REMINDER_1': 'reminder1', 'REMINDER_2': 'reminder2',
     'INCOMPLETE': 'incomplete', 'PHASE2_GUIDES': 'phase2', 'PHASE2_WELCOME': 'phase2',
     'PHASE3_WELCOME': 'trainingMaterials', 'BLOG_INVITE': 'blogInvite',
-    'MONTHLY_MEETING': 'monthlyMeeting', 'ZOOM_REMINDER': 'zoomReminder'
+    'MONTHLY_MEETING': 'monthlyMeeting', 'ZOOM_REMINDER': 'zoomReminder',
+    'ADMIN_NOTIFICATION': 'adminNotification'
   };
   return map[up] || String(emailType || '');
 }
@@ -840,6 +841,7 @@ function getEmailTemplate(emailType) {
       case 'trainingMaterials': sendPhase3WelcomeEmail(EMAIL, NOMBRE, TOKEN); break;
       case 'blogInvite':        sendBlogInviteEmail(EMAIL, NOMBRE, TOKEN); break;
       case 'monthlyMeeting':    sendMonthlyMeetingEmail(EMAIL, NOMBRE, TOKEN); break;
+      case 'adminNotification': notifyAdminForZoomScheduling(EMAIL, NOMBRE, TOKEN); break;
       default: break;
     }
   });
