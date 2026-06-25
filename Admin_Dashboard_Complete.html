@@ -10,7 +10,7 @@
   <style>
     * { margin:0; padding:0; box-sizing:border-box; }
     :root {
-      --navy: #0f1d3d;
+      --navy: #001A55;
       --navy-light: #1a2d5a;
       --gold: #D4AF37;
       --blue: #3b82f6;
@@ -52,13 +52,13 @@
       position:fixed; top:var(--header-h); left:0; bottom:0; width:var(--sidebar-w); z-index:90;
       background:var(--navy); padding:24px 0; overflow-y:auto;
     }
-    .sidebar-section { padding:0 16px; margin-bottom:8px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.4); letter-spacing:1.5px; text-transform:uppercase; }
+    .sidebar-section { padding:0 16px; margin-bottom:8px; font-size:10px; font-weight:700; color:rgba(255,255,255,0.45); letter-spacing:1.5px; text-transform:uppercase; }
     .sidebar-link {
       display:flex; align-items:center; gap:12px; padding:10px 20px; margin:2px 8px; border-radius:8px;
-      color:rgba(255,255,255,0.7); font-size:14px; cursor:pointer; transition:all 0.15s;
+      color:rgba(255,255,255,0.72); font-size:14px; cursor:pointer; transition:all 0.15s;
     }
-    .sidebar-link:hover { background:rgba(255,255,255,0.08); color:white; }
-    .sidebar-link.active { background:rgba(255,255,255,0.15); color:white; font-weight:600; }
+    .sidebar-link:hover { background:rgba(255,255,255,0.16); color:#fff; }
+    .sidebar-link.active { background:rgba(255,255,255,0.16); color:#fff; font-weight:600; }
     .sidebar-link svg { width:18px; height:18px; opacity:0.7; }
     .sidebar-link.active svg { opacity:1; }
 
@@ -563,11 +563,38 @@
     // Load help content
     renderHelpContacto();
 
-    // Load dashboard data
-    showDashboard();
+    // Abrir la vista según el hash (#analitica, #correos, …) o el Dashboard
+    routeFromHash();
   });
 
   // === NAVIGATION ===
+  // Permite llegar a una vista concreta desde otra página (p.ej. Voluntarios
+  // o Legales enlazan a Dashboard#analitica) sin que se sienta otro sistema.
+  function routeFromHash() {
+    var h = (location.hash || '').replace('#', '').toLowerCase();
+    var routes = {
+      profesionales: ['navProfesionales', showProfesionales],
+      analitica:     ['navAnalitica',     showAnalitica],
+      correos:       ['navCorreos',       showCorreos],
+      usuarios:      ['navUsuarios',      showUsuarios],
+      superadmin:    ['navSuperAdmin',    showSuperAdmin],
+      health:        ['navHealth',        showHealth]
+    };
+    if (h === 'help') {
+      setActive(document.getElementById('navDashboard'));
+      showDashboard();
+      toggleHelp();
+      return;
+    }
+    if (routes[h]) {
+      var el = document.getElementById(routes[h][0]);
+      if (el) setActive(el);
+      routes[h][1]();
+      return;
+    }
+    setActive(document.getElementById('navDashboard'));
+    showDashboard();
+  }
   function setActive(el) {
     document.querySelectorAll('.sidebar-link').forEach(function(l){ l.classList.remove('active'); });
     el.classList.add('active');
@@ -575,8 +602,12 @@
   function goPage(p) { window.location.href = BASE + '/' + p; }
 
   // === LOAD DATA ===
+  var pendingCbs = [];
   function loadData(callback) {
     if (profData.length > 0) { callback(profData); return; }
+    // Si ya hay una carga en curso, encolar el callback (evita que un clic
+    // hecho durante la carga inicial se descarte y se quede en Dashboard).
+    pendingCbs.push(callback);
     if (loading) return;
     loading = true;
     document.getElementById('mainContent').innerHTML = '<div class="loading"><div class="spinner"></div><p>Cargando...</p></div>';
@@ -584,10 +615,12 @@
       .then(function(r) {
         loading = false;
         profData = (r && r.data) ? r.data : [];
-        callback(profData);
+        var cbs = pendingCbs; pendingCbs = [];
+        cbs.forEach(function(cb){ try { cb(profData); } catch(e){} });
       })
       .catch(function(err) {
         loading = false;
+        pendingCbs = [];
         document.getElementById('mainContent').innerHTML =
           '<div class="loading"><p style="color:var(--red);font-size:16px;font-weight:600;">Error al cargar datos</p>' +
           '<p style="margin:8px 0 20px;color:var(--gray-500);">' + err.message + '</p>' +
