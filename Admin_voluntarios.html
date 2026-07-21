@@ -390,10 +390,12 @@
     document.getElementById('btnSidebarLogout').onclick = function(e){ e.preventDefault(); sessionStorage.clear(); location.href = BASE + '/index.html'; };
 
     function callProxy(action, data) {
+      // Inyecta el token de admin (sesión) en cada llamada para autenticar en el backend
+      var _body = Object.assign({}, data || {}, { adminToken: sessionStorage.getItem('onb_token') || '' });
       return fetch(PROXY + '?action=' + action, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data || {})
+        body: JSON.stringify(_body)
       }).then(function(r){ return r.json(); });
     }
 

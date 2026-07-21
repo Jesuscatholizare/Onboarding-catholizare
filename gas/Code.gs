@@ -357,6 +357,35 @@ function doPost(e) {
     Logger.log('[doPost] Action: ' + action);
     var result;
 
+    // ========================================================================
+    // CONTROL DE ACCESO — acciones que EXIGEN un administrador autenticado.
+    // El token de admin viaja en data.adminToken (lo inyecta el frontend admin
+    // en cada llamada). Las acciones públicas (firmas, subidas, login, estado
+    // por token propio, etc.) NO están aquí y siguen abiertas.
+    // Esto cierra el hueco de que cualquiera pudiera invocar acciones de admin
+    // conociendo el nombre de la acción.
+    // ========================================================================
+    var ADMIN_ONLY_ACTIONS = {
+      getAllProfesionales: 1, getProfessionalStatus: 1, sendManualEmailFromDashboard: 1,
+      getEmailPreview: 1, getEmailTemplate: 1, getAllEmailLog: 1, getEmailHistory: 1,
+      adminAdvancePhase: 1, adminSetStatus: 1, adminMarkAction: 1,
+      adminDeleteProfessional: 1, adminResetOnboarding: 1, initializeNewProfessional: 1,
+      diagnosticoRemoto: 1, sendTestEmail: 1,
+      listLegalAcceptances: 1, getLegalAcceptanceDetail: 1,
+      getAllVoluntarios: 1, addVoluntario: 1, sendContratoVoluntario: 1, darBajaVoluntario: 1,
+      getAllAdminUsers: 1, getAdminLoginLog: 1, getSuperAdminPinStatus: 1
+    };
+    if (ADMIN_ONLY_ACTIONS[action]) {
+      var authUser = validateAdminToken(data.adminToken || data.currentUserToken || '');
+      if (!authUser) {
+        Logger.log('[doPost] 🚫 Acceso denegado a "' + action + '": token de admin inválido o ausente.');
+        return ContentService.createTextOutput(JSON.stringify({
+          success: false,
+          message: 'No autorizado. Inicia sesión como administrador.'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+    }
+
     switch (action) {
       // === Profesional ===
       case 'saveLegalAcceptance':

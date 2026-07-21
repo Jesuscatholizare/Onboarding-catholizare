@@ -149,7 +149,7 @@
       fetch(PROXY + '?action=diagnosticoRemoto', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
+        body: JSON.stringify({ adminToken: sessionStorage.getItem('onb_token') || '' })
       })
       .then(function(r) { return r.json(); })
       .then(function(data) {
