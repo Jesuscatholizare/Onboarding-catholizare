@@ -1380,6 +1380,17 @@ function sendEmailViaBrevo(to, subject, htmlContent) {
     if (responseCode === 201) {
       Logger.log('✅ Email enviado via Brevo a: ' + to + ' | MessageId: ' + result.messageId);
       return { success: true, messageId: result.messageId };
+    } else if (responseCode === 401) {
+      // 401 "Key not found" / "unauthorized": la API Key de Brevo es inválida,
+      // fue revocada o expiró. No es un problema del destinatario ni del contenido.
+      Logger.log('❌ Brevo 401 (API Key inválida): ' + responseText);
+      return {
+        success: false,
+        message: 'La API Key de Brevo es inválida o fue revocada (error 401: ' +
+          (result.message || 'Key not found') + '). ' +
+          'Genera una nueva clave en Brevo (SMTP & API → API Keys) y actualízala en ' +
+          'Propiedades del script (BREVO_API_KEY).'
+      };
     } else {
       Logger.log('❌ Brevo error ' + responseCode + ': ' + responseText);
       return { success: false, message: 'Brevo error ' + responseCode + ': ' + (result.message || responseText) };
