@@ -8,9 +8,41 @@
  */
 
 // ============================================================
-// HEADERS CORS - SIEMPRE PRIMERO, antes de cualquier error posible
+// CONTROL DE ORIGEN - SIEMPRE PRIMERO, antes de cualquier error posible
+// ------------------------------------------------------------
+// Solo se aceptan peticiones que provengan del propio sitio
+// (cualquier host *.catholizare.com). Esto bloquea el abuso desde
+// otros sitios y el escaneo automático que no envía un Origin válido.
+// Un atacante decidido puede falsificar la cabecera Origin con curl,
+// por eso esto es una barrera, NO la seguridad definitiva: la
+// validación real debe hacerse por token en cada acción de admin (GAS).
 // ============================================================
-header('Access-Control-Allow-Origin: *');
+
+// Hosts permitidos: el dominio raíz y cualquier subdominio de catholizare.com
+function origenPermitido($host) {
+    if (!$host) return false;
+    $host = strtolower($host);
+    return ($host === 'catholizare.com' || substr($host, -16) === '.catholizare.com');
+}
+
+// Extrae el host de una URL (Origin o Referer)
+function hostDeUrl($url) {
+    if (!$url) return '';
+    $h = parse_url($url, PHP_URL_HOST);
+    return $h ? $h : '';
+}
+
+$reqOrigin   = isset($_SERVER['HTTP_ORIGIN'])  ? $_SERVER['HTTP_ORIGIN'] : '';
+$reqReferer  = isset($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : '';
+$originHost  = $reqOrigin ? hostDeUrl($reqOrigin) : hostDeUrl($reqReferer);
+
+// ============================================================
+// HEADERS CORS - reflejar SOLO el origen permitido (nunca '*')
+// ============================================================
+if ($reqOrigin && origenPermitido(hostDeUrl($reqOrigin))) {
+    header('Access-Control-Allow-Origin: ' . $reqOrigin);
+    header('Vary: Origin');
+}
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 header('Access-Control-Max-Age: 3600');
@@ -20,6 +52,21 @@ header('Content-Type: application/json; charset=utf-8');
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
     exit;
+}
+
+// Bloquear peticiones que NO provienen del sitio.
+// Excepción: 'ping' (diagnóstico sin datos sensibles, se hace por GET
+// y en ese caso el navegador no envía Origin en peticiones same-origin).
+$accionSolicitada = isset($_GET['action']) ? $_GET['action'] : '';
+if ($accionSolicitada !== 'ping') {
+    if (!origenPermitido($originHost)) {
+        http_response_code(403);
+        echo json_encode([
+            'success' => false,
+            'error'   => 'Origen no autorizado.'
+        ]);
+        exit;
+    }
 }
 
 // Evitar que cualquier error fatal rompa la respuesta sin CORS
