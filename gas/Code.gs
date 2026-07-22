@@ -1384,7 +1384,7 @@ function sendEmailViaBrevo(to, subject, htmlContent) {
     }
     
     var payload = {
-      sender: { name: "Catholizare Pro", email: "integracion@catholizare.com" },
+      sender: { name: "Catholizare Pro", email: "onboarding@catholizare.com" },
       to: [{ email: to }],
       subject: subject,
       htmlContent: htmlContent
