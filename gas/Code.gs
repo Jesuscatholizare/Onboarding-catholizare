@@ -3733,8 +3733,13 @@ function addVoluntario(data) {
 }
 
 /**
- * Envía por correo (MailApp) el enlace al contrato de colaboración voluntaria
+ * Envía por correo (Brevo) el enlace al contrato de colaboración voluntaria
  * y registra el envío en la hoja Voluntarios (col 8: Email_Contrato_Enviado, col 9: Fecha_Envio_Contrato).
+ *
+ * NOTA: se usa sendEmailViaBrevo (UrlFetchApp) igual que el resto del sistema.
+ * No usar MailApp/GmailApp: requieren el scope OAuth script.send_mail, que el
+ * Web App desplegado no tiene autorizado y provoca
+ * "You do not have permission to call MailApp.sendEmail".
  */
 function sendContratoVoluntario(data) {
   try {
@@ -3766,19 +3771,14 @@ function sendContratoVoluntario(data) {
         '</div>' +
       '</div>';
 
-    var textoPlano =
-      'Estimado/a ' + vol.nombre + ',\n\n' +
-      'Te invitamos a revisar y firmar tu Contrato de Colaboración Voluntaria con Catholizare.\n\n' +
-      'Accede al siguiente enlace para firmar:\n' + link + '\n\n' +
-      'Si no solicitaste este correo, ignóralo.\n\nCatholizare';
+    var result = sendEmailViaBrevo(vol.email, asunto, htmlBody);
 
-    MailApp.sendEmail({
-      to: vol.email,
-      subject: asunto,
-      body: textoPlano,
-      htmlBody: htmlBody,
-      name: 'Catholizare Pro'
-    });
+    try { logEmailSent(token, vol.email, 'CONTRATO_VOLUNTARIO', asunto, result.success); } catch(e) {}
+
+    if (!result.success) {
+      Logger.log('Error enviando contrato voluntario a ' + vol.email + ': ' + result.message);
+      return { success: false, message: result.message || 'No se pudo enviar el correo.' };
+    }
 
     // Registrar envío en la hoja Voluntarios
     var sheet = getSS().getSheetByName(VOLUNTARIOS_SHEET);
@@ -3800,7 +3800,7 @@ function sendContratoVoluntario(data) {
       }
     }
 
-    try { logAction(token, vol.email, 'Contrato voluntario enviado por MailApp', 'Voluntario_Email', '', link, 'Admin'); } catch(e) {}
+    try { logAction(token, vol.email, 'Contrato voluntario enviado por correo', 'Voluntario_Email', '', link, 'Admin'); } catch(e) {}
 
     return { success: true, message: 'Contrato enviado a ' + vol.email };
   } catch (e) {
