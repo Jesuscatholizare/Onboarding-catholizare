@@ -182,12 +182,13 @@
             '<input type="tel" id="fldTelefono" value="' + esc(volData.telefono) + '" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;">' +
           '</div>' +
           '<div style="margin-bottom:0;">' +
-            '<label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">RFC *</label>' +
+            '<label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">RFC <span style="font-weight:500;color:#6b7280;">(opcional)</span></label>' +
             '<input type="text" id="fldRfc" value="' + esc(volData.rfc) + '" placeholder="XAXX010101000" maxlength="13" style="width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:14px;font-family:inherit;text-transform:uppercase;">' +
+            '<div style="font-size:12px;color:#6b7280;margin-top:6px;line-height:1.5;">Si no tienes RFC, escribe tu <strong>fecha de nacimiento empezando por el día</strong> (día, mes y año). Ejemplo: 15/07/1990 → <strong>15071990</strong>.</div>' +
           '</div>' +
         '</div>' +
 
-        '<label class="check-row" onclick="toggleCheck()">' +
+        '<label class="check-row" for="chkLeido">' +
           '<input type="checkbox" id="chkLeido">' +
           '<span>He leído el <strong>Contrato de Colaboración Voluntaria</strong> completo, confirmo que mis datos son correctos y deseo continuar con la firma digital.</span>' +
         '</label>' +
@@ -201,11 +202,6 @@
       });
     }
 
-    function toggleCheck() {
-      var chk = document.getElementById('chkLeido');
-      if (chk) { chk.checked = !chk.checked; document.getElementById('btnSolicitarOtp').disabled = !chk.checked; }
-    }
-
     // ── STEP 2: Solicitar OTP ─────────────────────────────
     function solicitarOtp() {
       // Capturar y validar datos del formulario
@@ -217,7 +213,7 @@
       if (!nombre) { showMsg('msg1','error','Ingresa tu nombre completo.'); return; }
       if (!correo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo)) { showMsg('msg1','error','Ingresa un correo válido.'); return; }
       if (!telefono) { showMsg('msg1','error','Ingresa tu teléfono.'); return; }
-      if (!rfc || rfc.length < 12) { showMsg('msg1','error','Ingresa un RFC válido (12 o 13 caracteres).'); return; }
+      // RFC opcional: si no lo tiene, puede escribir su fecha de nacimiento (DDMMAAAA).
 
       // Guardar para usar en firmarContrato
       volData.nombre = nombre;
@@ -235,7 +231,7 @@
           btn.disabled = false; btn.textContent = '📨 Solicitar código de firma por correo'; return;
         }
         otpRequested = true;
-        renderStep2(r.emailDestino || '');
+        renderStep2(r.email || r.emailDestino || '');
       }).catch(function(e){
         showMsg('msg1','error','Error: ' + e.message);
         btn.disabled=false; btn.textContent='📨 Solicitar código de firma por correo';
@@ -262,7 +258,7 @@
         '<div class="form-block">' +
         '<div class="section-title">Código de firma</div>' +
         '<div class="otp-container">' +
-          '<p>📧 Te enviamos un código de 6 dígitos a tu correo' + masked + '.<br>Ingresa el código a continuación para firmar el contrato:</p>' +
+          '<p>📧 Te enviamos un código de 6 dígitos a tu correo' + masked + '.<br>Si no lo ves en unos minutos, revisa la carpeta de <strong>spam o correo no deseado</strong>.<br>Ingresa el código a continuación para firmar el contrato:</p>' +
           '<div class="otp-input-row">' +
             '<input type="number" id="otpInput" class="otp-input" placeholder="000000" maxlength="6" min="100000" max="999999">' +
           '</div>' +
@@ -307,7 +303,7 @@
     function reenviarOtp() {
       var btn = document.getElementById('btnResend');
       btn.disabled = true; btn.textContent = 'Enviando…';
-      callProxy('solicitarCodigoFirma', { docId: 'VOLUNTARIO' }).then(function(r){
+      callProxy('solicitarCodigoFirma', { docId: 'VOLUNTARIO', email: (volData && volData.email) || '' }).then(function(r){
         if (r && r.success) {
           showMsg('msg2','info','✓ Nuevo código enviado a tu correo.');
           startCountdown(15*60);
