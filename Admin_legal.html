@@ -126,6 +126,7 @@
     .doc-TERMINOS { background:#d1fae5; color:#065f46; }
     .doc-PRIVACIDAD { background:#fef3c7; color:#92400e; }
     .doc-ETICA { background:#f3e8ff; color:#6b21a8; }
+    .doc-VOLUNTARIO { background:#ffe4e6; color:#9f1239; }
 
     .empty { padding:60px 20px; text-align:center; color:var(--gray-400); }
     .loading { padding:60px 20px; text-align:center; color:var(--gray-600); }
@@ -256,6 +257,7 @@
       <div class="mini-stat"><div class="num" id="statTerminos">—</div><div class="label">Términos y Condiciones</div></div>
       <div class="mini-stat"><div class="num" id="statPrivacidad">—</div><div class="label">Aviso de Privacidad</div></div>
       <div class="mini-stat"><div class="num" id="statEtica">—</div><div class="label">Código de Ética</div></div>
+      <div class="mini-stat"><div class="num" id="statVoluntario">—</div><div class="label">Colaboración Voluntaria</div></div>
     </div>
 
     <div class="toolbar">
@@ -268,6 +270,7 @@
         <option value="TERMINOS">Términos y Condiciones</option>
         <option value="PRIVACIDAD">Aviso de Privacidad</option>
         <option value="ETICA">Código de Ética</option>
+        <option value="VOLUNTARIO">Colaboración Voluntaria</option>
       </select>
       <span class="result-count" id="resultCount">—</span>
     </div>
@@ -372,7 +375,7 @@
     }
 
     function docBadge(id) {
-      var labels = { CONTRATO: 'Contrato Intermediación', TERMINOS: 'Términos y Cond.', PRIVACIDAD: 'Aviso de Privacidad', ETICA: 'Código de Ética' };
+      var labels = { CONTRATO: 'Contrato Intermediación', TERMINOS: 'Términos y Cond.', PRIVACIDAD: 'Aviso de Privacidad', ETICA: 'Código de Ética', VOLUNTARIO: 'Colaboración Voluntaria' };
       var label = labels[id] || id;
       return '<span class="doc-badge doc-' + escapeHtml(id) + '">' + escapeHtml(label) + '</span>';
     }
@@ -407,13 +410,14 @@
 
     function updateStats(rows) {
       var total = rows.length;
-      var c = { CONTRATO: 0, TERMINOS: 0, PRIVACIDAD: 0, ETICA: 0 };
+      var c = { CONTRATO: 0, TERMINOS: 0, PRIVACIDAD: 0, ETICA: 0, VOLUNTARIO: 0 };
       rows.forEach(function(r) { if (c[r.docId] !== undefined) c[r.docId]++; });
       document.getElementById('statTotal').textContent = total;
       document.getElementById('statContrato').textContent = c.CONTRATO;
       document.getElementById('statTerminos').textContent = c.TERMINOS;
       document.getElementById('statPrivacidad').textContent = c.PRIVACIDAD;
       document.getElementById('statEtica').textContent = c.ETICA;
+      document.getElementById('statVoluntario').textContent = c.VOLUNTARIO;
     }
 
     function renderTable(rows) {
@@ -424,7 +428,7 @@
       }
       var html = '<table><thead><tr>' +
         '<th>Folio</th>' +
-        '<th>Profesional</th>' +
+        '<th>Firmante</th>' +
         '<th>Contrato</th>' +
         '<th>Versión</th>' +
         '<th>Fecha y hora</th>' +
