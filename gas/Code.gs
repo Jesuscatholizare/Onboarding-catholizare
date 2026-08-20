@@ -370,6 +370,7 @@ function doPost(e) {
       getEmailPreview: 1, getEmailTemplate: 1, getAllEmailLog: 1, getEmailHistory: 1,
       adminAdvancePhase: 1, adminSetStatus: 1, adminMarkAction: 1,
       adminDeleteProfessional: 1, adminResetOnboarding: 1, initializeNewProfessional: 1,
+      adminArchiveProfessional: 1, adminReactivateProfessional: 1, getArchivedProfesionales: 1,
       diagnosticoRemoto: 1, sendTestEmail: 1,
       listLegalAcceptances: 1, getLegalAcceptanceDetail: 1,
       getAllVoluntarios: 1, addVoluntario: 1, sendContratoVoluntario: 1, darBajaVoluntario: 1,
@@ -428,6 +429,15 @@ function doPost(e) {
         break;
       case 'adminDeleteProfessional':
         result = adminDeleteProfessional(data.token);
+        break;
+      case 'adminArchiveProfessional':
+        result = adminArchiveProfessional(data.token, data.motivo);
+        break;
+      case 'adminReactivateProfessional':
+        result = adminReactivateProfessional(data.token);
+        break;
+      case 'getArchivedProfesionales':
+        result = { success: true, data: getArchivedProfesionales() };
         break;
       case 'adminResetOnboarding':
         result = adminResetOnboarding(data.token);
@@ -1251,6 +1261,141 @@ function adminDeleteProfessional(token) {
     }
     return { success: false, message: 'Token no encontrado' };
   } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+// ============================================================================
+// ARCHIVADO DE PROFESIONALES
+// ----------------------------------------------------------------------------
+// Archivar da de baja al profesional del proceso de onboarding SIN borrar su
+// fila: se marca Estado = 'Archivado' y se guardan fecha y motivo. Así la
+// acción es reversible (Reactivar) y no se pierde el historial.
+// ============================================================================
+
+var ESTADO_ARCHIVADO = 'Archivado';
+
+/**
+ * Devuelve el número de columna con ese encabezado; si no existe, la crea
+ * al final de la hoja. Evita hardcodear posiciones que puedan moverse.
+ */
+function getOrCreateColumn_(sheet, headerName) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var target = String(headerName).trim().toLowerCase();
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i] || '').trim().toLowerCase() === target) return i + 1;
+  }
+  var col = lastCol + 1;
+  sheet.getRange(1, col).setValue(headerName);
+  return col;
+}
+
+/**
+ * Archiva (da de baja del onboarding) a un profesional. Reversible.
+ * Data: { token, motivo (opcional) }
+ */
+function adminArchiveProfessional(token, motivo) {
+  try {
+    token = String(token || '').trim();
+    if (!token) return { success: false, message: 'Falta el token del profesional.' };
+
+    var sheet = getSHEET();
+    var colFecha = getOrCreateColumn_(sheet, 'Fecha_Archivado');
+    var colMotivo = getOrCreateColumn_(sheet, 'Motivo_Archivado');
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0] || '').trim() === token) {
+        var rowNum = i + 1;
+        var estadoAnterior = String(data[i][9] || '');
+        if (estadoAnterior === ESTADO_ARCHIVADO) {
+          return { success: false, message: 'Este profesional ya está archivado.' };
+        }
+        var ahora = new Date();
+        sheet.getRange(rowNum, 10).setValue(ESTADO_ARCHIVADO);
+        sheet.getRange(rowNum, colFecha).setValue(ahora);
+        sheet.getRange(rowNum, colMotivo).setValue(motivo ? String(motivo) : '');
+        try {
+          logAction(token, data[i][2], 'Profesional archivado' + (motivo ? ' — ' + motivo : ''),
+                    'Estado', estadoAnterior, ESTADO_ARCHIVADO, 'Admin');
+        } catch (le) {}
+        return {
+          success: true,
+          message: 'Profesional archivado. Puedes reactivarlo desde "Profesionales archivados".',
+          fechaArchivado: ahora.toISOString()
+        };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+/**
+ * Reactiva a un profesional archivado: vuelve a 'Activo' y limpia la baja.
+ * Conserva su fase y su progreso, no reinicia el onboarding.
+ */
+function adminReactivateProfessional(token) {
+  try {
+    token = String(token || '').trim();
+    if (!token) return { success: false, message: 'Falta el token del profesional.' };
+
+    var sheet = getSHEET();
+    var colFecha = getOrCreateColumn_(sheet, 'Fecha_Archivado');
+    var colMotivo = getOrCreateColumn_(sheet, 'Motivo_Archivado');
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0] || '').trim() === token) {
+        var rowNum = i + 1;
+        if (String(data[i][9] || '') !== ESTADO_ARCHIVADO) {
+          return { success: false, message: 'Este profesional no está archivado.' };
+        }
+        sheet.getRange(rowNum, 10).setValue('Activo');
+        sheet.getRange(rowNum, colFecha).setValue('');
+        sheet.getRange(rowNum, colMotivo).setValue('');
+        try {
+          logAction(token, data[i][2], 'Profesional reactivado', 'Estado', ESTADO_ARCHIVADO, 'Activo', 'Admin');
+        } catch (le) {}
+        return { success: true, message: 'Profesional reactivado. Vuelve a aparecer en el listado.' };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+/**
+ * Lista los profesionales archivados (los que no salen en el listado normal).
+ */
+function getArchivedProfesionales() {
+  try {
+    var sheet = getSHEET();
+    var lastCol = Math.max(sheet.getLastColumn(), 1);
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) {
+      return String(h || '').trim().toLowerCase();
+    });
+    var iFecha = headers.indexOf('fecha_archivado');
+    var iMotivo = headers.indexOf('motivo_archivado');
+
+    var data = sheet.getDataRange().getValues();
+    var out = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (!row[0] || String(row[9] || '') !== ESTADO_ARCHIVADO) continue;
+      var fa = iFecha >= 0 ? row[iFecha] : '';
+      out.push({
+        token: String(row[0]),
+        nombre: String(row[1] || ''),
+        email: String(row[2] || ''),
+        especialidad: String(row[3] || ''),
+        fase: String(row[8] || ''),
+        motivo: iMotivo >= 0 ? String(row[iMotivo] || '') : '',
+        fechaArchivado: fa ? new Date(fa).toISOString() : ''
+      });
+    }
+    return out;
+  } catch (error) {
+    Logger.log('❌ Error en getArchivedProfesionales: ' + error);
+    throw error;
+  }
 }
 
 function adminResetOnboarding(token) {
@@ -2644,7 +2789,8 @@ function getAllProfesionales() {
     
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
-      if (row[0]) {
+      // Los archivados se consultan aparte (getArchivedProfesionales)
+      if (row[0] && String(row[9] || '') !== ESTADO_ARCHIVADO) {
         profesionales.push({
           token: String(row[0]),
           nombre: String(row[1] || ""),
