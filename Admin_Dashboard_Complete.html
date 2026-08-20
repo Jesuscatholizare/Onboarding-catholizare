@@ -628,6 +628,28 @@
   }
   function goPage(p) { window.location.href = BASE + '/' + p; }
 
+  // Tras una acción de admin (avanzar fase, pausar, archivar...) hay que
+  // tirar los datos cacheados y volver a pintar la vista en la que está el
+  // admin, no siempre el Dashboard. Se deduce del enlace activo del menú.
+  function cargarDashboardInicial() {
+    profData = [];
+    detailCache = {};
+    archivadosData = [];
+    var vistas = {
+      navDashboard:     showDashboard,
+      navProfesionales: showProfesionales,
+      navArchivados:    showArchivados,
+      navAnalitica:     showAnalitica,
+      navCorreos:       showCorreos,
+      navUsuarios:      showUsuarios,
+      navSuperAdmin:    showSuperAdmin,
+      navHealth:        showHealth
+    };
+    var activo = document.querySelector('.sidebar-link.active');
+    var vista = (activo && vistas[activo.id]) ? vistas[activo.id] : showDashboard;
+    vista();
+  }
+
   // === LOAD DATA ===
   var pendingCbs = [];
   function loadData(callback) {
@@ -831,15 +853,17 @@
     var rows = filtered.map(function(p) {
       return '<tr>' +
         '<td><span style="font-family:monospace;font-size:11px;background:var(--gray-100);padding:3px 8px;border-radius:4px;color:var(--navy);">' + escapeHtml(p.token) + '</span></td>' +
-        '<td><div class="prof-info"><span class="name">' + escapeHtml(p.nombre) + '</span>' +
-          (p.motivo ? '<span class="email">' + escapeHtml(p.motivo) + '</span>' : '') + '</div></td>' +
+        '<td><div class="prof-info"><span class="name">' + escapeHtml(p.nombre) + '</span></div></td>' +
         '<td>' + escapeHtml(p.email) + '</td>' +
         '<td>' + formatDate(p.fechaArchivado) + '</td>' +
+        '<td style="max-width:260px;">' + (p.motivo
+          ? '<span style="display:inline-block;color:var(--gray-700);font-size:13px;line-height:1.4;white-space:normal;word-break:break-word;">' + escapeHtml(p.motivo) + '</span>'
+          : '<span style="color:var(--gray-500);font-size:13px;">Sin motivo registrado</span>') + '</td>' +
         '<td><button class="btn-reactivar" data-token="' + escapeHtml(p.token) + '" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border:none;border-radius:6px;background:#15803d;color:white;font-size:13px;font-weight:600;cursor:pointer;">&#x21BB; Reactivar</button></td>' +
         '</tr>';
     }).join('');
 
-    if (!rows) rows = '<tr><td colspan="5" style="text-align:center;padding:40px;color:var(--gray-500);">No hay profesionales archivados</td></tr>';
+    if (!rows) rows = '<tr><td colspan="6" style="text-align:center;padding:40px;color:var(--gray-500);">No hay profesionales archivados</td></tr>';
 
     document.getElementById('mainContent').innerHTML =
       '<div class="prof-header"><div><h1>Profesionales archivados</h1>' +
@@ -850,7 +874,7 @@
           '<h3 style="font-size:16px;font-weight:700;">Archivados</h3>' +
           '<span style="font-size:13px;color:var(--gray-500);">' + filtered.length + ' registro' + (filtered.length === 1 ? '' : 's') + '</span>' +
         '</div>' +
-        '<table class="data-table"><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Archivado</th><th>Acciones</th></tr></thead>' +
+        '<table class="data-table"><thead><tr><th>ID</th><th>Nombre</th><th>Email</th><th>Archivado</th><th>Motivo</th><th>Acciones</th></tr></thead>' +
         '<tbody>' + rows + '</tbody></table>' +
       '</div>';
 
