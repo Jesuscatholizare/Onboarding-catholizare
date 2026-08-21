@@ -899,6 +899,175 @@
     return date.toLocaleDateString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric' });
   }
 
+  // === APROBACIÓN MANUAL DE PASOS ===
+  // Un PASO es el elemento individual (Curriculum Vitae), una SECCIÓN el
+  // conjunto de pasos (DOCUMENTOS) y una FASE el conjunto de secciones.
+  // El admin marca pasos de una sección, pulsa Aplicar y confirma con su PIN
+  // (columna Pin_adminstrador de Admin_Users) más un motivo de 7 palabras.
+  var MAX_PALABRAS_MOTIVO = 7;
+  var pasoSeccion = {
+    doc_cv:'documentos', doc_cedula:'documentos', doc_foto:'documentos', doc_carta:'documentos',
+    legal_contrato:'legal', legal_terminos:'legal', legal_privacidad:'legal', legal_etica:'legal',
+    perfil_servicios:'perfil', perfil_terapia:'perfil', perfil_diagnosticos:'perfil',
+    perfil_enfoques:'perfil', perfil_horarios:'perfil',
+    fase1_completada:'pasos2', trigMarkProfile:'pasos2', trigSyncWhatsApp:'pasos2',
+    trigMarkSyncDone:'pasos2', trigZoomWhatsApp:'pasos2', trigMarkZoomDone:'pasos2',
+    trigTrainingMaterials:'pasos3', trigBlogInvite:'pasos3', trigPostsEscritos:'pasos3',
+    trigMonthlyMeeting:'pasos3', trigSupervisionWhatsApp:'pasos3', trigMarkSupervisionDone:'pasos3',
+    trigMarkAnnualDone:'pasos4'
+  };
+
+  function contarPalabras(texto) {
+    var limpio = String(texto || '').trim();
+    return limpio ? limpio.split(/\s+/).length : 0;
+  }
+
+  /** Refresca el contador y el estado del botón de una sección. */
+  function actualizarSeccion(seccionId) {
+    var marcados = document.querySelectorAll('.chk-paso[data-seccion="' + seccionId + '"]:checked');
+    var conteo = document.querySelector('.sec-conteo[data-seccion="' + seccionId + '"]');
+    var boton = document.querySelector('.btn-aprobar-seccion[data-seccion="' + seccionId + '"]');
+    if (conteo) {
+      conteo.textContent = marcados.length === 0
+        ? 'Marca los pasos que apruebas manualmente'
+        : (marcados.length === 1 ? '1 paso seleccionado' : marcados.length + ' pasos seleccionados');
+    }
+    if (boton) {
+      var activo = marcados.length > 0;
+      boton.disabled = !activo;
+      boton.style.background = activo ? '#15803d' : 'var(--gray-200)';
+      boton.style.color = activo ? 'white' : 'var(--gray-500)';
+      boton.style.cursor = activo ? 'pointer' : 'not-allowed';
+    }
+  }
+
+  function bindAprobacionManual() {
+    document.querySelectorAll('.chk-paso').forEach(function(chk) {
+      chk.addEventListener('change', function(){ actualizarSeccion(this.getAttribute('data-seccion')); });
+    });
+    document.querySelectorAll('.btn-aprobar-seccion').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var seccionId = this.getAttribute('data-seccion');
+        var pasos = [];
+        document.querySelectorAll('.chk-paso[data-seccion="' + seccionId + '"]:checked').forEach(function(chk) {
+          pasos.push({ id: chk.getAttribute('data-paso'), label: chk.getAttribute('data-label') || '' });
+        });
+        if (!pasos.length) return;
+        abrirModalAprobacion(pasos);
+      });
+    });
+    ['documentos','legal','perfil','pasos2','pasos3','pasos4'].forEach(actualizarSeccion);
+  }
+
+  /** Crea (una sola vez) el modal de PIN + motivo. */
+  function construirModalAprobacion() {
+    if (document.getElementById('aprobModal')) return;
+    var div = document.createElement('div');
+    div.id = 'aprobModal';
+    div.style.cssText = 'display:none;position:fixed;inset:0;z-index:1200;background:rgba(0,13,46,0.65);align-items:center;justify-content:center;padding:20px;';
+    div.innerHTML =
+      '<div style="background:white;border-radius:12px;width:100%;max-width:460px;padding:22px;box-shadow:0 20px 50px rgba(0,0,0,0.3);">' +
+        '<h3 style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:4px;">Aprobar pasos manualmente</h3>' +
+        '<p style="font-size:12px;color:var(--gray-500);margin-bottom:12px;">Estos pasos quedarán como cumplidos, con tu nombre y el motivo.</p>' +
+        '<div id="aprobLista" style="background:var(--gray-50);border:1px solid var(--gray-200);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:var(--gray-700);max-height:140px;overflow-y:auto;"></div>' +
+        '<label style="font-size:12px;font-weight:600;color:var(--gray-500);display:block;margin-bottom:4px;">Motivo (máx. ' + MAX_PALABRAS_MOTIVO + ' palabras) *</label>' +
+        '<input type="text" id="aprobMotivo" maxlength="120" placeholder="Ej. Documento entregado en fisico" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;box-sizing:border-box;">' +
+        '<div id="aprobPalabras" style="font-size:11px;color:var(--gray-500);margin:4px 0 12px;">0 de ' + MAX_PALABRAS_MOTIVO + ' palabras</div>' +
+        '<label style="font-size:12px;font-weight:600;color:var(--gray-500);display:block;margin-bottom:4px;">Tu PIN de administrador *</label>' +
+        '<input type="password" id="aprobPin" autocomplete="off" placeholder="PIN" style="width:100%;padding:10px;border:1px solid var(--gray-200);border-radius:8px;font-size:14px;box-sizing:border-box;">' +
+        '<div id="aprobError" style="font-size:12px;color:var(--red);margin-top:10px;min-height:16px;"></div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">' +
+          '<button id="aprobCancelar" class="btn-sm" style="padding:9px 16px;background:var(--gray-100);color:var(--gray-700);border:1px solid var(--gray-200);">Cancelar</button>' +
+          '<button id="aprobConfirmar" class="btn-sm" style="padding:9px 18px;background:#15803d;color:white;border:none;font-weight:600;">Aprobar</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(div);
+
+    document.getElementById('aprobCancelar').addEventListener('click', cerrarModalAprobacion);
+    div.addEventListener('click', function(e){ if (e.target === div) cerrarModalAprobacion(); });
+    document.getElementById('aprobMotivo').addEventListener('input', function() {
+      var n = contarPalabras(this.value);
+      var el = document.getElementById('aprobPalabras');
+      el.textContent = n + ' de ' + MAX_PALABRAS_MOTIVO + ' palabras';
+      el.style.color = n > MAX_PALABRAS_MOTIVO ? 'var(--red)' : 'var(--gray-500)';
+    });
+    document.getElementById('aprobConfirmar').addEventListener('click', confirmarAprobacion);
+    document.getElementById('aprobPin').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') confirmarAprobacion();
+    });
+  }
+
+  var pasosAprobando = [];
+
+  function abrirModalAprobacion(pasos) {
+    construirModalAprobacion();
+    pasosAprobando = pasos;
+    document.getElementById('aprobLista').innerHTML = pasos.map(function(p) {
+      return '&#8226; ' + escapeHtml(p.label || p.id);
+    }).join('<br>');
+    document.getElementById('aprobMotivo').value = '';
+    document.getElementById('aprobPin').value = '';
+    document.getElementById('aprobError').textContent = '';
+    document.getElementById('aprobPalabras').textContent = '0 de ' + MAX_PALABRAS_MOTIVO + ' palabras';
+    document.getElementById('aprobPalabras').style.color = 'var(--gray-500)';
+    document.getElementById('aprobModal').style.display = 'flex';
+    setTimeout(function(){ document.getElementById('aprobMotivo').focus(); }, 50);
+  }
+
+  function cerrarModalAprobacion() {
+    var m = document.getElementById('aprobModal');
+    if (m) m.style.display = 'none';
+    pasosAprobando = [];
+  }
+
+  function confirmarAprobacion() {
+    var errorEl = document.getElementById('aprobError');
+    var motivo = document.getElementById('aprobMotivo').value.trim().replace(/\s+/g, ' ');
+    var pin = document.getElementById('aprobPin').value;
+    var boton = document.getElementById('aprobConfirmar');
+
+    if (!pasosAprobando.length) { errorEl.textContent = 'No hay pasos seleccionados.'; return; }
+    if (!motivo) { errorEl.textContent = 'Escribe el motivo de la aprobación.'; return; }
+    if (contarPalabras(motivo) > MAX_PALABRAS_MOTIVO) {
+      errorEl.textContent = 'El motivo no puede pasar de ' + MAX_PALABRAS_MOTIVO + ' palabras.'; return;
+    }
+    if (!pin) { errorEl.textContent = 'Escribe tu PIN de administrador.'; return; }
+
+    var ids = pasosAprobando.map(function(p){ return p.id; });
+    var tokenProf = currentToken;
+    errorEl.textContent = '';
+    boton.disabled = true;
+    boton.textContent = 'Aprobando...';
+
+    callProxy('adminApproveSteps', { token: tokenProf, pasos: ids, motivo: motivo, pin: pin })
+      .then(function(r) {
+        boton.disabled = false;
+        boton.textContent = 'Aprobar';
+        if (!r || r.success === false) {
+          errorEl.textContent = (r && r.message) ? r.message : 'No se pudo aprobar.';
+          return;
+        }
+        cerrarModalAprobacion();
+        // Releer el detalle para ver el sello y el progreso ya actualizados
+        delete detailCache[tokenProf];
+        profData = [];
+        callProxy('getProfessionalStatus', { token: tokenProf })
+          .then(function(data) {
+            if (data && data.success !== false) {
+              detailCache[tokenProf] = data;
+              renderModalData(data);
+              setModalTab('triggers');
+            }
+          })
+          .catch(function(){});
+      })
+      .catch(function(err) {
+        boton.disabled = false;
+        boton.textContent = 'Aprobar';
+        errorEl.textContent = 'Error: ' + err.message;
+      });
+  }
+
   // === MODAL ===
   function openModal(token) {
     currentToken = token;
@@ -1032,19 +1201,52 @@
         '<div style="margin-left:48px;font-size:11px;color:var(--gray-500);margin-bottom:8px;">&#x1F4C5; ' + timeline + '</div>';
     }
 
-    function stepRow(ok, label, type, btnId, btnLabel) {
+    // Aprobaciones manuales por paso: { paso: { motivo, admin, fecha } }
+    var aprob = d.aprobaciones || {};
+
+    function stepRow(ok, label, type, btnId, btnLabel, pasoId) {
       // type: 'auto' = automático, 'manual' = requiere acción admin, 'form' = formulario del profesional, 'zoom' = reunión
       var typeIcons = { auto:'&#x26A1;', manual:'&#x1F464;', form:'&#x1F4DD;', zoom:'&#x1F4F9;', email:'&#x2709;' };
       var typeLabels = { auto:'Automático', manual:'Admin', form:'Profesional', zoom:'Reunión', email:'Email auto' };
       var typeColor = { auto:'#8b5cf6', manual:'#3b82f6', form:'#f59e0b', zoom:'#22c55e', email:'#6b7280' };
+      // Un paso aprobado a mano se muestra cumplido, con el motivo y quién lo aprobó
+      var ap = pasoId ? aprob[pasoId] : null;
+      var cumplido = ok || !!ap;
+      var sello = ap
+        ? '<div style="font-size:11px;color:#15803d;margin-top:2px;white-space:normal;">&#x2714; ' +
+            escapeHtml(ap.motivo || 'Aprobado manualmente') + ' — <strong>' + escapeHtml(ap.admin || '') + '</strong>' +
+            (ap.fecha ? ' · ' + formatDate(ap.fecha) : '') + '</div>'
+        : '';
+      var checkbox = (!cumplido && pasoId)
+        ? '<input type="checkbox" class="chk-paso" data-paso="' + pasoId + '" data-seccion="' + (pasoSeccion[pasoId] || '') + '" ' +
+            'data-label="' + escapeHtml(label) + '" ' +
+            'title="Marcar para aprobar manualmente" style="width:16px;height:16px;flex-shrink:0;cursor:pointer;accent-color:#15803d;">'
+        : '';
       return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid var(--gray-100);gap:8px;">' +
-        '<div style="display:flex;align-items:center;gap:8px;flex:1;min-width:0;">' +
-          '<span style="font-size:15px;flex-shrink:0;" class="' + (ok?'check-ok':'check-no') + '">' + (ok?'&#10003;':'&#10007;') + '</span>' +
-          '<span style="font-size:13px;' + (ok?'':'color:var(--gray-700);') + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</span></div>' +
+        '<div style="display:flex;align-items:flex-start;gap:8px;flex:1;min-width:0;">' +
+          '<span style="font-size:15px;flex-shrink:0;" class="' + (cumplido?'check-ok':'check-no') + '">' + (cumplido?'&#10003;':'&#10007;') + '</span>' +
+          '<div style="min-width:0;flex:1;">' +
+            '<div style="font-size:13px;' + (cumplido?'':'color:var(--gray-700);') + 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + label + '</div>' +
+            sello +
+          '</div></div>' +
         '<span style="font-size:10px;padding:2px 6px;border-radius:4px;background:' + (typeColor[type]||'#eee') + '15;color:' + (typeColor[type]||'#666') + ';white-space:nowrap;flex-shrink:0;">' + (typeIcons[type]||'') + ' ' + (typeLabels[type]||'') + '</span>' +
         (btnId && type === 'email' ? '<button class="btn-sm" id="' + btnId + '_preview" title="Vista previa del correo" style="font-size:12px;padding:4px 8px;flex-shrink:0;background:var(--gray-100);color:var(--navy);border:1px solid var(--gray-200);">&#x1F441;&#xFE0F;</button>' : '') +
-        (btnId && !ok ? '<button class="btn-sm" id="' + btnId + '" style="font-size:11px;padding:4px 10px;flex-shrink:0;">' + (btnLabel||'Acción') + '</button>' : '') +
-        (ok ? '<span style="font-size:11px;color:var(--green);flex-shrink:0;">&#x2713;</span>' : '') +
+        (btnId && !cumplido ? '<button class="btn-sm" id="' + btnId + '" style="font-size:11px;padding:4px 10px;flex-shrink:0;">' + (btnLabel||'Acción') + '</button>' : '') +
+        (cumplido && !ap ? '<span style="font-size:11px;color:var(--green);flex-shrink:0;">&#x2713;</span>' : '') +
+        checkbox +
+        '</div>';
+    }
+
+    /**
+     * Pie de sección: botón para aprobar de golpe los pasos marcados de esa
+     * sección. Queda deshabilitado hasta que hay al menos un paso marcado.
+     */
+    function seccionAprobar(seccionId) {
+      return '<div class="sec-aprobar" data-seccion="' + seccionId + '" ' +
+        'style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;background:var(--gray-50);border-top:1px solid var(--gray-100);">' +
+        '<span class="sec-conteo" data-seccion="' + seccionId + '" style="font-size:11px;color:var(--gray-500);">Marca los pasos que apruebas manualmente</span>' +
+        '<button class="btn-sm btn-aprobar-seccion" data-seccion="' + seccionId + '" disabled ' +
+          'style="font-size:11px;padding:5px 12px;flex-shrink:0;background:var(--gray-200);color:var(--gray-500);border:none;cursor:not-allowed;">Aplicar</button>' +
         '</div>';
     }
 
@@ -1063,33 +1265,39 @@
     var tHtml = '<div style="position:relative;padding-left:18px;">' +
       '<div style="position:absolute;left:17px;top:18px;bottom:18px;width:2px;background:linear-gradient(to bottom,#3b82f6,#22c55e,#f59e0b,#8b5cf6);border-radius:2px;"></div>';
 
+    // Marcas manuales y aprobaciones manuales por paso
+    var tm = d.triggerMarks || {};
+
     // ══════════════════════════════════════════════════════════════
     // FASE 1 — Documentación inicial y contratos (3 semanas)
     // ══════════════════════════════════════════════════════════════
     tHtml += faseHeader(1, 'Documentación Inicial y Contratos', 'Recopilación de documentos, aceptación legal y perfil profesional', 'Plazo: 3 semanas después de ser aceptado', '#1d4ed8', '#eff6ff');
     tHtml += '<div style="margin-left:48px;margin-bottom:6px;background:white;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
     tHtml += '<div style="padding:8px 12px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);letter-spacing:0.5px;">DOCUMENTOS (subida a Google Drive)</div>';
-    tHtml += stepRow(d.documentos.cv, 'Curriculum Vitae', 'form', null, null);
-    tHtml += stepRow(d.documentos.cedula, 'Título y Cédula Profesional + RFC', 'form', null, null);
-    tHtml += stepRow(d.documentos.foto, 'Foto de Perfil para directorio', 'form', null, null);
-    tHtml += stepRow(d.documentos.carta, 'Carta de Recomendación de Sacerdote', 'form', null, null);
+    tHtml += stepRow(d.documentos.cv, 'Curriculum Vitae', 'form', null, null, 'doc_cv');
+    tHtml += stepRow(d.documentos.cedula, 'Título y Cédula Profesional + RFC', 'form', null, null, 'doc_cedula');
+    tHtml += stepRow(d.documentos.foto, 'Foto de Perfil para directorio', 'form', null, null, 'doc_foto');
+    tHtml += stepRow(d.documentos.carta, 'Carta de Recomendación de Sacerdote', 'form', null, null, 'doc_carta');
+    tHtml += seccionAprobar('documentos');
     tHtml += '</div>';
 
     tHtml += '<div style="margin-left:48px;margin-bottom:6px;background:white;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
     tHtml += '<div style="padding:8px 12px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);letter-spacing:0.5px;">ACEPTACIÓN LEGAL (formulario público con código de firma)</div>';
-    tHtml += stepRow(d.legal, 'Contrato de Intermediación', 'form', null, null);
-    tHtml += stepRow(d.legal, 'Términos y Condiciones', 'form', null, null);
-    tHtml += stepRow(d.legal, 'Aviso de Privacidad', 'form', null, null);
-    tHtml += stepRow(d.legal, 'Código de Ética', 'form', null, null);
+    tHtml += stepRow(d.legal, 'Contrato de Intermediación', 'form', null, null, 'legal_contrato');
+    tHtml += stepRow(d.legal, 'Términos y Condiciones', 'form', null, null, 'legal_terminos');
+    tHtml += stepRow(d.legal, 'Aviso de Privacidad', 'form', null, null, 'legal_privacidad');
+    tHtml += stepRow(d.legal, 'Código de Ética', 'form', null, null, 'legal_etica');
+    tHtml += seccionAprobar('legal');
     tHtml += '</div>';
 
     tHtml += '<div style="margin-left:48px;margin-bottom:6px;background:white;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
     tHtml += '<div style="padding:8px 12px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);letter-spacing:0.5px;">PERFIL PROFESIONAL (formulario público con token)</div>';
-    tHtml += stepRow(d.perfil, 'Servicios y poblaciones que atiende', 'form', null, null);
-    tHtml += stepRow(d.perfil, 'Tipo de terapia (pareja, individual, familiar)', 'form', null, null);
-    tHtml += stepRow(d.perfil, 'Diagnósticos o síntomas que trata', 'form', null, null);
-    tHtml += stepRow(d.perfil, 'Enfoque(s) psicológico(s)', 'form', null, null);
-    tHtml += stepRow(d.perfil, 'Horario y modalidad (online/presencial)', 'form', null, null);
+    tHtml += stepRow(d.perfil, 'Servicios y poblaciones que atiende', 'form', null, null, 'perfil_servicios');
+    tHtml += stepRow(d.perfil, 'Tipo de terapia (pareja, individual, familiar)', 'form', null, null, 'perfil_terapia');
+    tHtml += stepRow(d.perfil, 'Diagnósticos o síntomas que trata', 'form', null, null, 'perfil_diagnosticos');
+    tHtml += stepRow(d.perfil, 'Enfoque(s) psicológico(s)', 'form', null, null, 'perfil_enfoques');
+    tHtml += stepRow(d.perfil, 'Horario y modalidad (online/presencial)', 'form', null, null, 'perfil_horarios');
+    tHtml += seccionAprobar('perfil');
     tHtml += '</div>';
 
     tHtml += '<div style="margin-left:48px;margin-bottom:4px;">';
@@ -1100,21 +1308,19 @@
     tHtml += emailRow('trigIncomplete', '&#x274C;', 'Marcado Incompleto', 'Día 21+ — Si no completó en el plazo');
     tHtml += '</div></div>';
 
-    // Get trigger marks for persistent state
-    var tm = d.triggerMarks || {};
-    
     // ══════════════════════════════════════════════════════════════
     // FASE 2 — Creación de perfil y configuración técnica (3 semanas)
     // ══════════════════════════════════════════════════════════════
     tHtml += faseHeader(2, 'Perfil y Configuración Técnica', 'Perfil en plataforma, sincronización de agenda e inducción', 'Plazo: 3 semanas después de Fase 1', '#15803d', '#f0fdf4');
     tHtml += '<div style="margin-left:48px;margin-bottom:6px;background:white;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
     tHtml += '<div style="padding:8px 12px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);letter-spacing:0.5px;">PASOS</div>';
-    tHtml += stepRow(d.plazos && d.plazos.fase1Completada, 'Fase 1 completada → Avance automático', 'auto', null, null);
-    tHtml += stepRow(!!tm.trigMarkProfile, 'Perfil profesional creado en la plataforma', 'manual', 'trigMarkProfile', 'Marcar ✓');
-    tHtml += stepRow(!!tm.trigSyncWhatsApp, 'Sincronización de agenda / calendario', 'manual', 'trigSyncWhatsApp', 'Agendar');
-    tHtml += stepRow(!!tm.trigMarkSyncDone, 'Sincronización de agenda realizada', 'manual', 'trigMarkSyncDone', 'Marcar ✓');
-    tHtml += stepRow(!!tm.trigZoomWhatsApp, 'Reunión Zoom de bienvenida e inducción (60 min)', 'manual', 'trigZoomWhatsApp', 'Agendar');
-    tHtml += stepRow(!!tm.trigMarkZoomDone, 'Reunión Zoom realizada', 'manual', 'trigMarkZoomDone', 'Marcar ✓');
+    tHtml += stepRow(d.plazos && d.plazos.fase1Completada, 'Fase 1 completada → Avance automático', 'auto', null, null, 'fase1_completada');
+    tHtml += stepRow(!!tm.trigMarkProfile, 'Perfil profesional creado en la plataforma', 'manual', 'trigMarkProfile', 'Marcar ✓', 'trigMarkProfile');
+    tHtml += stepRow(!!tm.trigSyncWhatsApp, 'Sincronización de agenda / calendario', 'manual', 'trigSyncWhatsApp', 'Agendar', 'trigSyncWhatsApp');
+    tHtml += stepRow(!!tm.trigMarkSyncDone, 'Sincronización de agenda realizada', 'manual', 'trigMarkSyncDone', 'Marcar ✓', 'trigMarkSyncDone');
+    tHtml += stepRow(!!tm.trigZoomWhatsApp, 'Reunión Zoom de bienvenida e inducción (60 min)', 'manual', 'trigZoomWhatsApp', 'Agendar', 'trigZoomWhatsApp');
+    tHtml += stepRow(!!tm.trigMarkZoomDone, 'Reunión Zoom realizada', 'manual', 'trigMarkZoomDone', 'Marcar ✓', 'trigMarkZoomDone');
+    tHtml += seccionAprobar('pasos2');
     tHtml += '</div>';
     tHtml += '<div style="margin-left:48px;padding:8px 12px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:6px;margin-bottom:6px;font-size:12px;color:#15803d;">' +
       '&#x1F4AC; <strong>Nota:</strong> Para la sincronización de agenda, el profesional debe contactar por WhatsApp a Coordinación de Red de Psicólogos Católicos para acordar fecha y hora.</div>';
@@ -1132,12 +1338,13 @@
     tHtml += faseHeader(3, 'Integración Académica y Comunitaria', 'Formación, participación en comunidad y supervisión', 'Plazo: 2 semanas después de Fase 2', '#a16207', '#fffbeb');
     tHtml += '<div style="margin-left:48px;margin-bottom:6px;background:white;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
     tHtml += '<div style="padding:8px 12px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);letter-spacing:0.5px;">PASOS</div>';
-    tHtml += stepRow(!!tm.trigTrainingMaterials, 'Materiales de formación Catholizare Pro', 'email', 'trigTrainingMaterials', 'Enviar correo');
-    tHtml += stepRow(!!tm.trigBlogInvite, 'Invitación a escribir en el blog (correo mensual)', 'email', 'trigBlogInvite', 'Enviar correo');
-    tHtml += stepRow(!!tm.trigPostsEscritos, 'Ha escrito 3 post / interacciones', 'manual', 'trigPostsEscritos', 'Marcar ✓');
-    tHtml += stepRow(!!tm.trigMonthlyMeeting, 'Invitación a reunión mensual de comunidad (correo mensual)', 'email', 'trigMonthlyMeeting', 'Enviar correo');
-    tHtml += stepRow(!!tm.trigSupervisionWhatsApp, 'Supervisión fe y espiritualidad (agendar por WhatsApp)', 'manual', 'trigSupervisionWhatsApp', 'Agendar');
-    tHtml += stepRow(!!tm.trigMarkSupervisionDone, 'Supervisión realizada', 'manual', 'trigMarkSupervisionDone', 'Marcar ✓');
+    tHtml += stepRow(!!tm.trigTrainingMaterials, 'Materiales de formación Catholizare Pro', 'email', 'trigTrainingMaterials', 'Enviar correo', 'trigTrainingMaterials');
+    tHtml += stepRow(!!tm.trigBlogInvite, 'Invitación a escribir en el blog (correo mensual)', 'email', 'trigBlogInvite', 'Enviar correo', 'trigBlogInvite');
+    tHtml += stepRow(!!tm.trigPostsEscritos, 'Ha escrito 3 post / interacciones', 'manual', 'trigPostsEscritos', 'Marcar ✓', 'trigPostsEscritos');
+    tHtml += stepRow(!!tm.trigMonthlyMeeting, 'Invitación a reunión mensual de comunidad (correo mensual)', 'email', 'trigMonthlyMeeting', 'Enviar correo', 'trigMonthlyMeeting');
+    tHtml += stepRow(!!tm.trigSupervisionWhatsApp, 'Supervisión fe y espiritualidad (agendar por WhatsApp)', 'manual', 'trigSupervisionWhatsApp', 'Agendar', 'trigSupervisionWhatsApp');
+    tHtml += stepRow(!!tm.trigMarkSupervisionDone, 'Supervisión realizada', 'manual', 'trigMarkSupervisionDone', 'Marcar ✓', 'trigMarkSupervisionDone');
+    tHtml += seccionAprobar('pasos3');
     tHtml += '</div>';
     tHtml += '<div style="margin-left:48px;padding:8px 12px;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;margin-bottom:6px;font-size:12px;color:#a16207;">' +
       '&#x1F4AC; <strong>Nota:</strong> Para la supervisión, el profesional agenda por WhatsApp con Coordinación proponiendo fechas y horarios para la reunión Zoom.</div>';
@@ -1149,7 +1356,8 @@
     tHtml += faseHeader(4, 'Seguimiento y Evaluación Continua', 'Actualización periódica de datos y seguimiento', 'Plazo: 1 año después del inicio de Fase 1', '#7e22ce', '#f3e8ff');
     tHtml += '<div style="margin-left:48px;margin-bottom:6px;background:white;border:1px solid var(--gray-200);border-radius:8px;overflow:hidden;">';
     tHtml += '<div style="padding:8px 12px;background:var(--gray-50);font-size:11px;font-weight:700;color:var(--gray-500);letter-spacing:0.5px;">PASOS</div>';
-    tHtml += stepRow(!!tm.trigMarkAnnualDone, 'Actualización de datos / CV realizada', 'manual', 'trigMarkAnnualDone', 'Marcar ✓');
+    tHtml += stepRow(!!tm.trigMarkAnnualDone, 'Actualización de datos / CV realizada', 'manual', 'trigMarkAnnualDone', 'Marcar ✓', 'trigMarkAnnualDone');
+    tHtml += seccionAprobar('pasos4');
     tHtml += '</div>';
 
     tHtml += '<div style="margin-left:48px;margin-bottom:4px;">';
@@ -1171,6 +1379,7 @@
       tHtml += '</div>';
     }
     document.getElementById('paneTriggers').innerHTML = tHtml;
+    bindAprobacionManual();
 
     // Bind ALL trigger buttons
     setTimeout(function() {
