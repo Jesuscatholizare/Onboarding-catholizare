@@ -738,8 +738,9 @@
 
     var rows = '';
     filtered.forEach(function(p, idx) {
-      // Progress dots: 6 dots representing the 6 Fase 1 items
-      var totalSteps = 6;
+      // Puntos de progreso: los 7 requisitos de Fase 1 (legal, perfil, CV,
+      // cédula, foto y las dos cartas de sacerdote)
+      var totalSteps = 7;
       var done = totalSteps - p.pendientes;
       var dots = '';
       for (var i = 0; i < totalSteps; i++) {
@@ -906,7 +907,8 @@
   // (columna Pin_adminstrador de Admin_Users) más un motivo de 7 palabras.
   var MAX_PALABRAS_MOTIVO = 7;
   var pasoSeccion = {
-    doc_cv:'documentos', doc_cedula:'documentos', doc_foto:'documentos', doc_carta:'documentos',
+    doc_cv:'documentos', doc_cedula:'documentos', doc_foto:'documentos',
+    doc_carta:'documentos', doc_carta2:'documentos',
     legal_contrato:'legal', legal_terminos:'legal', legal_privacidad:'legal', legal_etica:'legal',
     perfil_servicios:'perfil', perfil_terapia:'perfil', perfil_diagnosticos:'perfil',
     perfil_enfoques:'perfil', perfil_horarios:'perfil',
@@ -1284,7 +1286,8 @@
     tHtml += stepRow(d.documentos.cv, 'Curriculum Vitae', 'form', null, null, 'doc_cv');
     tHtml += stepRow(d.documentos.cedula, 'Título y Cédula Profesional + RFC', 'form', null, null, 'doc_cedula');
     tHtml += stepRow(d.documentos.foto, 'Foto de Perfil para directorio', 'form', null, null, 'doc_foto');
-    tHtml += stepRow(d.documentos.carta, 'Carta de Recomendación de Sacerdote', 'form', null, null, 'doc_carta');
+    tHtml += stepRow(d.documentos.carta, 'Carta de Recomendación de Sacerdote 1', 'form', null, null, 'doc_carta');
+    tHtml += stepRow(d.documentos.carta2, 'Carta de Recomendación de Sacerdote 2', 'form', null, null, 'doc_carta2');
     tHtml += seccionAprobar('documentos');
     tHtml += '</div>';
 
@@ -1444,7 +1447,8 @@
       { name:'Curriculum Vitae', icon:'&#x1F4C4;', has:d.documentos.cv, url:d.documentosUrls.cv },
       { name:'Cédula Profesional', icon:'&#x1F393;', has:d.documentos.cedula, url:d.documentosUrls.cedula },
       { name:'Foto de Perfil', icon:'&#x1F4F8;', has:d.documentos.foto, url:d.documentosUrls.foto },
-      { name:'Carta de Sacerdote', icon:'&#x2709;', has:d.documentos.carta, url:d.documentosUrls.carta }
+      { name:'Carta de Sacerdote 1', icon:'&#x2709;', has:d.documentos.carta, url:d.documentosUrls.carta },
+      { name:'Carta de Sacerdote 2', icon:'&#x2709;', has:d.documentos.carta2, url:d.documentosUrls.carta2 }
     ];
     var dHtml = '<h4 style="margin-bottom:16px;font-size:15px;">Documentos del Profesional</h4>';
     docs.forEach(function(doc) {

@@ -802,7 +802,7 @@
                     ${renderActionItem(
                       '📎',
                       'Subir Documentos',
-                      'CV, cédula, foto, carta',
+                      'CV, cédula, foto y dos cartas de sacerdote',
                       Object.values(status.documentos).every(v => v),
                       null,
                       true
@@ -1053,7 +1053,8 @@
         { key: 'cv', nombre: 'Curriculum Vitae', icon: '📄', max: '5MB' },
         { key: 'cedula', nombre: 'Cédula Profesional', icon: '🎓', max: '5MB' },
         { key: 'foto', nombre: 'Foto Profesional', icon: '📸', max: '1MB' },
-        { key: 'carta', nombre: 'Carta de Sacerdote', icon: '✉️', max: '5MB' }
+        { key: 'carta', nombre: 'Carta de Sacerdote 1', icon: '✉️', max: '5MB' },
+        { key: 'carta2', nombre: 'Carta de Sacerdote 2', icon: '✉️', max: '5MB' }
       ];
 
       let html = '<div class="card"><div class="action-list">';
@@ -1123,9 +1124,11 @@
         foto:   { maxMB: 1, accept: 'image/jpeg,image/jpg,image/png' },
         cv:     { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
         cedula: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
-        carta:  { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' }
+        carta:  { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' },
+        carta2: { maxMB: 5, accept: 'application/pdf,image/jpeg,image/jpg,image/png' }
       };
-      var labels = { foto: 'Foto Profesional', cv: 'Curriculum Vitae', cedula: 'Cédula Profesional', carta: 'Carta de Sacerdote' };
+      var labels = { foto: 'Foto Profesional', cv: 'Curriculum Vitae', cedula: 'Cédula Profesional',
+                     carta: 'Carta de Sacerdote 1', carta2: 'Carta de Sacerdote 2' };
 
       input.accept = limits[type].accept;
 
