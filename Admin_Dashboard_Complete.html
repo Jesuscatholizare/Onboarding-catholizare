@@ -1048,9 +1048,9 @@
           return;
         }
         cerrarModalAprobacion();
-        // Releer el detalle para ver el sello y el progreso ya actualizados
-        delete detailCache[tokenProf];
-        profData = [];
+        // Refrescar la lista que quedó detrás (progreso y fase cambian) y
+        // releer el detalle para ver el sello y el progreso actualizados.
+        cargarDashboardInicial();
         callProxy('getProfessionalStatus', { token: tokenProf })
           .then(function(data) {
             if (data && data.success !== false) {
@@ -1138,6 +1138,13 @@
       document.getElementById('panePerfil').innerHTML = '<p style="color:var(--red);padding:20px;">No se pudieron cargar los datos' + (d && d.message ? ': ' + d.message : '') + '</p>';
       return;
     }
+
+    // El encabezado se pinta con el detalle del servidor, no con la lista en
+    // memoria: así no dice "Profesional" si la lista se recargó, y la fase
+    // mostrada es la real después de avanzarla.
+    if (d.nombre) document.getElementById('modalTitle').textContent = d.nombre;
+    document.getElementById('modalSubtitle').textContent =
+      (d.email || '') + ' • ' + (d.fase || '') + ' • ' + (d.estado || '');
 
     // PERFIL
     var fechaIngreso = d.legalFecha ? d.legalFecha : 'Pendiente (no ha aceptado términos)';
