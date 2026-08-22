@@ -143,7 +143,8 @@ const FILE_SIZE_LIMITS = {
   cv: 5 * 1024 * 1024,
   cedula: 5 * 1024 * 1024,
   titulo: 5 * 1024 * 1024,
-  carta: 5 * 1024 * 1024
+  carta: 5 * 1024 * 1024,
+  carta2: 5 * 1024 * 1024
 };
 
 const ALLOWED_TYPES = {
@@ -370,6 +371,8 @@ function doPost(e) {
       getEmailPreview: 1, getEmailTemplate: 1, getAllEmailLog: 1, getEmailHistory: 1,
       adminAdvancePhase: 1, adminSetStatus: 1, adminMarkAction: 1,
       adminDeleteProfessional: 1, adminResetOnboarding: 1, initializeNewProfessional: 1,
+      adminArchiveProfessional: 1, adminReactivateProfessional: 1, getArchivedProfesionales: 1,
+      adminApproveSteps: 1,
       diagnosticoRemoto: 1, sendTestEmail: 1,
       listLegalAcceptances: 1, getLegalAcceptanceDetail: 1,
       getAllVoluntarios: 1, addVoluntario: 1, sendContratoVoluntario: 1, darBajaVoluntario: 1,
@@ -428,6 +431,18 @@ function doPost(e) {
         break;
       case 'adminDeleteProfessional':
         result = adminDeleteProfessional(data.token);
+        break;
+      case 'adminApproveSteps':
+        result = adminApproveSteps(data);
+        break;
+      case 'adminArchiveProfessional':
+        result = adminArchiveProfessional(data.token, data.motivo);
+        break;
+      case 'adminReactivateProfessional':
+        result = adminReactivateProfessional(data.token);
+        break;
+      case 'getArchivedProfesionales':
+        result = { success: true, data: getArchivedProfesionales() };
         break;
       case 'adminResetOnboarding':
         result = adminResetOnboarding(data.token);
@@ -590,8 +605,6 @@ function saveProfileInfo(token, formData) {
 function checkAndAdvancePhase(rowNum, rowData) {
   try {
     var token = rowData[0];
-    var nombre = rowData[1];
-    var email = rowData[2];
 
     // Contar legales aceptados desde la hoja Aceptaciones_Legales (nuevo sistema).
     // Requerimos los 3 documentos legales (CONTRATO, TERMINOS, PRIVACIDAD). ETICA
@@ -606,45 +619,69 @@ function checkAndAdvancePhase(rowNum, rowData) {
       legalOk = true;
     }
 
+    // Un paso aprobado a mano por un administrador vale igual que el dato real:
+    // si no fuera así, aprobar toda la Fase 1 dejaría al profesional clavado en
+    // ella con 100% de progreso.
+    var sheet = getSHEET();
+    var iAprob = indiceColumnaAprobaciones_(sheet);
+    var aprob = iAprob >= 0 ? parseAprobaciones_(rowData[iAprob]) : {};
+    var iCarta2 = indiceColumnaCarta2_(sheet);
+    var ap = function(id) { return !!aprob[id]; };
+
     var required = {
-      legal: legalOk,
-      perfil: rowData[13] !== "" && rowData[13] !== null,
-      cv: rowData[4] !== "" && rowData[4] !== null,
-      cedula: rowData[5] !== "" && rowData[5] !== null,
-      foto: rowData[6] !== "" && rowData[6] !== null,
-      carta: rowData[7] !== "" && rowData[7] !== null
+      legal:  legalOk || contarLegalesAprobados_(aprob) >= 3,
+      perfil: perfilCubierto_(rowData, aprob),
+      cv:     (rowData[4] !== "" && rowData[4] !== null) || ap('doc_cv'),
+      cedula: (rowData[5] !== "" && rowData[5] !== null) || ap('doc_cedula'),
+      foto:   (rowData[6] !== "" && rowData[6] !== null) || ap('doc_foto'),
+      carta:  (rowData[7] !== "" && rowData[7] !== null) || ap('doc_carta'),
+      carta2: tieneCarta2_(rowData, iCarta2) || ap('doc_carta2')
     };
 
     var allComplete = Object.values(required).every(function(v) { return v === true; });
 
     if (allComplete && rowData[8] === "Fase 1") {
-      getSHEET().getRange(rowNum, 9).setValue("Fase 2");
-      getSHEET().getRange(rowNum, 22).setValue(true);
-      getSHEET().getRange(rowNum, 23).setValue(new Date());
-
-      // Actualizar columnas legacy: col 12 (L = Legal info) y col 13 (M = Fecha legal)
-      // para que admin dashboard muestre "Ingreso a la red" y "Tiempo en la red".
-      var fechaLegalWrite = _ultimaFechaLegalDeToken_(token) || new Date();
-      try {
-        var existingLegalInfo = String(rowData[11] || '');
-        if (existingLegalInfo.indexOf('ACEPTADO') !== 0) {
-          getSHEET().getRange(rowNum, 12).setValue('ACEPTADO (3 docs legales)');
-        }
-        if (!rowData[12]) {
-          getSHEET().getRange(rowNum, 13).setValue(fechaLegalWrite);
-        }
-      } catch(legErr) { Logger.log('Error actualizando cols legacy legal: ' + legErr); }
-
-      sendPhase2WelcomeEmail(email, nombre);
-      moveContactToBrevoPhase(email, nombre, "Fase 2", token);
-      notifyAdminForZoomScheduling(email, nombre, token);
-
-      logAction(token, email, 'Avance a Fase 2', 'Fase_Actual', 'Fase 1', 'Fase 2', 'Sistema');
-      Logger.log('✅ ' + nombre + ' avanzó a Fase 2');
+      completarAvanceAFase2_(rowNum, rowData, 'Sistema');
     }
   } catch (error) {
     Logger.log('Error en checkAndAdvancePhase: ' + error);
   }
+}
+
+/**
+ * Pasa a Fase 2 dejando todo consistente: marca "Fase 1 completada" (cols 22 y
+ * 23), rellena las columnas legacy de legal, manda el correo de bienvenida y
+ * avisa a coordinación del Zoom. Lo usan el avance automático y el botón
+ * "Avanzar Fase", para que el salto manual no deje datos a medias.
+ */
+function completarAvanceAFase2_(rowNum, rowData, actor) {
+  var token = rowData[0];
+  var nombre = rowData[1];
+  var email = rowData[2];
+
+  getSHEET().getRange(rowNum, 9).setValue("Fase 2");
+  getSHEET().getRange(rowNum, 22).setValue(true);
+  getSHEET().getRange(rowNum, 23).setValue(new Date());
+
+  // Actualizar columnas legacy: col 12 (L = Legal info) y col 13 (M = Fecha legal)
+  // para que admin dashboard muestre "Ingreso a la red" y "Tiempo en la red".
+  var fechaLegalWrite = _ultimaFechaLegalDeToken_(token) || new Date();
+  try {
+    var existingLegalInfo = String(rowData[11] || '');
+    if (existingLegalInfo.indexOf('ACEPTADO') !== 0) {
+      getSHEET().getRange(rowNum, 12).setValue('ACEPTADO (3 docs legales)');
+    }
+    if (!rowData[12]) {
+      getSHEET().getRange(rowNum, 13).setValue(fechaLegalWrite);
+    }
+  } catch(legErr) { Logger.log('Error actualizando cols legacy legal: ' + legErr); }
+
+  try { sendPhase2WelcomeEmail(email, nombre); } catch(e1) { Logger.log('Correo Fase 2: ' + e1); }
+  try { moveContactToBrevoPhase(email, nombre, "Fase 2", token); } catch(e2) { Logger.log('Brevo Fase 2: ' + e2); }
+  try { notifyAdminForZoomScheduling(email, nombre, token); } catch(e3) { Logger.log('Aviso Zoom: ' + e3); }
+
+  logAction(token, email, 'Avance a Fase 2', 'Fase_Actual', 'Fase 1', 'Fase 2', actor || 'Sistema');
+  Logger.log('✅ ' + nombre + ' avanzó a Fase 2 (' + (actor || 'Sistema') + ')');
 }
 
 /**
@@ -711,38 +748,66 @@ function getLegalCountForToken_(token) {
  * 8 ítems totales: 3 contratos + 4 documentos + 1 perfil.
  * legalCount (0-3) es opcional; si no se pasa usa el campo legacy row[11].
  */
-function calcularProgreso(row, legalCount) {
+function calcularProgreso(row, legalCount, aprob, iCarta2) {
+  aprob = aprob || {};
+  var ap = function(id) { return !!aprob[id]; };
   var puntos = 0;
   if (legalCount !== undefined && legalCount !== null) {
-    puntos += legalCount;
+    // Un paso legal aprobado a mano cuenta igual que uno aceptado por el
+    // profesional; el tope de 4 evita contar dos veces el mismo documento.
+    puntos += Math.min(4, legalCount + contarLegalesAprobados_(aprob));
   } else {
     // Fallback legacy: 1 punto si ACEPTADO (compatibilidad)
-    if (row[11] && row[11].toString().indexOf("ACEPTADO") === 0) puntos++;
+    if ((row[11] && row[11].toString().indexOf("ACEPTADO") === 0) || contarLegalesAprobados_(aprob) > 0) puntos++;
   }
-  if (row[13] !== "" && row[13] !== null) puntos++;
-  if (row[4] !== "" && row[4] !== null) puntos++;
-  if (row[5] !== "" && row[5] !== null) puntos++;
-  if (row[6] !== "" && row[6] !== null) puntos++;
-  if (row[7] !== "" && row[7] !== null) puntos++;
-  var total = (legalCount !== undefined && legalCount !== null) ? 9 : 6;
+  if (perfilCubierto_(row, aprob)) puntos++;
+  if ((row[4] !== "" && row[4] !== null) || ap('doc_cv')) puntos++;
+  if ((row[5] !== "" && row[5] !== null) || ap('doc_cedula')) puntos++;
+  if ((row[6] !== "" && row[6] !== null) || ap('doc_foto')) puntos++;
+  if ((row[7] !== "" && row[7] !== null) || ap('doc_carta')) puntos++;
+  if (tieneCarta2_(row, iCarta2) || ap('doc_carta2')) puntos++;
+  // Son dos cartas de sacerdote, así que el total sube un punto
+  var total = (legalCount !== undefined && legalCount !== null) ? 10 : 7;
   return Math.round((puntos / total) * 100);
+}
+
+/** Cuántos de los 4 pasos de aceptación legal están aprobados a mano. */
+function contarLegalesAprobados_(aprob) {
+  var ids = ['legal_contrato', 'legal_terminos', 'legal_privacidad', 'legal_etica'];
+  var n = 0;
+  for (var i = 0; i < ids.length; i++) if (aprob[ids[i]]) n++;
+  return n;
+}
+
+/**
+ * El perfil profesional son 5 pasos pero un solo punto de progreso: cuenta si
+ * el profesional lo llenó o si el admin aprobó los cinco pasos.
+ */
+function perfilCubierto_(row, aprob) {
+  if (row[13] !== "" && row[13] !== null) return true;
+  var ids = ['perfil_servicios', 'perfil_terapia', 'perfil_diagnosticos', 'perfil_enfoques', 'perfil_horarios'];
+  for (var i = 0; i < ids.length; i++) if (!aprob[ids[i]]) return false;
+  return true;
 }
 
 /**
  * Cuenta los pendientes. legalCount (0-3) opcional.
  */
-function calcularPendientes(row, legalCount) {
+function calcularPendientes(row, legalCount, aprob, iCarta2) {
+  aprob = aprob || {};
+  var ap = function(id) { return !!aprob[id]; };
   var pendientes = 0;
   if (legalCount !== undefined && legalCount !== null) {
-    pendientes += (4 - legalCount);
+    pendientes += Math.max(0, 4 - legalCount - contarLegalesAprobados_(aprob));
   } else {
-    if (!row[11] || row[11].toString().indexOf("ACEPTADO") !== 0) pendientes++;
+    if ((!row[11] || row[11].toString().indexOf("ACEPTADO") !== 0) && contarLegalesAprobados_(aprob) === 0) pendientes++;
   }
-  if (!row[13] || row[13] === "") pendientes++;
-  if (!row[4] || row[4] === "") pendientes++;
-  if (!row[5] || row[5] === "") pendientes++;
-  if (!row[6] || row[6] === "") pendientes++;
-  if (!row[7] || row[7] === "") pendientes++;
+  if (!perfilCubierto_(row, aprob)) pendientes++;
+  if ((!row[4] || row[4] === "") && !ap('doc_cv')) pendientes++;
+  if ((!row[5] || row[5] === "") && !ap('doc_cedula')) pendientes++;
+  if ((!row[6] || row[6] === "") && !ap('doc_foto')) pendientes++;
+  if ((!row[7] || row[7] === "") && !ap('doc_carta')) pendientes++;
+  if (!tieneCarta2_(row, iCarta2) && !ap('doc_carta2')) pendientes++;
   return pendientes;
 }
 
@@ -1131,26 +1196,11 @@ function adminMarkAction(token, actionId) {
         getSHEET().getRange(rowNum, 24).setValue(JSON.stringify(marks));
         logAction(token, data[i][2], actionName + ' completado (manual)', 'Trigger_' + actionName, '', 'Completado', 'Admin');
 
-        // Auto-avance de fase según triggers completados
+        // Auto-avance de fase según triggers completados (misma regla que usa
+        // la aprobación manual de pasos)
         try {
-          var currentPhase = String(data[i][8] || 'Fase 1');
-          var nombreRow = data[i][1];
-          var emailRow = data[i][2];
-          // Fase 2 → Fase 3: sync + zoom ambos marcados
-          if (currentPhase === 'Fase 2' && marks['trigMarkSyncDone'] && marks['trigMarkZoomDone']) {
-            getSHEET().getRange(rowNum, 9).setValue('Fase 3');
-            logAction(token, emailRow, 'Avance automático a Fase 3', 'Fase_Actual', 'Fase 2', 'Fase 3', 'Sistema');
-            try { sendPhase3WelcomeEmail(emailRow, nombreRow, token); } catch(_){}
-            try { moveContactToBrevoPhase(emailRow, nombreRow, 'Fase 3', token); } catch(_){}
-            Logger.log('✅ ' + nombreRow + ' avanzó a Fase 3 (auto)');
-          }
-          // Fase 3 → Fase 4: supervisión realizada
-          else if (currentPhase === 'Fase 3' && marks['trigMarkSupervisionDone']) {
-            getSHEET().getRange(rowNum, 9).setValue('Fase 4');
-            logAction(token, emailRow, 'Avance automático a Fase 4', 'Fase_Actual', 'Fase 3', 'Fase 4', 'Sistema');
-            try { moveContactToBrevoPhase(emailRow, nombreRow, 'Fase 4', token); } catch(_){}
-            Logger.log('✅ ' + nombreRow + ' avanzó a Fase 4 (auto)');
-          }
+          aplicarAvanceAutomaticoPorTriggers_(rowNum, String(data[i][8] || 'Fase 1'), marks,
+                                              token, data[i][1], data[i][2]);
         } catch(advErr) { Logger.log('Error auto-avance por trigger: ' + advErr); }
 
         return { success: true, message: actionName + ' marcado como completado' };
@@ -1172,7 +1222,15 @@ function adminAdvancePhase(token) {
         else if (currentPhase === 'Fase 2') nextPhase = 'Fase 3';
         else if (currentPhase === 'Fase 3') nextPhase = 'Fase 4';
         else return { success: false, message: 'Ya está en la fase final' };
-        
+
+        // De Fase 1 a Fase 2 se hace el avance completo (marca "Fase 1
+        // completada", correo de bienvenida y aviso de Zoom), no el salto
+        // crudo que dejaba esos datos sin escribir.
+        if (currentPhase === 'Fase 1') {
+          completarAvanceAFase2_(rowNum, data[i], 'Admin');
+          return { success: true, message: 'Avanzado a Fase 2' };
+        }
+
         getSHEET().getRange(rowNum, 9).setValue(nextPhase);
         logAction(token, data[i][2], 'Avance manual a ' + nextPhase, 'Fase_Actual', currentPhase, nextPhase, 'Admin');
         
@@ -1251,6 +1309,397 @@ function adminDeleteProfessional(token) {
     }
     return { success: false, message: 'Token no encontrado' };
   } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+// ============================================================================
+// ARCHIVADO DE PROFESIONALES
+// ----------------------------------------------------------------------------
+// Archivar da de baja al profesional del proceso de onboarding SIN borrar su
+// fila: se marca Estado = 'Archivado' y se guardan fecha y motivo. Así la
+// acción es reversible (Reactivar) y no se pierde el historial.
+// ============================================================================
+
+var ESTADO_ARCHIVADO = 'Archivado';
+
+/**
+ * Devuelve el número de columna con ese encabezado; si no existe, la crea
+ * al final de la hoja. Evita hardcodear posiciones que puedan moverse.
+ */
+function getOrCreateColumn_(sheet, headerName) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var target = String(headerName).trim().toLowerCase();
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i] || '').trim().toLowerCase() === target) return i + 1;
+  }
+  var col = lastCol + 1;
+  sheet.getRange(1, col).setValue(headerName);
+  return col;
+}
+
+/**
+ * Archiva (da de baja del onboarding) a un profesional. Reversible.
+ * Data: { token, motivo (opcional) }
+ */
+function adminArchiveProfessional(token, motivo) {
+  try {
+    token = String(token || '').trim();
+    if (!token) return { success: false, message: 'Falta el token del profesional.' };
+
+    var sheet = getSHEET();
+    var colFecha = getOrCreateColumn_(sheet, 'Fecha_Archivado');
+    var colMotivo = getOrCreateColumn_(sheet, 'Motivo_Archivado');
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0] || '').trim() === token) {
+        var rowNum = i + 1;
+        var estadoAnterior = String(data[i][9] || '');
+        if (estadoAnterior === ESTADO_ARCHIVADO) {
+          return { success: false, message: 'Este profesional ya está archivado.' };
+        }
+        var ahora = new Date();
+        sheet.getRange(rowNum, 10).setValue(ESTADO_ARCHIVADO);
+        sheet.getRange(rowNum, colFecha).setValue(ahora);
+        sheet.getRange(rowNum, colMotivo).setValue(motivo ? String(motivo) : '');
+        try {
+          logAction(token, data[i][2], 'Profesional archivado' + (motivo ? ' — ' + motivo : ''),
+                    'Estado', estadoAnterior, ESTADO_ARCHIVADO, 'Admin');
+        } catch (le) {}
+        return {
+          success: true,
+          message: 'Profesional archivado. Puedes reactivarlo desde "Profesionales archivados".',
+          fechaArchivado: ahora.toISOString()
+        };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+/**
+ * Reactiva a un profesional archivado: vuelve a 'Activo' y limpia la baja.
+ * Conserva su fase y su progreso, no reinicia el onboarding.
+ */
+function adminReactivateProfessional(token) {
+  try {
+    token = String(token || '').trim();
+    if (!token) return { success: false, message: 'Falta el token del profesional.' };
+
+    var sheet = getSHEET();
+    var colFecha = getOrCreateColumn_(sheet, 'Fecha_Archivado');
+    var colMotivo = getOrCreateColumn_(sheet, 'Motivo_Archivado');
+
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0] || '').trim() === token) {
+        var rowNum = i + 1;
+        if (String(data[i][9] || '') !== ESTADO_ARCHIVADO) {
+          return { success: false, message: 'Este profesional no está archivado.' };
+        }
+        sheet.getRange(rowNum, 10).setValue('Activo');
+        sheet.getRange(rowNum, colFecha).setValue('');
+        sheet.getRange(rowNum, colMotivo).setValue('');
+        try {
+          logAction(token, data[i][2], 'Profesional reactivado', 'Estado', ESTADO_ARCHIVADO, 'Activo', 'Admin');
+        } catch (le) {}
+        return { success: true, message: 'Profesional reactivado. Vuelve a aparecer en el listado.' };
+      }
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) { return { success: false, message: e.toString() }; }
+}
+
+/**
+ * Lista los profesionales archivados (los que no salen en el listado normal).
+ */
+function getArchivedProfesionales() {
+  try {
+    var sheet = getSHEET();
+    var lastCol = Math.max(sheet.getLastColumn(), 1);
+    var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(function(h) {
+      return String(h || '').trim().toLowerCase();
+    });
+    var iFecha = headers.indexOf('fecha_archivado');
+    var iMotivo = headers.indexOf('motivo_archivado');
+
+    var data = sheet.getDataRange().getValues();
+    var out = [];
+    for (var i = 1; i < data.length; i++) {
+      var row = data[i];
+      if (!row[0] || String(row[9] || '') !== ESTADO_ARCHIVADO) continue;
+      var fa = iFecha >= 0 ? row[iFecha] : '';
+      out.push({
+        token: String(row[0]),
+        nombre: String(row[1] || ''),
+        email: String(row[2] || ''),
+        especialidad: String(row[3] || ''),
+        fase: String(row[8] || ''),
+        motivo: iMotivo >= 0 ? String(row[iMotivo] || '') : '',
+        fechaArchivado: fa ? new Date(fa).toISOString() : ''
+      });
+    }
+    return out;
+  } catch (error) {
+    Logger.log('❌ Error en getArchivedProfesionales: ' + error);
+    throw error;
+  }
+}
+
+// ============================================================================
+// APROBACIÓN MANUAL DE PASOS (Fase > Sección > Paso)
+// ----------------------------------------------------------------------------
+// Un PASO es el elemento individual (p. ej. "Curriculum Vitae"), una SECCIÓN
+// es el conjunto de pasos ("DOCUMENTOS (subida a Google Drive)") y una FASE es
+// el conjunto de secciones ("FASE 1 — Documentación Inicial y Contratos").
+//
+// Cuando un paso no se cumple de forma automática, un administrador puede
+// aprobarlo a mano: marca los pasos de una sección, confirma con SU PIN
+// (columna Pin_adminstrador de Admin_Users) y escribe un motivo de máximo 7
+// palabras. La aprobación se guarda en la columna Aprobaciones_Manuales de la
+// hoja de profesionales como JSON y cuenta como cumplida para el progreso.
+// ============================================================================
+
+var COL_APROBACIONES = 'Aprobaciones_Manuales';
+var COL_CARTA2 = 'Carta2_Url';
+var MAX_PALABRAS_MOTIVO = 7;
+
+// Catálogo de pasos aprobables. 'trigger' indica que el paso además vive en
+// las marcas manuales (columna 24), para no duplicar estados.
+var PASOS_ONBOARDING = {
+  // FASE 1 — DOCUMENTOS
+  doc_cv:            { label: 'Curriculum Vitae', fase: 1, seccion: 'documentos', col: 5 },
+  doc_cedula:        { label: 'Título y Cédula Profesional + RFC', fase: 1, seccion: 'documentos', col: 6 },
+  doc_foto:          { label: 'Foto de Perfil para directorio', fase: 1, seccion: 'documentos', col: 7 },
+  doc_carta:         { label: 'Carta de Recomendación de Sacerdote 1', fase: 1, seccion: 'documentos', col: 8 },
+  doc_carta2:        { label: 'Carta de Recomendación de Sacerdote 2', fase: 1, seccion: 'documentos' },
+  // FASE 1 — ACEPTACIÓN LEGAL
+  legal_contrato:    { label: 'Contrato de Intermediación', fase: 1, seccion: 'legal' },
+  legal_terminos:    { label: 'Términos y Condiciones', fase: 1, seccion: 'legal' },
+  legal_privacidad:  { label: 'Aviso de Privacidad', fase: 1, seccion: 'legal' },
+  legal_etica:       { label: 'Código de Ética', fase: 1, seccion: 'legal' },
+  // FASE 1 — PERFIL PROFESIONAL
+  perfil_servicios:    { label: 'Servicios y poblaciones que atiende', fase: 1, seccion: 'perfil' },
+  perfil_terapia:      { label: 'Tipo de terapia (pareja, individual, familiar)', fase: 1, seccion: 'perfil' },
+  perfil_diagnosticos: { label: 'Diagnósticos o síntomas que trata', fase: 1, seccion: 'perfil' },
+  perfil_enfoques:     { label: 'Enfoque(s) psicológico(s)', fase: 1, seccion: 'perfil' },
+  perfil_horarios:     { label: 'Horario y modalidad (online/presencial)', fase: 1, seccion: 'perfil' },
+  // FASE 2
+  fase1_completada:       { label: 'Fase 1 completada → Avance automático', fase: 2, seccion: 'pasos2' },
+  trigMarkProfile:        { label: 'Perfil profesional creado en la plataforma', fase: 2, seccion: 'pasos2', trigger: true },
+  trigSyncWhatsApp:       { label: 'Sincronización de agenda / calendario', fase: 2, seccion: 'pasos2', trigger: true },
+  trigMarkSyncDone:       { label: 'Sincronización de agenda realizada', fase: 2, seccion: 'pasos2', trigger: true },
+  trigZoomWhatsApp:       { label: 'Reunión Zoom de bienvenida e inducción', fase: 2, seccion: 'pasos2', trigger: true },
+  trigMarkZoomDone:       { label: 'Reunión Zoom realizada', fase: 2, seccion: 'pasos2', trigger: true },
+  // FASE 3
+  trigTrainingMaterials:   { label: 'Materiales de formación Catholizare Pro', fase: 3, seccion: 'pasos3', trigger: true },
+  trigBlogInvite:          { label: 'Invitación a escribir en el blog', fase: 3, seccion: 'pasos3', trigger: true },
+  trigPostsEscritos:       { label: 'Ha escrito 3 post / interacciones', fase: 3, seccion: 'pasos3', trigger: true },
+  trigMonthlyMeeting:      { label: 'Invitación a reunión mensual de comunidad', fase: 3, seccion: 'pasos3', trigger: true },
+  trigSupervisionWhatsApp: { label: 'Supervisión fe y espiritualidad', fase: 3, seccion: 'pasos3', trigger: true },
+  trigMarkSupervisionDone: { label: 'Supervisión realizada', fase: 3, seccion: 'pasos3', trigger: true },
+  // FASE 4
+  trigMarkAnnualDone: { label: 'Actualización de datos / CV realizada', fase: 4, seccion: 'pasos4', trigger: true }
+};
+
+/** Quita espacios y caracteres invisibles para comparar PIN sin sorpresas. */
+function limpiarPin_(valor) {
+  return String(valor === null || valor === undefined ? '' : valor)
+    .replace(/\s+/g, '')
+    .replace(/[​-‍﻿]/g, '');
+}
+
+/**
+ * Localiza la columna del PIN en Admin_Users por encabezado (tolera el nombre
+ * con y sin la 'i': Pin_adminstrador / Pin_administrador). Si no encuentra el
+ * encabezado usa la columna G, que es donde vive hoy.
+ */
+function indiceColumnaPin_(headers) {
+  for (var i = 0; i < headers.length; i++) {
+    var h = String(headers[i] || '').trim().toLowerCase().replace(/\s+/g, '_');
+    if (h === 'pin_adminstrador' || h === 'pin_administrador' || h === 'pin') return i;
+  }
+  return 6;
+}
+
+/**
+ * Valida que el PIN corresponda al administrador dueño de la sesión.
+ * Devuelve { nombre, email, role } si es correcto, o un objeto con .error.
+ */
+function validarPinDeAdmin_(adminToken, pin) {
+  var sheet = getSS().getSheetByName('Admin_Users');
+  if (!sheet) return { error: 'Hoja Admin_Users no encontrada.' };
+
+  var data = sheet.getDataRange().getValues();
+  if (!data.length) return { error: 'Hoja Admin_Users vacía.' };
+
+  var colPin = indiceColumnaPin_(data[0]);
+  var tokenNorm = String(adminToken || '').trim().toLowerCase();
+  var pinNorm = limpiarPin_(pin);
+  if (!pinNorm) return { error: 'Escribe tu PIN de administrador.' };
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][0] || '').trim().toLowerCase() !== tokenNorm) continue;
+    if (data[i][4] !== true) return { error: 'Tu usuario de administrador está inactivo.' };
+
+    var pinFila = limpiarPin_(data[i][colPin]);
+    var nombre = String(data[i][3] || '').trim();
+    if (!pinFila) {
+      return { error: 'No tienes PIN asignado. Pídele a un super admin que lo escriba en la columna Pin_adminstrador de Admin_Users.' };
+    }
+    if (pinFila !== pinNorm) return { error: 'PIN incorrecto.' };
+    if (!nombre) return { error: 'Tu fila en Admin_Users no tiene nombre (columna D). Complétala para poder aprobar.' };
+
+    return { nombre: nombre, email: String(data[i][1] || ''), role: String(data[i][2] || '') };
+  }
+  return { error: 'No se encontró tu usuario de administrador.' };
+}
+
+/** Índice (base 0) de una columna por su encabezado; -1 si no existe. */
+function indiceColumnaPorEncabezado_(sheet, encabezado) {
+  var lastCol = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  var objetivo = String(encabezado).trim().toLowerCase();
+  for (var i = 0; i < headers.length; i++) {
+    if (String(headers[i] || '').trim().toLowerCase() === objetivo) return i;
+  }
+  return -1;
+}
+
+function indiceColumnaAprobaciones_(sheet) {
+  return indiceColumnaPorEncabezado_(sheet, COL_APROBACIONES);
+}
+
+function indiceColumnaCarta2_(sheet) {
+  return indiceColumnaPorEncabezado_(sheet, COL_CARTA2);
+}
+
+/** true si la fila tiene subida la segunda carta de sacerdote. */
+function tieneCarta2_(row, iCarta2) {
+  if (iCarta2 === undefined || iCarta2 === null || iCarta2 < 0) return false;
+  var v = row[iCarta2];
+  return !!(v !== '' && v !== null && v !== undefined);
+}
+
+function parseAprobaciones_(valor) {
+  try { return JSON.parse(valor || '{}') || {}; } catch (e) { return {}; }
+}
+
+/** Cuenta palabras reales (ignora espacios de más). */
+function contarPalabras_(texto) {
+  var limpio = String(texto || '').trim();
+  if (!limpio) return 0;
+  return limpio.split(/\s+/).length;
+}
+
+/**
+ * Aprueba manualmente uno o varios pasos de un profesional.
+ * data: { token, pasos: [ids], motivo, pin, adminToken }
+ */
+function adminApproveSteps(data) {
+  try {
+    data = data || {};
+    var token = String(data.token || '').trim();
+    var pasos = data.pasos || [];
+    var motivo = String(data.motivo || '').trim().replace(/\s+/g, ' ');
+
+    if (!token) return { success: false, message: 'Falta el token del profesional.' };
+    if (!pasos.length) return { success: false, message: 'Selecciona al menos un paso.' };
+    if (pasos.length > 40) return { success: false, message: 'Demasiados pasos en una sola aprobación.' };
+    if (!motivo) return { success: false, message: 'Escribe el motivo de la aprobación.' };
+    if (contarPalabras_(motivo) > MAX_PALABRAS_MOTIVO) {
+      return { success: false, message: 'El motivo no puede pasar de ' + MAX_PALABRAS_MOTIVO + ' palabras.' };
+    }
+    if (motivo.length > 120) return { success: false, message: 'El motivo es demasiado largo.' };
+
+    // Pasos desconocidos: se rechaza todo para no guardar basura en la hoja.
+    var desconocidos = [];
+    for (var p = 0; p < pasos.length; p++) {
+      if (!PASOS_ONBOARDING[pasos[p]]) desconocidos.push(pasos[p]);
+    }
+    if (desconocidos.length) {
+      return { success: false, message: 'Paso no reconocido: ' + desconocidos.join(', ') };
+    }
+
+    var admin = validarPinDeAdmin_(data.adminToken, data.pin);
+    if (!admin || admin.error) {
+      return { success: false, message: (admin && admin.error) ? admin.error : 'PIN incorrecto.' };
+    }
+
+    var sheet = getSHEET();
+    var colAprob = getOrCreateColumn_(sheet, COL_APROBACIONES);
+    var filas = sheet.getDataRange().getValues();
+
+    for (var i = 1; i < filas.length; i++) {
+      if (String(filas[i][0] || '').trim() !== token) continue;
+
+      var rowNum = i + 1;
+      var aprob = parseAprobaciones_(filas[i][colAprob - 1]);
+      var marks = parseAprobaciones_(filas[i][23]);
+      var ahora = new Date();
+      var aplicados = [];
+
+      for (var k = 0; k < pasos.length; k++) {
+        var id = pasos[k];
+        var def = PASOS_ONBOARDING[id];
+        aprob[id] = {
+          motivo: motivo,
+          admin: admin.nombre,
+          adminEmail: admin.email,
+          fecha: ahora.toISOString()
+        };
+        // Los pasos que ya existían como marca manual se marcan también ahí,
+        // para que el resto del sistema (avance de fase) los vea completos.
+        if (def.trigger) marks[id] = ahora.toISOString();
+        aplicados.push(def.label);
+        try {
+          logAction(token, filas[i][2], 'Paso aprobado manualmente: ' + def.label + ' — ' + motivo,
+                    'Aprobacion_Manual', '', admin.nombre, admin.nombre);
+        } catch (le) {}
+      }
+
+      sheet.getRange(rowNum, colAprob).setValue(JSON.stringify(aprob));
+      sheet.getRange(rowNum, 24).setValue(JSON.stringify(marks));
+
+      // Mismo avance automático que al marcar un trigger a mano.
+      try {
+        aplicarAvanceAutomaticoPorTriggers_(rowNum, String(filas[i][8] || 'Fase 1'), marks,
+                                            token, filas[i][1], filas[i][2]);
+      } catch (advErr) { Logger.log('Error de avance tras aprobación: ' + advErr); }
+
+      return {
+        success: true,
+        message: aplicados.length === 1
+          ? ('Paso aprobado por ' + admin.nombre + '.')
+          : (aplicados.length + ' pasos aprobados por ' + admin.nombre + '.'),
+        aprobadoPor: admin.nombre,
+        fecha: ahora.toISOString()
+      };
+    }
+    return { success: false, message: 'Token no encontrado' };
+  } catch (e) {
+    Logger.log('❌ adminApproveSteps: ' + e);
+    return { success: false, message: e.toString() };
+  }
+}
+
+/**
+ * Avance de fase disparado por marcas manuales. Se extrajo de adminMarkAction
+ * para que la aprobación manual de pasos use exactamente la misma regla.
+ */
+function aplicarAvanceAutomaticoPorTriggers_(rowNum, currentPhase, marks, token, nombre, email) {
+  if (currentPhase === 'Fase 2' && marks['trigMarkSyncDone'] && marks['trigMarkZoomDone']) {
+    getSHEET().getRange(rowNum, 9).setValue('Fase 3');
+    logAction(token, email, 'Avance automático a Fase 3', 'Fase_Actual', 'Fase 2', 'Fase 3', 'Sistema');
+    try { sendPhase3WelcomeEmail(email, nombre, token); } catch (_) {}
+    try { moveContactToBrevoPhase(email, nombre, 'Fase 3', token); } catch (_) {}
+    Logger.log('✅ ' + nombre + ' avanzó a Fase 3 (auto)');
+  } else if (currentPhase === 'Fase 3' && marks['trigMarkSupervisionDone']) {
+    getSHEET().getRange(rowNum, 9).setValue('Fase 4');
+    logAction(token, email, 'Avance automático a Fase 4', 'Fase_Actual', 'Fase 3', 'Fase 4', 'Sistema');
+    try { moveContactToBrevoPhase(email, nombre, 'Fase 4', token); } catch (_) {}
+    Logger.log('✅ ' + nombre + ' avanzó a Fase 4 (auto)');
+  }
 }
 
 function adminResetOnboarding(token) {
@@ -1355,10 +1804,16 @@ function uploadFile(token, base64Data, fileName, fileType) {
     var file = userFolder.createFile(blob);
     
     var columnMap = { 'cv': 5, 'cedula': 6, 'titulo': 6, 'foto': 7, 'carta': 8 };
-    var colToUpdate = columnMap[fileType];
+    // La segunda carta de sacerdote no tiene columna fija: se busca (o se crea)
+    // por encabezado para no encimarse con nada de lo que ya existe.
+    var colToUpdate = fileType === 'carta2'
+      ? getOrCreateColumn_(getSHEET(), COL_CARTA2)
+      : columnMap[fileType];
+    if (!colToUpdate) throw new Error('Tipo de documento no reconocido: ' + fileType);
     getSHEET().getRange(userRow, colToUpdate).setValue(file.getUrl());
     
-    var docNames = { 'cv': 'CV', 'cedula': 'Cédula', 'titulo': 'Título', 'foto': 'Foto de perfil', 'carta': 'Carta de sacerdote' };
+    var docNames = { 'cv': 'CV', 'cedula': 'Cédula', 'titulo': 'Título', 'foto': 'Foto de perfil',
+                     'carta': 'Carta de sacerdote 1', 'carta2': 'Carta de sacerdote 2' };
     logAction(token, userEmail, 'Subió ' + docNames[fileType], docNames[fileType] + '_Url', '', file.getUrl(), 'Profesional');
     
     var rowData = data[userRow - 1];
@@ -1839,6 +2294,8 @@ function checkAndSendReminders() {
 
     // Pre-cargar mapa de aceptaciones legales (3 contratos)
     var legalMap = buildLegalAcceptanceMap_();
+    var iAprobRec = indiceColumnaAprobaciones_(getSHEET());
+    var iCarta2Rec = indiceColumnaCarta2_(getSHEET());
 
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
@@ -1857,8 +2314,10 @@ function checkAndSendReminders() {
       getSHEET().getRange(rowNum, 21).setValue(diasDesdeInicio);
 
       var lc = (legalMap[token] && legalMap[token].count) || 0;
-      var pendientes = calcularPendientes(row, lc);
-      var porcentajeProgreso = calcularProgreso(row, lc);
+      // Un paso aprobado a mano ya no debe generar recordatorios al profesional
+      var aprobRec = iAprobRec >= 0 ? parseAprobaciones_(row[iAprobRec]) : {};
+      var pendientes = calcularPendientes(row, lc, aprobRec, iCarta2Rec);
+      var porcentajeProgreso = calcularProgreso(row, lc, aprobRec, iCarta2Rec);
 
       // Recordatorio 1 (día 7): si falta al menos 1 contrato o tiene pendientes
       if (diasDesdeInicio >= 7 && !row[18]) {
@@ -2108,6 +2567,8 @@ function getEmailTypeInfo(emailType) {
 function getProfessionalStatus(token, expectedEmail) {
   try {
     var data = getSHEET().getDataRange().getValues();
+    var iAprobStatus = indiceColumnaAprobaciones_(getSHEET());
+    var iCarta2Status = indiceColumnaCarta2_(getSHEET());
     var tokenNorm = String(token || '').trim().toLowerCase();
     for (var i = 1; i < data.length; i++) {
       if (String(data[i][0] || '').trim().toLowerCase() === tokenNorm) {
@@ -2183,6 +2644,7 @@ function getProfessionalStatus(token, expectedEmail) {
         var rec1 = null, rec2 = null;
         try { if (row[18]) rec1 = new Date(row[18]).toISOString(); } catch(e){}
         try { if (row[19]) rec2 = new Date(row[19]).toISOString(); } catch(e){}
+        var aprobacionesFila = iAprobStatus >= 0 ? parseAprobaciones_(row[iAprobStatus]) : {};
         
         return {
           success: true,
@@ -2217,13 +2679,15 @@ function getProfessionalStatus(token, expectedEmail) {
             cv: !!(row[4] && row[4] !== ""),
             cedula: !!(row[5] && row[5] !== ""),
             foto: !!(row[6] && row[6] !== ""),
-            carta: !!(row[7] && row[7] !== "")
+            carta: !!(row[7] && row[7] !== ""),
+            carta2: tieneCarta2_(row, iCarta2Status)
           },
           documentosUrls: { 
             cv: String(row[4] || ""), 
             cedula: String(row[5] || ""), 
             foto: String(row[6] || ""), 
-            carta: String(row[7] || "") 
+            carta: String(row[7] || ""),
+            carta2: iCarta2Status >= 0 ? String(row[iCarta2Status] || "") : ""
           },
           plazos: {
             fechaInicio: fechaInicioISO, 
@@ -2234,8 +2698,10 @@ function getProfessionalStatus(token, expectedEmail) {
             recordatorio2: rec2, 
             fase1Completada: row[21] ? true : false
           },
-          progreso: calcularProgreso(row),
+          progreso: calcularProgreso(row, null, aprobacionesFila, iCarta2Status),
           emailHistory: emailHistory,
+          // Aprobaciones manuales por paso: { paso: { motivo, admin, fecha } }
+          aprobaciones: aprobacionesFila,
           triggerMarks: (function(){ try { return JSON.parse(row[23] || '{}'); } catch(e) { return {}; } })()
         };
       }
@@ -2641,10 +3107,14 @@ function getAllProfesionales() {
     var data = sheet.getDataRange().getValues();
     Logger.log('getAllProfesionales - rows: ' + data.length);
     var profesionales = [];
+    var iAprob = indiceColumnaAprobaciones_(sheet);
+    var iCarta2 = indiceColumnaCarta2_(sheet);
     
     for (var i = 1; i < data.length; i++) {
       var row = data[i];
-      if (row[0]) {
+      // Los archivados se consultan aparte (getArchivedProfesionales)
+      if (row[0] && String(row[9] || '') !== ESTADO_ARCHIVADO) {
+        var aprobFila = iAprob >= 0 ? parseAprobaciones_(row[iAprob]) : {};
         profesionales.push({
           token: String(row[0]),
           nombre: String(row[1] || ""),
@@ -2653,8 +3123,8 @@ function getAllProfesionales() {
           fase: String(row[8] || "Fase 1"),
           estado: String(row[9] || "En Progreso"),
           categoria: String(row[10] || ""),
-          progreso: calcularProgreso(row),
-          pendientes: calcularPendientes(row),
+          progreso: calcularProgreso(row, null, aprobFila, iCarta2),
+          pendientes: calcularPendientes(row, null, aprobFila, iCarta2),
           fechaRegistro: row[17] ? new Date(row[17]).toISOString() : new Date().toISOString()
         });
       }

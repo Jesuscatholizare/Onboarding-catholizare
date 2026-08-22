@@ -269,6 +269,11 @@
         <option value="PRIVACIDAD">Aviso de Privacidad</option>
         <option value="ETICA">Código de Ética</option>
       </select>
+      <select class="filter-select" id="filterEstatus">
+        <option value="">Todos los estatus</option>
+        <option value="ACEPTADA">Aceptada</option>
+        <option value="PENDIENTE">Pendiente</option>
+      </select>
       <span class="result-count" id="resultCount">—</span>
     </div>
 
@@ -379,6 +384,21 @@
 
     var allRows = [];
 
+    // Una aceptación cuenta como "Aceptada" cuando ya se envió la copia del
+    // contrato firmado (columna Copia_Enviada de la hoja).
+    function esAceptada(r) {
+      return String(r && r.copiaEnviada || '').trim().toLowerCase() === 'sí' ||
+             String(r && r.copiaEnviada || '').trim().toLowerCase() === 'si';
+    }
+
+    function filtrarPorEstatus(rows) {
+      var f = document.getElementById('filterEstatus').value;
+      if (!f) return rows;
+      return rows.filter(function(r) {
+        return f === 'ACEPTADA' ? esAceptada(r) : !esAceptada(r);
+      });
+    }
+
     function load() {
       var search = document.getElementById('searchInput').value.trim();
       var docFilter = document.getElementById('filterDoc').value;
@@ -396,13 +416,18 @@
           return;
         }
         allRows = r.data || [];
-        renderTable(allRows);
-        updateStats(allRows);
-        document.getElementById('resultCount').textContent = allRows.length + ' registro' + (allRows.length === 1 ? '' : 's');
+        aplicarFiltros();
       }).catch(function(e) {
         document.getElementById('tableContent').innerHTML =
           '<div class="empty">Error de conexión: ' + escapeHtml(e.message) + '</div>';
       });
+    }
+
+    function aplicarFiltros() {
+      var rows = filtrarPorEstatus(allRows);
+      renderTable(rows);
+      updateStats(rows);
+      document.getElementById('resultCount').textContent = rows.length + ' registro' + (rows.length === 1 ? '' : 's');
     }
 
     function updateStats(rows) {
@@ -428,7 +453,7 @@
         '<th>Contrato</th>' +
         '<th>Versión</th>' +
         '<th>Fecha y hora</th>' +
-        '<th>Copia</th>' +
+        '<th>Estatus</th>' +
         '</tr></thead><tbody>';
       rows.forEach(function(r) {
         html += '<tr onclick="openDetail(\'' + escapeHtml(r.folio) + '\')">' +
@@ -437,7 +462,7 @@
           '<td>' + docBadge(r.docId) + '</td>' +
           '<td>v' + escapeHtml(r.version) + '</td>' +
           '<td>' + fmtDate(r.fecha) + '</td>' +
-          '<td>' + (r.copiaEnviada === 'Sí' ? '<span style="color:var(--green-ok);font-weight:600;">✓ Enviada</span>' : '<span style="color:var(--orange);">Pendiente</span>') + '</td>' +
+          '<td>' + (esAceptada(r) ? '<span style="color:var(--green-ok);font-weight:600;">✓ Aceptada</span>' : '<span style="color:var(--orange);">Pendiente</span>') + '</td>' +
           '</tr>';
       });
       html += '</tbody></table>';
@@ -515,6 +540,7 @@
       searchTimer = setTimeout(load, 250);
     });
     document.getElementById('filterDoc').addEventListener('change', load);
+    document.getElementById('filterEstatus').addEventListener('change', aplicarFiltros);
 
     load();
   </script>
